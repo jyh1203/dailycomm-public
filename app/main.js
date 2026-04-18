@@ -226,10 +226,11 @@ function renderBuilderAiActionButton(key, options = {}) {
   } = options;
   const enabled = Boolean(state.capabilities?.aiSummarize);
   const busy = state.aiBusyKey === key;
+  const canConnect = hasRemoteAiConfigured();
   const buttonClass = mode === 'detail' ? 'primary-btn' : 'ghost-btn';
   const label = enabled
     ? (busy ? 'AI 정리 중...' : 'AI 정리')
-    : 'AI 연결 필요';
+    : (canConnect ? 'AI 연결' : 'AI 연결 필요');
 
   return `
     <div class="inline-actions compact ai-actions ${extraClass}">
@@ -237,7 +238,7 @@ function renderBuilderAiActionButton(key, options = {}) {
         class="${buttonClass}"
         ${id ? `id="${id}"` : ''}
         data-builder-ai="${escapeHtml(key)}"
-        ${!enabled || busy ? 'disabled' : ''}
+        ${(!enabled && !canConnect) || busy ? 'disabled' : ''}
       >
         ${label}
       </button>
@@ -284,12 +285,118 @@ function fetchJson(url, fallback, options = {}) {
     .catch(() => fallback);
 }
 
+function deploymentConfig(config = state.config) {
+  return config?.deployment && typeof config.deployment === 'object' ? config.deployment : {};
+}
+
+function getAiApiBase(config = state.config) {
+  const configured = String(deploymentConfig(config).aiApiBase || '').trim();
+  return configured ? configured.replace(/\/+$/u, '') : '../api';
+}
+
+function hasRemoteAiConfigured(config = state.config) {
+  const configured = String(deploymentConfig(config).aiApiBase || '').trim();
+  return Boolean(configured);
+}
+
+function getStoredAiToken() {
+  try {
+    return String(window.localStorage.getItem('dailycomm.aiToken') || '').trim();
+  } catch {
+    return '';
+  }
+}
+
+function setStoredAiToken(value) {
+  try {
+    if (value) {
+      window.localStorage.setItem('dailycomm.aiToken', value);
+      return;
+    }
+    window.localStorage.removeItem('dailycomm.aiToken');
+  } catch {
+    // ignore storage failures
+  }
+}
+
+function buildAiApiUrl(pathname, config = state.config) {
+  return `${getAiApiBase(config)}${pathname}`;
+}
+
+async function fetchAiCapabilities(config = state.config) {
+  const token = getStoredAiToken();
+  const headers = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  try {
+    const response = await fetch(buildAiApiUrl('/capabilities', config), {
+      cache: 'no-store',
+      headers
+    });
+
+    if (!response.ok) {
+      return {
+        aiSummarize: false,
+        requiresToken: false
+      };
+    }
+
+    return await response.json();
+  } catch {
+    return {
+      aiSummarize: false,
+      requiresToken: false
+    };
+  }
+}
+
+async function connectRemoteAiAccess() {
+  if (!hasRemoteAiConfigured()) {
+    showToast('AI API 주소가 설정되지 않았습니다.');
+    return false;
+  }
+
+  if (window.location.protocol === 'https:' && /^http:\/\//i.test(getAiApiBase())) {
+    showToast('공개 페이지에서는 HTTPS AI API 주소가 필요합니다.');
+    return false;
+  }
+
+  const current = getStoredAiToken();
+  const token = window.prompt('AI 접근 토큰을 입력하세요.', current);
+  if (token === null) return false;
+
+  setStoredAiToken(String(token).trim());
+  const capabilitiesPayload = await fetchAiCapabilities();
+  state.capabilities = {
+    aiSummarize: Boolean(capabilitiesPayload?.aiSummarize),
+    provider: String(capabilitiesPayload?.provider || ''),
+    model: String(capabilitiesPayload?.model || ''),
+    requiresToken: Boolean(capabilitiesPayload?.requiresToken)
+  };
+
+  if (!state.capabilities.aiSummarize) {
+    showToast('AI 연결을 확인해주세요.');
+    return false;
+  }
+
+  showToast('AI 연결이 완료되었습니다.');
+  return true;
+}
+
 async function requestAiSummary(article) {
-  const response = await fetch('../api/ai/summarize', {
+  const token = getStoredAiToken();
+  const headers = {
+    'Content-Type': 'application/json; charset=utf-8'
+  };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const response = await fetch(buildAiApiUrl('/ai/summarize'), {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json; charset=utf-8'
-    },
+    headers,
     body: JSON.stringify({
       article: {
         title: article?.title || '',
@@ -303,6 +410,11 @@ async function requestAiSummary(article) {
   });
 
   const payload = await response.json().catch(() => null);
+  if (response.status === 401) {
+    setStoredAiToken('');
+    throw new Error(payload?.error || 'AI 접근 토큰을 다시 입력해주세요.');
+  }
+
   if (!response.ok) {
     throw new Error(payload?.error || 'AI 정리에 실패했습니다.');
   }
@@ -1940,7 +2052,10 @@ function renderReportBuilder() {
     button.addEventListener('click', async (event) => {
       event.stopPropagation();
       if (!state.capabilities?.aiSummarize) {
-        showToast('Gemini API 키 연결 상태를 확인해주세요.');
+        const connected = await connectRemoteAiAccess();
+        if (connected) {
+          renderReportBuilder();
+        }
         return;
       }
       await summarizeDraftItemWithAi(button.dataset.builderAi);
@@ -3279,11 +3394,6 @@ async function loadData() {
   render(state.activePage);
 
   const configPromise = fetchJson('../crawler/config/default.json', null, { cacheBust: true, noStore: true });
-  const capabilitiesPromise = fetchJson('../api/capabilities', {
-    aiSummarize: false,
-    provider: '',
-    model: ''
-  }, { cacheBust: true, noStore: true });
   let resolvedDate = state.date;
   let { articlePayload, reportPayload, segmentsPayload } = await fetchDateArtifacts(resolvedDate);
 
@@ -3297,7 +3407,8 @@ async function loadData() {
     }
   }
 
-  const [configPayload, capabilitiesPayload] = await Promise.all([configPromise, capabilitiesPromise]);
+  const configPayload = await configPromise;
+  const capabilitiesPayload = await fetchAiCapabilities(configPayload || {});
 
   const articles = normalizeArticles(articlePayload);
 
@@ -3317,7 +3428,8 @@ async function loadData() {
   state.capabilities = {
     aiSummarize: Boolean(capabilitiesPayload?.aiSummarize),
     provider: String(capabilitiesPayload?.provider || ''),
-    model: String(capabilitiesPayload?.model || '')
+    model: String(capabilitiesPayload?.model || ''),
+    requiresToken: Boolean(capabilitiesPayload?.requiresToken)
   };
   initializeReportDraft();
   normalizeInboxKeywordFilter();

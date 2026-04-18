@@ -39,6 +39,7 @@
   ],
   "classificationDictionary": {},
   "deployment": {
-    "visibility": "public-readonly"
+    "visibility": "public-readonly",
+    "aiApiBase": "https://dailycomm-ai.duckdns.org/api"
   }
 }
