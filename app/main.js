@@ -233,7 +233,7 @@ function renderBuilderAiActionButton(key, options = {}) {
   const label = enabled
     ? (busy ? 'AI 정리 중...' : 'AI 정리')
     : (canConnect ? 'AI 연결' : 'AI 연결 필요');
-  const tokenInput = mode === 'detail' && canConnect && !enabled
+  const tokenInput = mode === 'detail' && canConnect
     ? `
       <label class="ai-token-field">
         <span>AI 접근 토큰</span>
@@ -2763,7 +2763,6 @@ renderBuilderColumn = function renderBuilderColumnOverride(sectionName, items) {
               <div class="builder-chip-row">
                 <span class="panel-pill ${sectionName === 'major' ? 'tone-main' : 'tone-industry'}">${sectionLabel(sectionName)}</span>
               </div>
-                ${renderBuilderAiActionButton(entryKey)}
                 <div class="inline-actions compact">
                   <button class="ghost-btn" data-builder-open="${escapeHtml(article.url || '')}">원문 열기</button>
                   ${sectionName === 'major'

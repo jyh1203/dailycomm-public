@@ -277,7 +277,8 @@ a {
 .date-pill,
 .panel-pill,
 .annotation,
-.status-badge {
+.status-badge,
+.drag-label {
   min-height: 32px;
   padding: 7px 12px;
   font-size: 12px;
@@ -618,8 +619,9 @@ main {
 .spotlight-tag,
 .drag-label {
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: fit-content;
-  padding: 6px 10px;
   border-radius: 999px;
   background: rgba(0, 64, 148, 0.08);
   color: var(--primary);
