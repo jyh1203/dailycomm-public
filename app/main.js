@@ -1915,14 +1915,7 @@ function renderBuilderDetailPanel() {
       <div class="builder-chip-row">
         <span class="panel-pill ${location.sectionName === 'major' ? 'tone-main' : 'tone-industry'}">${sectionLabel(location.sectionName)}</span>
       </div>
-      ${!state.capabilities?.aiSummarize ? renderBuilderAiActionButton(key, { mode: 'detail', id: 'builder-ai-summarize' }) : ''}
-      ${state.capabilities?.aiSummarize
-        ? `<div class="inline-actions compact ai-actions">
-            <button class="primary-btn" id="builder-ai-summarize" ${state.aiBusyKey === key ? 'disabled' : ''}>
-              ${state.aiBusyKey === key ? 'AI 정리 중...' : 'AI 정리'}
-            </button>
-          </div>`
-        : ''}
+      ${renderBuilderAiActionButton(key, { mode: 'detail', id: 'builder-ai-summarize' })}
       <div class="inline-actions compact">
         <button class="ghost-btn" id="builder-detail-open">원문 열기</button>
       </div>
@@ -2788,13 +2781,7 @@ renderBuilderDetailPanel = function renderBuilderDetailPanelOverride() {
       <div class="builder-chip-row">
         <span class="panel-pill ${location.sectionName === 'major' ? 'tone-main' : 'tone-industry'}">${sectionLabel(location.sectionName)}</span>
       </div>
-      ${state.capabilities?.aiSummarize
-        ? `<div class="inline-actions compact ai-actions">
-            <button class="primary-btn" id="builder-ai-summarize" ${state.aiBusyKey === key ? 'disabled' : ''}>
-              ${state.aiBusyKey === key ? 'AI 정리 중...' : 'AI 정리'}
-            </button>
-          </div>`
-        : ''}
+      ${renderBuilderAiActionButton(key, { mode: 'detail', id: 'builder-ai-summarize' })}
       <div class="inline-actions compact">
         <button class="ghost-btn" id="builder-detail-open">원문 열기</button>
       </div>
