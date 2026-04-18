@@ -1,0 +1,44 @@
+{
+  "keywords": [
+    "김범수",
+    "정신아",
+    "카카오",
+    "메타",
+    "OpenAI",
+    "Anthropic",
+    "스테이블 코인",
+    "마이크로소프트",
+    "엔비디아",
+    "아마존",
+    "테슬라",
+    "삼성전자",
+    "하이닉스"
+  ],
+  "schedule": [
+    "07:30",
+    "08:30"
+  ],
+  "mediaWhitelistLabels": [
+    "조선일보",
+    "중앙일보",
+    "동아일보",
+    "한겨레",
+    "경향신문",
+    "한국일보",
+    "매일경제",
+    "한국경제",
+    "서울경제",
+    "머니투데이",
+    "연합뉴스",
+    "뉴시스",
+    "KBS",
+    "MBC",
+    "SBS",
+    "YTN",
+    "JTBC"
+  ],
+  "classificationDictionary": {},
+  "deployment": {
+    "visibility": "public-readonly"
+  }
+}

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DailyComm</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="side-panel">
+        <div class="brand-block">
+          <span class="eyebrow">Daily Comm</span>
+          <h1>Daily Comm Report</h1>
+          <p>기사 검토부터 리포트 발행까지 한 화면에서 관리합니다.</p>
+        </div>
+
+        <nav class="side-nav" aria-label="Primary">
+          <button class="nav-btn" data-page="dashboard" aria-label="Dashboard">
+            <strong>대시보드</strong>
+            <small>현황</small>
+          </button>
+          <button class="nav-btn" data-page="inbox" aria-label="Article Inbox">
+            <strong>기사 인박스</strong>
+            <small>분류</small>
+          </button>
+          <button class="nav-btn" data-page="builder" aria-label="Report Builder">
+            <strong>리포트 빌더</strong>
+            <small>편집</small>
+          </button>
+          <button class="nav-btn" data-page="kakao" aria-label="Kakao Preview">
+            <strong>카카오 프리뷰</strong>
+            <small>검수</small>
+          </button>
+          <button class="nav-btn" data-page="settings" aria-label="Settings">
+            <strong>설정</strong>
+            <small>운영</small>
+          </button>
+        </nav>
+
+        <section class="runtime-card" id="runtime-card">
+          <p class="runtime-label">오늘 상태</p>
+          <div class="runtime-grid">
+            <div>
+              <span>생성</span>
+              <strong id="runtime-generated">-</strong>
+            </div>
+            <div>
+              <span>기사</span>
+              <strong id="runtime-usable">-</strong>
+            </div>
+            <div>
+              <span>리포트</span>
+              <strong id="runtime-report">-</strong>
+            </div>
+            <div>
+              <span>세그먼트</span>
+              <strong id="runtime-segments">-</strong>
+            </div>
+          </div>
+          <p class="runtime-status" id="runtime-status">Loading</p>
+        </section>
+      </aside>
+
+      <div class="workspace">
+        <header class="workspace-header">
+          <div>
+            <p class="eyebrow" id="workspace-kicker">Daily Comm</p>
+            <h2 id="workspace-title">대시보드</h2>
+            <p class="workspace-subtitle" id="workspace-subtitle">오늘 리포트 운영 상태를 빠르게 확인합니다.</p>
+          </div>
+          <div class="workspace-actions">
+            <div class="date-pill" id="header-date">-</div>
+            <button class="ghost-btn" id="header-open-report" aria-label="Open Report">리포트 열기</button>
+            <button class="primary-btn" id="header-run-crawl" aria-label="Run Crawl">크롤링</button>
+          </div>
+        </header>
+
+        <main id="app"></main>
+      </div>
+    </div>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>
