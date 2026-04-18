@@ -770,8 +770,8 @@ main {
 }
 
 .ai-actions {
+  display: grid;
   align-items: center;
-  justify-content: space-between;
   gap: 10px;
 }
 
@@ -782,6 +782,18 @@ main {
 .ai-actions .small-copy {
   color: var(--text-soft);
   white-space: nowrap;
+}
+
+.ai-token-field {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+}
+
+.ai-token-field span {
+  color: var(--text-soft);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .chip-group {

@@ -82,6 +82,8 @@ let state = {
 };
 
 let toastId = 0;
+const AI_TOKEN_STORAGE_KEY = 'input_ai_token';
+const AI_TOKEN_LEGACY_STORAGE_KEY = 'dailycomm.aiToken';
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -231,9 +233,27 @@ function renderBuilderAiActionButton(key, options = {}) {
   const label = enabled
     ? (busy ? 'AI 정리 중...' : 'AI 정리')
     : (canConnect ? 'AI 연결' : 'AI 연결 필요');
+  const tokenInput = mode === 'detail' && canConnect && !enabled
+    ? `
+      <label class="ai-token-field">
+        <span>AI 접근 토큰</span>
+        <input
+          type="password"
+          name="${AI_TOKEN_STORAGE_KEY}"
+          autocomplete="off"
+          autocapitalize="none"
+          spellcheck="false"
+          data-ai-token-input="${escapeHtml(key)}"
+          placeholder="AI 접근 토큰 입력"
+          value="${escapeHtml(getStoredAiToken())}"
+        />
+      </label>
+    `
+    : '';
 
   return `
     <div class="inline-actions compact ai-actions ${extraClass}">
+      ${tokenInput}
       <button
         class="${buttonClass}"
         ${id ? `id="${id}"` : ''}
@@ -301,7 +321,11 @@ function hasRemoteAiConfigured(config = state.config) {
 
 function getStoredAiToken() {
   try {
-    return String(window.localStorage.getItem('dailycomm.aiToken') || '').trim();
+    return String(
+      window.localStorage.getItem(AI_TOKEN_STORAGE_KEY)
+        || window.localStorage.getItem(AI_TOKEN_LEGACY_STORAGE_KEY)
+        || ''
+    ).trim();
   } catch {
     return '';
   }
@@ -310,10 +334,12 @@ function getStoredAiToken() {
 function setStoredAiToken(value) {
   try {
     if (value) {
-      window.localStorage.setItem('dailycomm.aiToken', value);
+      window.localStorage.setItem(AI_TOKEN_STORAGE_KEY, value);
+      window.localStorage.removeItem(AI_TOKEN_LEGACY_STORAGE_KEY);
       return;
     }
-    window.localStorage.removeItem('dailycomm.aiToken');
+    window.localStorage.removeItem(AI_TOKEN_STORAGE_KEY);
+    window.localStorage.removeItem(AI_TOKEN_LEGACY_STORAGE_KEY);
   } catch {
     // ignore storage failures
   }
@@ -363,11 +389,11 @@ async function connectRemoteAiAccess() {
     return false;
   }
 
-  const current = getStoredAiToken();
-  const token = window.prompt('AI 접근 토큰을 입력하세요.', current);
-  if (token === null) return false;
-
-  setStoredAiToken(String(token).trim());
+  const token = getStoredAiToken();
+  if (!token) {
+    showToast('AI 접근 토큰을 먼저 입력해주세요.');
+    return false;
+  }
   const capabilitiesPayload = await fetchAiCapabilities();
   state.capabilities = {
     aiSummarize: Boolean(capabilitiesPayload?.aiSummarize),
@@ -2052,6 +2078,15 @@ function renderReportBuilder() {
         return;
       }
       await summarizeDraftItemWithAi(button.dataset.builderAi);
+    });
+  });
+
+  app.querySelectorAll('[data-ai-token-input]').forEach((input) => {
+    input.addEventListener('click', (event) => {
+      event.stopPropagation();
+    });
+    input.addEventListener('input', (event) => {
+      setStoredAiToken(String(event.target.value || '').trim());
     });
   });
 
