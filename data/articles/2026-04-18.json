@@ -1,14 +1,14 @@
 {
   "metadata": {
-    "generatedAt": "2026-04-18T11:11:48.893Z",
+    "generatedAt": "2026-04-18T11:24:30.914Z",
     "stats": {
-      "totalRaw": 91,
+      "totalRaw": 92,
       "totalDeduped": 85,
       "validUrlCount": 85,
       "invalidUrlDropped": 0,
       "unusableCandidateDropped": 0,
       "emptyTitleDropped": 0,
-      "canonicalizedCount": 206,
+      "canonicalizedCount": 210,
       "failedKeywords": [
         "김범수",
         "정신아"
@@ -24,28 +24,41 @@
       "sourceDomainUnknownCount": 0,
       "droppedLowRelevanceCount": 125,
       "droppedNoIdCount": 0,
-      "noUsableCandidatePages": 71,
-      "droppedMediaMismatchCount": 405,
+      "noUsableCandidatePages": 70,
+      "droppedMediaMismatchCount": 400,
       "droppedKeywordRuleCount": 20,
-      "droppedPeriodCount": 0,
-      "droppedBlockedTextCount": 43,
+      "droppedPeriodCount": 1,
+      "droppedBlockedTextCount": 39,
       "englishOnlyDropped": 0,
       "dropReasonCount": {
-        "media_not_whitelisted": 405,
-        "blocked_boilerplate_text": 43,
+        "media_not_whitelisted": 400,
+        "blocked_boilerplate_text": 39,
         "keyword_excluded": 5,
-        "keyword_include_miss": 15
+        "keyword_include_miss": 15,
+        "outside_period_d": 1
       }
     }
   },
   "articles": [
     {
+      "title": "동영상 첨부된 문서",
+      "url": "https://v.daum.net/v/20260418201604221",
+      "summary": "강은입니다. 영상편집: 신재란 MBC 뉴스는 24시간 여러분의 제보를 기다립니다. ▷ 전화 02-784-4000 ▷ 이메일 mbcjebo@mbc.co.kr ▷ 카카오톡 @mbc제보 영상편집: 신재란 강은 기자(river@mbc.co.kr) 기사 원문 - https://imnews.imbc.com/replay/2026/nwdesk...",
+      "publisher": "MBC",
+      "recencyText": "7분 전",
+      "recencyScore": 7,
+      "source": "daum",
+      "keyword": "카카오",
+      "section": "major",
+      "sourceDomainUnknown": false
+    },
+    {
       "title": "[속보] 영국 해사무역기구 \"이란 혁명수비대, 유조선에 발포\"",
       "url": "https://v.daum.net/v/20260418195814952",
       "summary": "네이버 메인에서 확인하세요. ▶MBC뉴스는 24 시간 여러분의 제보를 기다립니다. ▷전화 02-784-4000 ▷ 이메일 mbcjebo@mbc.co.kr ▷ 카카오톡 @mbc제보 박성원 기자(want@mbc.co.kr) 기사 원문 - https://imnews.imbc.com/news/2026/world/article/6816267_36925.html",
       "publisher": "MBC",
-      "recencyText": "12분 전",
-      "recencyScore": 12,
+      "recencyText": "24분 전",
+      "recencyScore": 24,
       "source": "daum",
       "keyword": "카카오",
       "section": "major",
@@ -56,34 +69,10 @@
       "url": "https://v.daum.net/v/20260418192057543",
       "summary": "다리오 아모데이 앤트로픽 최고경영자(CEO)와 피트 헤그세스 미국 국방장관(오른쪽). AFP연합뉴스 인공지능(AI) 활용 범위를 놓고 미국 행정부와 갈등 끝에 소송전을 진행 중인 앤트로픽이 백악관과 회동했다. 양 측은 앤트로픽의 새 AI 모델 ‘클로드 미토스’의...",
       "publisher": "경향신문",
-      "recencyText": "49분 전",
-      "recencyScore": 49,
+      "recencyText": "1시간 전",
+      "recencyScore": 60,
       "source": "daum",
       "keyword": "Anthropic",
-      "section": "industry",
-      "sourceDomainUnknown": false
-    },
-    {
-      "title": "'괜히 7년 기다렸나' 혹평 쏟아지더니…신고가 뚫고 '대반전' [테크로그]",
-      "url": "https://v.daum.net/v/20260418181813735",
-      "summary": "설명하며 개선 작업을 이어가겠다고 밝혔다. 이후 이용자 평가는 점차 회복세를 보였고 스팀 평가는 ‘매우 긍정적(80%)’으로, 메타스코어는 87점으로 올라섰다. 그러자 판매 속도도 가팔라졌다. 붉은사막은 출시 첫날 200만장, 나흘 만에 300만장, 12일 만에 400만...",
-      "publisher": "한국경제",
-      "recencyText": "1시간 전",
-      "recencyScore": 60,
-      "source": "daum",
-      "keyword": "메타",
-      "section": "industry",
-      "sourceDomainUnknown": false
-    },
-    {
-      "title": "동영상 첨부된 문서",
-      "url": "https://v.daum.net/v/20260418184614145",
-      "summary": "셀이라고 합니다. 주식, 그동안에 이익 났던 거 팔고 그러다 보니 우리 같은 경우에는 반도체주들 집중적으로 매도하다 보니까 삼성전자, SK하이닉스를 위주로 해서 많이 팔다 보니까 외국인 투자자들이 많이 빠졌지만 그러나 이 소식 반영 전 뉴욕 증시는 그동안...",
-      "publisher": "YTN",
-      "recencyText": "1시간 전",
-      "recencyScore": 60,
-      "source": "daum",
-      "keyword": "삼성전자",
       "section": "industry",
       "sourceDomainUnknown": false
     },
@@ -100,14 +89,14 @@
       "sourceDomainUnknown": false
     },
     {
-      "title": "삼전·닉스 돈잔치에 '훈수'…\"부동산 못 사게 지역화폐로\"",
-      "url": "https://v.daum.net/v/20260418161434007",
-      "summary": "사진=한경DB 반도체 호황으로 삼성전자와 SK하이닉스의 내년 성과급이 수억 원대에 달할 것이라는 전망이 나온 가운데 온라인에서는 내수 진작을 위해 성과급을 지역 화폐로 지급해야 한다는 주장이 제기되고 있다. 18일 직장인 익명 커뮤니티 ‘블라인드’ 등에서는...",
+      "title": "'괜히 7년 기다렸나' 혹평 쏟아지더니…신고가 뚫고 '대반전' [테크로그]",
+      "url": "https://v.daum.net/v/20260418181813735",
+      "summary": "설명하며 개선 작업을 이어가겠다고 밝혔다. 이후 이용자 평가는 점차 회복세를 보였고 스팀 평가는 ‘매우 긍정적(80%)’으로, 메타스코어는 87점으로 올라섰다. 그러자 판매 속도도 가팔라졌다. 붉은사막은 출시 첫날 200만장, 나흘 만에 300만장, 12일 만에 400만...",
       "publisher": "한국경제",
-      "recencyText": "3시간 전",
-      "recencyScore": 180,
+      "recencyText": "2시간 전",
+      "recencyScore": 120,
       "source": "daum",
-      "keyword": "삼성전자",
+      "keyword": "메타",
       "section": "industry",
       "sourceDomainUnknown": false
     },
@@ -120,6 +109,18 @@
       "recencyScore": 240,
       "source": "daum",
       "keyword": "테슬라",
+      "section": "industry",
+      "sourceDomainUnknown": false
+    },
+    {
+      "title": "삼전·닉스 돈잔치에 '훈수'…\"부동산 못 사게 지역화폐로\"",
+      "url": "https://v.daum.net/v/20260418161434007",
+      "summary": "사진=한경DB 반도체 호황으로 삼성전자와 SK하이닉스의 내년 성과급이 수억 원대에 달할 것이라는 전망이 나온 가운데 온라인에서는 내수 진작을 위해 성과급을 지역 화폐로 지급해야 한다는 주장이 제기되고 있다. 18일 직장인 익명 커뮤니티 ‘블라인드’ 등에서는...",
+      "publisher": "한국경제",
+      "recencyText": "4시간 전",
+      "recencyScore": 240,
+      "source": "daum",
+      "keyword": "삼성전자",
       "section": "industry",
       "sourceDomainUnknown": false
     },
@@ -160,18 +161,6 @@
       "sourceDomainUnknown": false
     },
     {
-      "title": "\"육천피 찍어도 아직 싸다\"…'역대급 저평가' 알짜 종목들 [한경우의 케이스스터디]",
-      "url": "https://v.daum.net/v/20260418131302107",
-      "summary": "4월16일 종가가 하락하지 않았으며 △12개월 선행 PER은 5% 이상 하락한 21개 종목을 추렸다. 자료=에프앤가이드 데이터가이드 삼성전자의 12개월 선행 PER은 2월 말 9.42배에서 4월16일 5.54배로 41.2% 낮아졌다. 주가는 21만6500원에서 21만7500원으로 0.46% 상승...",
-      "publisher": "한국경제",
-      "recencyText": "6시간 전",
-      "recencyScore": 360,
-      "source": "daum",
-      "keyword": "삼성전자",
-      "section": "industry",
-      "sourceDomainUnknown": false
-    },
-    {
       "title": "테슬라 주가 반등 와중에...휴머노이드 비관 전망 나왔다 [김기혁의 테슬라월드]",
       "url": "https://v.daum.net/v/20260418140209548",
       "summary": "일론 머스크 테슬라 최고경영자(CEO)가 옵티머스와 함께 포즈를 취하고 있다. 엑스 캡처 ※ ‘김기혁의 테슬라월드’를 구독하시면 테슬라와 일론 머스크가 추진하는 전기차·로봇·AI·자율주행·에너지 산업의 미래를 쉽게 파악하실 수 있습니다. 외신과 국내 뉴스...",
@@ -188,6 +177,18 @@
       "url": "https://v.daum.net/v/20260418125706935",
       "summary": "과반수 노조 지위가 확정된 상태가 아니다\"라는 공식 입장을 냈다. 18일 고용노동부에 따르면, 경기지방고용노동청은 전날(17일) 삼성전자 초기업노조의 법적 근로자대표 지위 확보와 관련해 \"사실이 아니다\"라고 반박했다. 앞서 삼성전자 초기업노조는 17일 기자...",
       "publisher": "뉴시스",
+      "recencyText": "7시간 전",
+      "recencyScore": 420,
+      "source": "daum",
+      "keyword": "삼성전자",
+      "section": "industry",
+      "sourceDomainUnknown": false
+    },
+    {
+      "title": "\"육천피 찍어도 아직 싸다\"…'역대급 저평가' 알짜 종목들 [한경우의 케이스스터디]",
+      "url": "https://v.daum.net/v/20260418131302107",
+      "summary": "4월16일 종가가 하락하지 않았으며 △12개월 선행 PER은 5% 이상 하락한 21개 종목을 추렸다. 자료=에프앤가이드 데이터가이드 삼성전자의 12개월 선행 PER은 2월 말 9.42배에서 4월16일 5.54배로 41.2% 낮아졌다. 주가는 21만6500원에서 21만7500원으로 0.46% 상승...",
+      "publisher": "한국경제",
       "recencyText": "7시간 전",
       "recencyScore": 420,
       "source": "daum",
@@ -472,18 +473,6 @@
       "sourceDomainUnknown": false
     },
     {
-      "title": "조국은 평택에서 살까 죽을까",
-      "url": "https://v.daum.net/v/20260418091313601",
-      "summary": "이병진 후보가 54.23%를 얻어 45.76%에 그친 국민의힘 정우성 후보를 큰 표 차이로 이겼던 곳입니다. 원래 농촌지역이었지만 삼성전자 평택공장이 들어선 고덕 신도시에 젊은 노동 인구들이 유입되면서 진보 진영 쪽으로 정치지형이 변해가고 있기 때문인데요, 조국...",
-      "publisher": "MBC",
-      "recencyText": "10시간 전",
-      "recencyScore": 600,
-      "source": "daum",
-      "keyword": "삼성전자",
-      "section": "industry",
-      "sourceDomainUnknown": false
-    },
-    {
       "title": "'그들만의 '45조 보상' 요구'에 초과이익 '사회적 환원' 논의도 [삼성전자 성과급 딜레마④]",
       "url": "https://v.daum.net/v/20260418090119421",
       "summary": "장기호황)에 힘입어 올해 연간 270조~300조원의 영업이익을 올릴 것으로 전망된다. 삼성전자는 올해 글로벌 빅테크 가운데 엔비디아에 이어 영업이익 2위를 기록할 것으로 보인다. 심지어 내년에는 엔비디아를 넘어 세계 1위 영업이익을 기록할 수 있다는 분석도...",
@@ -532,18 +521,6 @@
       "sourceDomainUnknown": false
     },
     {
-      "title": "\"머스크 형제, 2만3천400 비트코인 보유…2조5천억원 상당\"",
-      "url": "https://v.daum.net/v/20260418082304054",
-      "summary": "만큼, 형제가 보유한 비트코인의 가치는 17억 달러(약 2조5천억원)에 달하는 셈이다. 현재 일론 머스크가 이끄는 전기차 업체 테슬라가 1만1천509 비트코인, 항공우주 업체 스페이스X가 8천285 비트코인을 갖고 있다. 양사 보유량을 제외해보면 머스크 형제가 개인적...",
-      "publisher": "연합뉴스",
-      "recencyText": "11시간 전",
-      "recencyScore": 660,
-      "source": "daum",
-      "keyword": "테슬라",
-      "section": "industry",
-      "sourceDomainUnknown": false
-    },
-    {
       "title": "\"삼전·하이닉스 억대 성과급, 지역화폐로 줘라\"...부동산 투자할까 봐? '시끌'",
       "url": "https://v.daum.net/v/20260418090532527",
       "summary": "사진은 기사 내용과 직접적 관련 없음. /사진=게티이미지뱅크 반도체 업계 호황으로 삼성전자와 SK하이닉스 임직원의 내년 성과급이 수억원에 달할 것이란 전망이 나온 가운데, 온라인 커뮤니티를 중심으로 성과급을 지역화폐로 지급해야 한다는 주장이 제기됐다...",
@@ -580,14 +557,14 @@
       "sourceDomainUnknown": false
     },
     {
-      "title": "전쟁 이후 첫 여객선 해협 통과..트럼프 \"핵 프로그램도 끝내야\" [글로벌마켓 A/S]",
-      "url": "https://v.daum.net/v/20260418082014032",
-      "summary": "대형 우량주, 성장주에 더 건설적인 진입 시점을 제공한다\"고 평가했다. 이달 27일부터 5월 1일 사이 마이크로소프트·알파벳·메타·애플·아마존 등 S&P500 기업의 45%가 성적표를 공개하고, 규제 당국의 인가를 받은 미 기업 자사주 매입 규모도 사상 최대인...",
-      "publisher": "한국경제",
+      "title": "조국은 평택에서 살까 죽을까",
+      "url": "https://v.daum.net/v/20260418091313601",
+      "summary": "이병진 후보가 54.23%를 얻어 45.76%에 그친 국민의힘 정우성 후보를 큰 표 차이로 이겼던 곳입니다. 원래 농촌지역이었지만 삼성전자 평택공장이 들어선 고덕 신도시에 젊은 노동 인구들이 유입되면서 진보 진영 쪽으로 정치지형이 변해가고 있기 때문인데요, 조국...",
+      "publisher": "MBC",
       "recencyText": "11시간 전",
       "recencyScore": 660,
       "source": "daum",
-      "keyword": "메타",
+      "keyword": "삼성전자",
       "section": "industry",
       "sourceDomainUnknown": false
     },
@@ -616,6 +593,18 @@
       "sourceDomainUnknown": false
     },
     {
+      "title": "\"머스크 형제, 2만3천400 비트코인 보유…2조5천억원 상당\"",
+      "url": "https://v.daum.net/v/20260418082304054",
+      "summary": "만큼, 형제가 보유한 비트코인의 가치는 17억 달러(약 2조5천억원)에 달하는 셈이다. 현재 일론 머스크가 이끄는 전기차 업체 테슬라가 1만1천509 비트코인, 항공우주 업체 스페이스X가 8천285 비트코인을 갖고 있다. 양사 보유량을 제외해보면 머스크 형제가 개인적...",
+      "publisher": "연합뉴스",
+      "recencyText": "12시간 전",
+      "recencyScore": 720,
+      "source": "daum",
+      "keyword": "테슬라",
+      "section": "industry",
+      "sourceDomainUnknown": false
+    },
+    {
       "title": "\"메타, 내달 전체 인력 10% 구조조정…하반기에 추가 감원\"",
       "url": "https://v.daum.net/v/20260418072445523",
       "summary": "메타AI [로이터=연합뉴스 자료사진. 재판매 및 DB 금지] (샌프란시스코=연합뉴스) 권영전 특파원 = 페이스북·인스타그램 운영사 메타가 인공지능(AI)에 집중적인 투자를 벌이는 가운데 직원 10%의 대규모 감원에 나선다. 메타는 다음 달 20일에 직원 약 8천 명을...",
@@ -636,18 +625,6 @@
       "recencyScore": 720,
       "source": "daum",
       "keyword": "메타",
-      "section": "industry",
-      "sourceDomainUnknown": false
-    },
-    {
-      "title": "“삼전·하이닉스 억대 성과급 지역화폐로 지급하라” 온라인 황당 주장",
-      "url": "https://v.daum.net/v/20260418071932476",
-      "summary": "삼성전자와 SK하이닉스./각사 제공 반도체 업계 호황으로 삼성전자와 SK하이닉스 임직원의 내년 성과급이 수억 원에 달할 것이라는 전망이 나온 가운데, 온라인에서 내수 경기를 살리기 위해 성과급을 지역 화폐로 지급해야 한다는 황당한 주장이 나오고 있다. 18일...",
-      "publisher": "조선일보",
-      "recencyText": "12시간 전",
-      "recencyScore": 720,
-      "source": "daum",
-      "keyword": "하이닉스",
       "section": "industry",
       "sourceDomainUnknown": false
     },
@@ -676,6 +653,18 @@
       "sourceDomainUnknown": false
     },
     {
+      "title": "전쟁 이후 첫 여객선 해협 통과..트럼프 \"핵 프로그램도 끝내야\" [글로벌마켓 A/S]",
+      "url": "https://v.daum.net/v/20260418082014032",
+      "summary": "대형 우량주, 성장주에 더 건설적인 진입 시점을 제공한다\"고 평가했다. 이달 27일부터 5월 1일 사이 마이크로소프트·알파벳·메타·애플·아마존 등 S&P500 기업의 45%가 성적표를 공개하고, 규제 당국의 인가를 받은 미 기업 자사주 매입 규모도 사상 최대인...",
+      "publisher": "한국경제",
+      "recencyText": "12시간 전",
+      "recencyScore": 720,
+      "source": "daum",
+      "keyword": "메타",
+      "section": "industry",
+      "sourceDomainUnknown": false
+    },
+    {
       "title": "하룻밤 새 11% 급락…투심 역시 \"전면개방\"",
       "url": "https://v.daum.net/v/20260418072349504",
       "summary": "대이란 해상봉쇄는 유지하겠다고 밝혔다. 증시 강세 속에 엔비디아(1.68%), 애플(2.59%), 마이크로소프트(0.60%), 알파벳(1.68%), 메타(1.73%), 아마존(0.34%) 등 대형 기술주도 전반적으로 상승했다. 테슬라는 3.01% 급등했다. 국제 유가는 급락했다. 6월 인도분...",
@@ -696,6 +685,18 @@
       "recencyScore": 780,
       "source": "daum",
       "keyword": "Anthropic",
+      "section": "industry",
+      "sourceDomainUnknown": false
+    },
+    {
+      "title": "“삼전·하이닉스 억대 성과급 지역화폐로 지급하라” 온라인 황당 주장",
+      "url": "https://v.daum.net/v/20260418071932476",
+      "summary": "삼성전자와 SK하이닉스./각사 제공 반도체 업계 호황으로 삼성전자와 SK하이닉스 임직원의 내년 성과급이 수억 원에 달할 것이라는 전망이 나온 가운데, 온라인에서 내수 경기를 살리기 위해 성과급을 지역 화폐로 지급해야 한다는 황당한 주장이 나오고 있다. 18일...",
+      "publisher": "조선일보",
+      "recencyText": "13시간 전",
+      "recencyScore": 780,
+      "source": "daum",
+      "keyword": "하이닉스",
       "section": "industry",
       "sourceDomainUnknown": false
     },
@@ -856,34 +857,10 @@
       "sourceDomainUnknown": false
     },
     {
-      "title": "스페이스X 상장 임박, 미래 대장주 압축 투자법",
-      "url": "https://v.daum.net/v/20260418051635815",
-      "summary": "빅테크 자본도 우주로 흐르고 있다. 김 부장은 “지구의 전력·냉각 문제를 우주에서 해결하기 위해 구글·아마존·엔비디아·마이크로소프트 같은 빅테크들이 ‘우주 데이터센터’에 자본을 쏟아붓기 시작했다”고 했다. 우주 제약산업도 시동을 걸고 있다. 김 부장...",
-      "publisher": "조선일보",
-      "recencyText": "14시간 전",
-      "recencyScore": 840,
-      "source": "daum",
-      "keyword": "마이크로소프트",
-      "section": "industry",
-      "sourceDomainUnknown": false
-    },
-    {
       "title": "AI의 역습?…청년 고용의 사다리가 무너진다",
       "url": "https://v.daum.net/v/20260418060322687",
       "summary": "이미 미국 실리콘밸리는 몇 년 전부터 피비린내 나는 대량 해고의 소용돌이에 휘말려 있습니다. 2025년부터 2026년 사이 메타(3,600명), MS(6,000명) 등 빅테크 기업을 중심으로 수만 명의 IT 인력이 짐을 쌌습니다. 구글의 안드로이드 부문 등 비핵심 직무는 가차...",
       "publisher": "KBS",
-      "recencyText": "14시간 전",
-      "recencyScore": 840,
-      "source": "daum",
-      "keyword": "메타",
-      "section": "industry",
-      "sourceDomainUnknown": false
-    },
-    {
-      "title": "S&P500 7100 돌파 ‘사상 최고’…나스닥 1992년 이후 최장 랠리[뉴욕 is]",
-      "url": "https://v.daum.net/v/20260418051801856",
-      "summary": "여행 관련주도 동반 상승했다. 특히 테슬라는 3% 이상 오르며 상승세를 견인했다. 엔비디아 1.7%, 애플 2.6%, 마이크로소프트 0.6%, 아마존 0.34%, 메타 1.73%, 알파벳 1.68% 등 기술주 중심의 '메그니피센트7' 역시 모두 상승했다. 염현석 머니투데이방송 MTN 기자",
-      "publisher": "머니투데이",
       "recencyText": "14시간 전",
       "recencyScore": 840,
       "source": "daum",
@@ -904,6 +881,18 @@
       "sourceDomainUnknown": false
     },
     {
+      "title": "스페이스X 상장 임박, 미래 대장주 압축 투자법",
+      "url": "https://v.daum.net/v/20260418051635815",
+      "summary": "빅테크 자본도 우주로 흐르고 있다. 김 부장은 “지구의 전력·냉각 문제를 우주에서 해결하기 위해 구글·아마존·엔비디아·마이크로소프트 같은 빅테크들이 ‘우주 데이터센터’에 자본을 쏟아붓기 시작했다”고 했다. 우주 제약산업도 시동을 걸고 있다. 김 부장...",
+      "publisher": "조선일보",
+      "recencyText": "15시간 전",
+      "recencyScore": 900,
+      "source": "daum",
+      "keyword": "마이크로소프트",
+      "section": "industry",
+      "sourceDomainUnknown": false
+    },
+    {
       "title": "혁신의 상징이 된 대가?…샘 올트먼, 왜 화염병 공격 대상이 됐나",
       "url": "https://v.daum.net/v/20260418050102628",
       "summary": "보다 다양한 기업정보는 유니콘팩토리 빅데이터 플랫폼 '데이터랩'에서 볼 수 있습니다.] [서울=뉴시스] 김근수 기자 = 샘 올트먼 오픈AI 최고경영자(CEO)가 1일 서울 강서구 김포공항 비즈니스항공센터를 통해 입국하고 있다. (공동취재) 2025.10.01. photo@newsis...",
@@ -912,6 +901,18 @@
       "recencyScore": 900,
       "source": "daum",
       "keyword": "OpenAI",
+      "section": "industry",
+      "sourceDomainUnknown": false
+    },
+    {
+      "title": "S&P500 7100 돌파 ‘사상 최고’…나스닥 1992년 이후 최장 랠리[뉴욕 is]",
+      "url": "https://v.daum.net/v/20260418051801856",
+      "summary": "여행 관련주도 동반 상승했다. 특히 테슬라는 3% 이상 오르며 상승세를 견인했다. 엔비디아 1.7%, 애플 2.6%, 마이크로소프트 0.6%, 아마존 0.34%, 메타 1.73%, 알파벳 1.68% 등 기술주 중심의 '메그니피센트7' 역시 모두 상승했다. 염현석 머니투데이방송 MTN 기자",
+      "publisher": "머니투데이",
+      "recencyText": "15시간 전",
+      "recencyScore": 900,
+      "source": "daum",
+      "keyword": "메타",
       "section": "industry",
       "sourceDomainUnknown": false
     },
@@ -988,18 +989,6 @@
       "sourceDomainUnknown": false
     },
     {
-      "title": "AI가 금광과 같은 이유",
-      "url": "https://v.daum.net/v/20260418001704363",
-      "summary": "끝이다. 이란발 불꽃이 터지기 전부터 소프트웨어주와 일부 AI 수혜주는 떨어졌다. 마이크로소프트는 사상 최고치와 비교해 33%, 메타는 21%, 오라클은 60%, 서비스나우는 64% 하락했다. 지난주 휴전으로 ‘안도 랠리’가 펼쳐진 후에도 그렇다. 엔비디아도 지난 2월...",
-      "publisher": "한국경제",
-      "recencyText": "19시간 전",
-      "recencyScore": 1140,
-      "source": "daum",
-      "keyword": "메타",
-      "section": "industry",
-      "sourceDomainUnknown": false
-    },
-    {
       "title": "[비즈니스 인사이트] AI 전환, 기업이 길을 만들어야",
       "url": "https://v.daum.net/v/20260418001035288",
       "summary": "프레임워크’를 내놓고, 2022년에는 기업이 자발적으로 참여할 ‘AI 검증 가이드라인(AI Verify)’을 도입했다. 구글, IBM, 마이크로소프트 등이 참여한 AI검증재단을 통해 민간의 실증 결과를 축적하고, 정부는 이를 제도와 가이드라인으로 연결했다. 규제를...",
@@ -1008,6 +997,18 @@
       "recencyScore": 1200,
       "source": "daum",
       "keyword": "마이크로소프트",
+      "section": "industry",
+      "sourceDomainUnknown": false
+    },
+    {
+      "title": "AI가 금광과 같은 이유",
+      "url": "https://v.daum.net/v/20260418001704363",
+      "summary": "끝이다. 이란발 불꽃이 터지기 전부터 소프트웨어주와 일부 AI 수혜주는 떨어졌다. 마이크로소프트는 사상 최고치와 비교해 33%, 메타는 21%, 오라클은 60%, 서비스나우는 64% 하락했다. 지난주 휴전으로 ‘안도 랠리’가 펼쳐진 후에도 그렇다. 엔비디아도 지난 2월...",
+      "publisher": "한국경제",
+      "recencyText": "20시간 전",
+      "recencyScore": 1200,
+      "source": "daum",
+      "keyword": "메타",
       "section": "industry",
       "sourceDomainUnknown": false
     },
