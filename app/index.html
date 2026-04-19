@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
+    <a class="skip-link" href="#app">본문으로 건너뛰기</a>
     <div class="app-shell">
       <aside class="side-panel">
         <div class="brand-block">
@@ -61,7 +62,7 @@
               <strong id="runtime-segments">-</strong>
             </div>
           </div>
-          <p class="runtime-status" id="runtime-status">Loading</p>
+          <p class="runtime-status" id="runtime-status" role="status" aria-live="polite" aria-atomic="true">Loading</p>
         </section>
       </aside>
 
@@ -75,11 +76,10 @@
           <div class="workspace-actions">
             <div class="date-pill" id="header-date">-</div>
             <button class="ghost-btn" id="header-open-report" aria-label="Open Report">리포트 열기</button>
-            <button class="primary-btn" id="header-run-crawl" aria-label="Run Crawl">크롤링</button>
           </div>
         </header>
 
-        <main id="app"></main>
+        <main id="app" tabindex="-1"></main>
       </div>
     </div>
 

@@ -1,5 +1,6 @@
 const app = document.getElementById('app');
 const pageButtons = Array.from(document.querySelectorAll('nav button[data-page]'));
+const skipLink = document.querySelector('.skip-link');
 
 const chrome = {
   title: document.getElementById('workspace-title'),
@@ -14,6 +15,8 @@ const chrome = {
   openReport: document.getElementById('header-open-report'),
   runCrawl: document.getElementById('header-run-crawl')
 };
+
+const SEOUL_TIME_ZONE = 'Asia/Seoul';
 
 const pageMeta = {
   dashboard: {
@@ -44,12 +47,7 @@ const pageMeta = {
 };
 
 let state = {
-  date: new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Seoul',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  }).format(new Date()),
+  date: currentSeoulDateKey(),
   loading: true,
   loadError: '',
   articleMeta: null,
@@ -71,12 +69,14 @@ let state = {
   inboxSortKey: 'time',
   inboxSortDirection: 'desc',
   inboxFiltersOpen: false,
+  builderSideView: 'detail',
   builderFocusKey: '',
   reportTextDraft: '',
   capabilities: {
     aiSummarize: false,
     provider: '',
-    model: ''
+    model: '',
+    requiresToken: false
   },
   aiBusyKey: ''
 };
@@ -84,6 +84,15 @@ let state = {
 let toastId = 0;
 const AI_TOKEN_STORAGE_KEY = 'input_ai_token';
 const AI_TOKEN_LEGACY_STORAGE_KEY = 'dailycomm.aiToken';
+const KAKAO_SEGMENT_CHAR_LIMIT = 500;
+
+if (skipLink) {
+  skipLink.addEventListener('click', () => {
+    window.requestAnimationFrame(() => {
+      app?.focus();
+    });
+  });
+}
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -99,6 +108,9 @@ function showToast(message) {
   if (!wrap) {
     wrap = document.createElement('div');
     wrap.className = 'toast-wrap';
+    wrap.setAttribute('role', 'status');
+    wrap.setAttribute('aria-live', 'polite');
+    wrap.setAttribute('aria-atomic', 'true');
     document.body.append(wrap);
   }
 
@@ -118,6 +130,49 @@ function formatDateLabel(value) {
   return value.replace(/-/g, '.');
 }
 
+function currentSeoulDateKey() {
+  const parts = getSeoulDateParts(new Date());
+  return parts?.dateKey || '';
+}
+
+function getSeoulDateParts(value) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: SEOUL_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    hourCycle: 'h23'
+  });
+
+  const parts = formatter.formatToParts(date).reduce((acc, part) => {
+    if (part.type !== 'literal') {
+      acc[part.type] = part.value;
+    }
+    return acc;
+  }, {});
+
+  const year = String(parts.year || '').padStart(4, '0');
+  const month = String(parts.month || '').padStart(2, '0');
+  const day = String(parts.day || '').padStart(2, '0');
+  const hour = String(parts.hour || '').padStart(2, '0');
+  const minute = String(parts.minute || '').padStart(2, '0');
+
+  return {
+    year,
+    month,
+    day,
+    hour,
+    minute,
+    dateKey: `${year}-${month}-${day}`
+  };
+}
+
 async function fetchDateArtifacts(date) {
   const [articlePayload, reportPayload, segmentsPayload] = await Promise.all([
     fetchJson(`../data/articles/${date}.json`, null),
@@ -130,18 +185,9 @@ async function fetchDateArtifacts(date) {
 
 function formatDateTime(value) {
   if (!value) return '-';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  const dateLabel = [
-    String(date.getFullYear()).padStart(4, '0'),
-    String(date.getMonth() + 1).padStart(2, '0'),
-    String(date.getDate()).padStart(2, '0')
-  ].join('.');
-  const timeLabel = [
-    String(date.getHours()).padStart(2, '0'),
-    String(date.getMinutes()).padStart(2, '0')
-  ].join(':');
-  return `${dateLabel} ${timeLabel}`;
+  const parts = getSeoulDateParts(value);
+  if (!parts) return value;
+  return `${parts.year}.${parts.month}.${parts.day} ${parts.hour}:${parts.minute}`;
 }
 
 function resolveArticlePublishedDate(article) {
@@ -172,18 +218,17 @@ function formatArticlePublishedTime(article) {
     return String(article?.recencyText || '-');
   }
 
-  const sameDay = formatDateLabel(state.date) === formatDateLabel(
-    `${publishedDate.getFullYear()}-${String(publishedDate.getMonth() + 1).padStart(2, '0')}-${String(publishedDate.getDate()).padStart(2, '0')}`
-  );
-  const hour = String(publishedDate.getHours()).padStart(2, '0');
-  const minute = String(publishedDate.getMinutes()).padStart(2, '0');
-  if (sameDay) {
-    return `${hour}:${minute}`;
+  const parts = getSeoulDateParts(publishedDate);
+  if (!parts) {
+    return String(article?.recencyText || '-');
   }
 
-  const month = String(publishedDate.getMonth() + 1).padStart(2, '0');
-  const day = String(publishedDate.getDate()).padStart(2, '0');
-  return `${month}.${day} ${hour}:${minute}`;
+  const sameDay = state.date === parts.dateKey;
+  if (sameDay) {
+    return `${parts.hour}:${parts.minute}`;
+  }
+
+  return `${parts.month}.${parts.day} ${parts.hour}:${parts.minute}`;
 }
 
 function compareArticleValues(left, right) {
@@ -211,9 +256,17 @@ function toggleInboxSort(sortKey) {
 
 function renderInboxSortHeader(sortKey, label) {
   const active = state.inboxSortKey === sortKey;
+  const directionLabel = active
+    ? (state.inboxSortDirection === 'desc' ? '내림차순' : '오름차순')
+    : '정렬 안 함';
   const indicator = active ? (state.inboxSortDirection === 'desc' ? '↓' : '↑') : '↕';
   return `
-    <button class="table-sort-btn ${active ? 'active' : ''}" data-sort-key="${sortKey}">
+    <button
+      class="table-sort-btn table-sort-${sortKey} ${active ? 'active' : ''}"
+      data-sort-key="${sortKey}"
+      aria-pressed="${active}"
+      aria-label="${escapeHtml(`${label} 정렬, 현재 ${directionLabel}`)}"
+    >
       <span>${escapeHtml(label)}</span>
       <strong>${indicator}</strong>
     </button>
@@ -227,12 +280,21 @@ function renderBuilderAiActionButton(key, options = {}) {
     extraClass = ''
   } = options;
   const enabled = Boolean(state.capabilities?.aiSummarize);
+  const requiresToken = Boolean(state.capabilities?.requiresToken);
+  const storedToken = getStoredAiToken();
+  const readyToSummarize = enabled && (!requiresToken || Boolean(storedToken));
   const busy = state.aiBusyKey === key;
   const canConnect = hasRemoteAiConfigured();
   const buttonClass = mode === 'detail' ? 'primary-btn' : 'ghost-btn';
-  const label = enabled
-    ? (busy ? 'AI 정리 중...' : 'AI 정리')
-    : (canConnect ? 'AI 연결' : 'AI 연결 필요');
+  const label = busy
+    ? 'AI 정리 중...'
+    : readyToSummarize
+      ? 'AI 정리'
+      : enabled && requiresToken && !storedToken
+        ? '토큰 입력 후 정리'
+        : canConnect
+          ? (storedToken ? 'AI 연결 후 정리' : 'AI 연결')
+          : 'AI 연결 필요';
   const tokenInput = mode === 'detail' && canConnect
     ? `
       <label class="ai-token-field">
@@ -293,6 +355,12 @@ function sectionLabel(sectionName) {
   return '미분류';
 }
 
+function sectionBadgeClass(sectionName) {
+  if (sectionName === 'major') return 'section-major';
+  if (sectionName === 'industry') return 'section-industry';
+  return 'section-neutral';
+}
+
 function fetchJson(url, fallback, options = {}) {
   const finalUrl = options.cacheBust
     ? `${url}${url.includes('?') ? '&' : '?'}ts=${Date.now()}`
@@ -349,7 +417,17 @@ function buildAiApiUrl(pathname, config = state.config) {
   return `${getAiApiBase(config)}${pathname}`;
 }
 
-async function fetchAiCapabilities(config = state.config) {
+function normalizeAiRequestError(error, fallback = 'AI 연결을 확인해주세요.') {
+  const message = String(error?.message || '').trim();
+  if (!message) return fallback;
+  if (/failed to fetch|networkerror|load failed/i.test(message)) {
+    return '원격 AI API에 연결하지 못했습니다. 네트워크 또는 접근 허용 설정을 확인해주세요.';
+  }
+  return message;
+}
+
+async function fetchAiCapabilities(config = state.config, options = {}) {
+  const { throwOnError = false } = options;
   const token = getStoredAiToken();
   const headers = {};
   if (token) {
@@ -363,6 +441,10 @@ async function fetchAiCapabilities(config = state.config) {
     });
 
     if (!response.ok) {
+      const payload = await response.json().catch(() => null);
+      if (throwOnError) {
+        throw new Error(payload?.error || 'AI 연결을 확인해주세요.');
+      }
       return {
         aiSummarize: false,
         requiresToken: false
@@ -370,7 +452,8 @@ async function fetchAiCapabilities(config = state.config) {
     }
 
     return await response.json();
-  } catch {
+  } catch (error) {
+    if (throwOnError) throw error;
     return {
       aiSummarize: false,
       requiresToken: false
@@ -389,12 +472,13 @@ async function connectRemoteAiAccess() {
     return false;
   }
 
-  const token = getStoredAiToken();
-  if (!token) {
-    showToast('AI 접근 토큰을 먼저 입력해주세요.');
+  let capabilitiesPayload;
+  try {
+    capabilitiesPayload = await fetchAiCapabilities(state.config, { throwOnError: true });
+  } catch (error) {
+    showToast(normalizeAiRequestError(error));
     return false;
   }
-  const capabilitiesPayload = await fetchAiCapabilities();
   state.capabilities = {
     aiSummarize: Boolean(capabilitiesPayload?.aiSummarize),
     provider: String(capabilitiesPayload?.provider || ''),
@@ -420,20 +504,25 @@ async function requestAiSummary(article) {
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(buildAiApiUrl('/ai/summarize'), {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      article: {
-        title: article?.title || '',
-        summary: article?.summary || '',
-        publisher: mediaLabel(article),
-        keyword: article?.keyword || '',
-        section: article?.section || '',
-        url: article?.url || ''
-      }
-    })
-  });
+  let response;
+  try {
+    response = await fetch(buildAiApiUrl('/ai/summarize'), {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        article: {
+          title: article?.title || '',
+          summary: article?.summary || '',
+          publisher: mediaLabel(article),
+          keyword: article?.keyword || '',
+          section: article?.section || '',
+          url: article?.url || ''
+        }
+      })
+    });
+  } catch (error) {
+    throw new Error(normalizeAiRequestError(error, 'AI 정리에 실패했습니다.'));
+  }
 
   const payload = await response.json().catch(() => null);
   if (response.status === 401) {
@@ -548,21 +637,57 @@ function reportMembership(article) {
 
 function canAddMajorReport(article) {
   const { isMainReport, isIndustryReport } = reportMembership(article);
-  return !isMainReport && !isIndustryReport;
+  return article?.section !== 'industry' && !isMainReport && !isIndustryReport;
 }
 
 function canAddIndustryReport(article) {
   return !reportMembership(article).isIndustryReport;
 }
 
+function inboxTargetSection(article) {
+  return article?.section === 'industry' ? 'industry' : 'major';
+}
+
+function canAddInboxReport(article) {
+  const membership = reportMembership(article);
+  return !membership.isMainReport && !membership.isIndustryReport;
+}
+
+function summarizeInboxAssignableArticles(articles) {
+  const summary = {
+    available: [],
+    blocked: [],
+    majorCount: 0,
+    industryCount: 0
+  };
+
+  (Array.isArray(articles) ? articles : []).forEach((article) => {
+    if (!article) return;
+    if (!canAddInboxReport(article)) {
+      summary.blocked.push(article);
+      return;
+    }
+
+    summary.available.push(article);
+    if (inboxTargetSection(article) === 'industry') {
+      summary.industryCount += 1;
+      return;
+    }
+
+    summary.majorCount += 1;
+  });
+
+  return summary;
+}
+
 function renderReportPills(article) {
   const membership = reportMembership(article);
   const pills = [];
   if (membership.isMainReport) {
-    pills.push('<span class="panel-pill tone-main">주요 보도</span>');
+    pills.push('<span class="panel-pill tone-main section-major">주요 보도</span>');
   }
   if (membership.isIndustryReport) {
-    pills.push('<span class="panel-pill tone-industry">업계 보도</span>');
+    pills.push('<span class="panel-pill tone-industry section-industry">업계 보도</span>');
   }
   if (!pills.length) {
     pills.push('<span class="panel-pill tone-neutral">미반영</span>');
@@ -570,10 +695,20 @@ function renderReportPills(article) {
   return pills.join('');
 }
 
+function renderArticleSourcePill(article) {
+  if (article?.section === 'major') {
+    return '<span class="panel-pill tone-source-major section-major">주요 보도 후보</span>';
+  }
+  if (article?.section === 'industry') {
+    return '<span class="panel-pill tone-source-industry section-industry">업계 보도 후보</span>';
+  }
+  return '<span class="panel-pill tone-neutral">미분류</span>';
+}
+
 function renderPolicyNote(article) {
   const membership = reportMembership(article);
-  if (membership.isIndustryReport && !membership.isMainReport) {
-    return '<p class="policy-note is-locked"><strong>잠금</strong><span>업계 보도에 반영된 기사는 주요 보도로 올릴 수 없습니다.</span></p>';
+  if ((article?.section === 'industry' || membership.isIndustryReport) && !membership.isMainReport) {
+    return '<p class="policy-note is-locked"><strong>잠금</strong><span>업계 보도 기사는 주요 보도로 올릴 수 없습니다.</span></p>';
   }
   if (membership.isMainReport && !membership.isIndustryReport) {
     return '<p class="policy-note is-open"><strong>가능</strong><span>주요 보도는 업계 보도에 함께 추가할 수 있습니다.</span></p>';
@@ -669,7 +804,7 @@ function summarizeAssignableArticles(sectionName, articles) {
       const membership = reportMembership(article);
       if (sectionName === 'major') {
         if (membership.isMainReport) acc.alreadyAssigned.push(article);
-        else if (membership.isIndustryReport) acc.blocked.push(article);
+        else if (article?.section === 'industry' || membership.isIndustryReport) acc.blocked.push(article);
         else acc.available.push(article);
         return acc;
       }
@@ -737,6 +872,9 @@ function findDraftLocation(entryKey) {
 
 function setBuilderFocus(key) {
   state.builderFocusKey = key || '';
+  if (key) {
+    state.builderSideView = 'detail';
+  }
 }
 
 function ensureBuilderFocus() {
@@ -756,9 +894,21 @@ function ensureBuilderFocus() {
   }
 }
 
+function normalizeBuilderSideView() {
+  const hasFocus = Boolean(findDraftLocation(state.builderFocusKey));
+  if (!hasFocus) {
+    state.builderSideView = 'draft';
+    return;
+  }
+
+  if (state.builderSideView !== 'draft' && state.builderSideView !== 'detail') {
+    state.builderSideView = 'detail';
+  }
+}
+
 function toggleArticleSelection(article, forceValue) {
   const key = articleKey(article);
-  if (!key) return;
+  if (!key || isArticleAssigned(article)) return;
 
   const selected = new Set(state.selectedArticleUrls);
   const nextValue = typeof forceValue === 'boolean' ? forceValue : !selected.has(key);
@@ -774,7 +924,7 @@ function toggleVisibleArticleSelection(articles, forceValue) {
   const selected = new Set(state.selectedArticleUrls);
   for (const article of articles) {
     const key = articleKey(article);
-    if (!key) continue;
+    if (!key || isArticleAssigned(article)) continue;
     if (forceValue) selected.add(key);
     else selected.delete(key);
   }
@@ -808,7 +958,7 @@ function addArticleToReportSection(sectionName, article) {
       const membership = reportMembership(article);
       return {
         added: false,
-        reason: membership.isIndustryReport ? 'industry_to_main_blocked' : 'already_main'
+        reason: article?.section === 'industry' || membership.isIndustryReport ? 'industry_to_main_blocked' : 'already_main'
       };
     }
   }
@@ -889,6 +1039,31 @@ function assignSelectedArticlesToSection(sectionName) {
   );
 }
 
+function assignSelectedArticlesToInboxReport() {
+  const selectedArticles = getSelectedArticles();
+  if (!selectedArticles.length) {
+    showToast('먼저 기사 인박스에서 기사를 선택해 주세요.');
+    return;
+  }
+
+  const summary = summarizeInboxAssignableArticles(selectedArticles);
+  if (!summary.available.length) {
+    showToast('선택한 기사는 이미 보도에 반영되어 있습니다.');
+    return;
+  }
+
+  summary.available.forEach((article) => {
+    addArticleToReportSection(inboxTargetSection(article), article);
+  });
+  clearSelectedArticles();
+
+  const details = [];
+  if (summary.majorCount) details.push(`주요 보도 ${formatNumber(summary.majorCount)}건`);
+  if (summary.industryCount) details.push(`업계 보도 ${formatNumber(summary.industryCount)}건`);
+  const suffix = details.length ? ` (${details.join(', ')})` : '';
+  showToast(`${formatNumber(summary.available.length)}건을 보도에 추가했습니다.${suffix}`);
+}
+
 function updateDraftItem(key, updates) {
   const location = findDraftLocation(key);
   if (!location) return;
@@ -928,9 +1103,56 @@ function syncBuilderCardPreview(key) {
   });
 }
 
+function openArticleUrls(urls) {
+  const uniqueUrls = [...new Set(
+    (Array.isArray(urls) ? urls : [urls])
+      .map((url) => String(url || '').trim())
+      .filter(Boolean)
+  )];
+
+  let openedCount = 0;
+  uniqueUrls.forEach((url) => {
+    const popup = window.open(url, '_blank', 'noopener,noreferrer');
+    if (popup) openedCount += 1;
+  });
+
+  return {
+    total: uniqueUrls.length,
+    openedCount
+  };
+}
+
 function openArticleUrl(url) {
   if (!url) return;
-  window.open(url, '_blank', 'noopener,noreferrer');
+  openArticleUrls([url]);
+}
+
+function openSelectedArticles() {
+  const selectedUrls = getSelectedArticles()
+    .map((article) => article?.url)
+    .filter(Boolean);
+
+  if (!selectedUrls.length) {
+    showToast('체크한 기사를 먼저 선택해 주세요.');
+    return;
+  }
+
+  const { total, openedCount } = openArticleUrls(selectedUrls);
+  if (!total) {
+    showToast('열 수 있는 기사 링크가 없습니다.');
+    return;
+  }
+
+  if (total === 1) {
+    return;
+  }
+
+  if (openedCount === total) {
+    showToast(`기사 ${openedCount}건을 새 탭으로 열었습니다.`);
+    return;
+  }
+
+  showToast(`기사 ${openedCount}/${total}건을 열었습니다. 팝업 차단이 켜져 있으면 일부 탭이 막힐 수 있습니다.`);
 }
 
 async function summarizeDraftItemWithAi(key) {
@@ -958,6 +1180,10 @@ async function summarizeDraftItemWithAi(key) {
 
 function generateReportText() {
   return buildKakaoPreviewText();
+}
+
+function characterLength(text) {
+  return String(text || '').length;
 }
 
 function byteLength(text) {
@@ -1024,14 +1250,42 @@ function estimateKakaoPreviewLineCount(text, maxLineChars = 18) {
     .reduce((total, line) => total + Math.max(1, Math.ceil(Math.max(line.length, 1) / maxLineChars)), 0);
 }
 
-function splitKakaoPreviewBlock(block, maxChars, maxLines) {
+function splitLineByChars(line, maxChars) {
+  const source = String(line || '');
+  if (characterLength(source) <= maxChars) {
+    return [source];
+  }
+
+  const chunks = [];
+  let cursor = 0;
+  while (cursor < source.length) {
+    chunks.push(source.slice(cursor, cursor + maxChars));
+    cursor += maxChars;
+  }
+  return chunks;
+}
+
+function splitKakaoPreviewBlock(block, maxChars) {
   const lines = String(block || '').split('\n');
   const chunks = [];
   let current = '';
 
   for (const line of lines) {
+    if (characterLength(line) > maxChars) {
+      if (current) {
+        chunks.push(current);
+        current = '';
+      }
+      splitLineByChars(line, maxChars).forEach((piece) => {
+        if (piece) {
+          chunks.push(piece);
+        }
+      });
+      continue;
+    }
+
     const candidate = current ? `${current}\n${line}` : line;
-    if (current && (candidate.length > maxChars || estimateKakaoPreviewLineCount(candidate) > maxLines)) {
+    if (current && characterLength(candidate) > maxChars) {
       chunks.push(current);
       current = line;
       continue;
@@ -1092,36 +1346,29 @@ function buildKakaoPreviewText() {
   return buildKakaoBlocks().join('\n\n');
 }
 
-function buildKakaoPreviewSegments(maxChars = 1100, maxLines = 18, maxBlocksPerSegment = 3) {
+function buildKakaoPreviewSegments(maxChars = KAKAO_SEGMENT_CHAR_LIMIT) {
   const blocks = buildKakaoBlocks();
   const segments = [];
   let current = '';
-  let currentBlockCount = 0;
 
   blocks.forEach((block) => {
-    const blockParts =
-      block.length > maxChars || estimateKakaoPreviewLineCount(block) > maxLines
-        ? splitKakaoPreviewBlock(block, maxChars, maxLines)
-        : [block];
+    const normalizedBlock = String(block || '').trim();
+    if (!normalizedBlock) {
+      return;
+    }
+
+    const blockParts = characterLength(normalizedBlock) > maxChars
+      ? splitKakaoPreviewBlock(normalizedBlock, maxChars)
+      : [normalizedBlock];
 
     blockParts.forEach((part) => {
       const candidate = current ? `${current}\n\n${part}` : part;
-      const nextBlockCount = currentBlockCount + 1;
-      if (
-        current &&
-        (
-          candidate.length > maxChars ||
-          estimateKakaoPreviewLineCount(candidate) > maxLines ||
-          nextBlockCount > maxBlocksPerSegment
-        )
-      ) {
+      if (current && characterLength(candidate) > maxChars) {
         segments.push(current);
         current = part;
-        currentBlockCount = 1;
         return;
       }
       current = candidate;
-      currentBlockCount = nextBlockCount;
     });
   });
 
@@ -1142,32 +1389,76 @@ function escapeRegExp(value) {
   return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function highlightTitleKeywords(title, article) {
-  const text = String(title || '');
+function highlightKeywordsForText(text, article) {
+  const source = String(text || '');
   const candidates = [
     article?.keyword,
-    ...keywordList().filter((keyword) => text.includes(keyword))
+    ...keywordList().filter((keyword) => {
+      const candidate = String(keyword || '').trim();
+      return candidate ? new RegExp(escapeRegExp(candidate), 'i').test(source) : false;
+    })
   ]
     .map((keyword) => String(keyword || '').trim())
     .filter(Boolean);
 
-  const keywords = [...new Set(candidates)].sort((a, b) => b.length - a.length);
-  if (keywords.length === 0) return escapeHtml(text);
+  return [...new Set(candidates)].sort((a, b) => b.length - a.length);
+}
+
+function renderKeywordHighlights(text, keywords) {
+  const source = String(text || '');
+  if (keywords.length === 0) return escapeHtml(source);
 
   const pattern = new RegExp(`(${keywords.map(escapeRegExp).join('|')})`, 'gi');
   let cursor = 0;
   let html = '';
 
-  for (const match of text.matchAll(pattern)) {
+  for (const match of source.matchAll(pattern)) {
     const start = match.index ?? 0;
     const end = start + match[0].length;
-    html += escapeHtml(text.slice(cursor, start));
+    html += escapeHtml(source.slice(cursor, start));
     html += `<mark class="keyword-highlight">${escapeHtml(match[0])}</mark>`;
     cursor = end;
   }
 
-  html += escapeHtml(text.slice(cursor));
+  html += escapeHtml(source.slice(cursor));
   return html;
+}
+
+function highlightTitleKeywords(title, article) {
+  const text = String(title || '');
+  const keywords = highlightKeywordsForText(text, article);
+  return renderKeywordHighlights(text, keywords);
+}
+
+function highlightSummaryKeywords(summary, article, maxLength = 120) {
+  const text = String(summary || '').trim();
+  if (!text) return '';
+
+  const keywords = highlightKeywordsForText(text, article);
+  if (keywords.length === 0) {
+    return escapeHtml(text.length > maxLength ? `${text.slice(0, Math.max(maxLength - 1, 1)).trimEnd()}…` : text);
+  }
+
+  const pattern = new RegExp(`(${keywords.map(escapeRegExp).join('|')})`, 'gi');
+  const firstMatch = pattern.exec(text);
+  if (!firstMatch) {
+    return renderKeywordHighlights(text.length > maxLength ? `${text.slice(0, Math.max(maxLength - 1, 1)).trimEnd()}…` : text, keywords);
+  }
+
+  const firstIndex = firstMatch.index ?? 0;
+  const totalLength = text.length;
+  let excerptStart = 0;
+
+  if (totalLength > maxLength) {
+    const centeredStart = Math.max(0, firstIndex - Math.floor((maxLength - firstMatch[0].length) / 2));
+    excerptStart = Math.min(centeredStart, Math.max(totalLength - maxLength, 0));
+  }
+
+  const excerptEnd = Math.min(totalLength, excerptStart + maxLength);
+  const excerpt = text.slice(excerptStart, excerptEnd).trim();
+  const prefix = excerptStart > 0 ? '…' : '';
+  const suffix = excerptEnd < totalLength ? '…' : '';
+  return `${prefix}${renderKeywordHighlights(excerpt, keywords)}${suffix}`;
 }
 
 function articleStatus(article) {
@@ -1176,6 +1467,11 @@ function articleStatus(article) {
   if (isMainReport) return 'selected';
   if (isIndustryReport) return 'reported';
   return 'pending';
+}
+
+function isArticleAssigned(article) {
+  const { isMainReport, isIndustryReport } = reportMembership(article);
+  return isMainReport || isIndustryReport;
 }
 
 function updateShellMeta() {
@@ -1202,10 +1498,50 @@ function updateShellMeta() {
   } else {
     chrome.runtimeStatus.textContent = '준비 완료';
   }
+
+  updateWorkspaceActions();
+}
+
+function updateWorkspaceActions() {
+  if (chrome.runCrawl) {
+    chrome.runCrawl.classList.add('hidden');
+  }
+
+  if (!chrome.openReport) return;
+
+  const actionByPage = {
+    dashboard: { label: '리포트 빌더', targetPage: 'builder', ariaLabel: 'Open Report Builder' },
+    inbox: { label: '리포트 빌더', targetPage: 'builder', ariaLabel: 'Open Report Builder' },
+    builder: { label: '카카오 프리뷰', targetPage: 'kakao', ariaLabel: 'Open Kakao Preview' },
+    kakao: { label: '리포트 빌더', targetPage: 'builder', ariaLabel: 'Open Report Builder' },
+    settings: { label: '리포트 빌더', targetPage: 'builder', ariaLabel: 'Open Report Builder' }
+  };
+
+  const action = actionByPage[state.activePage] || null;
+  if (!action || action.targetPage === state.activePage) {
+    chrome.openReport.classList.add('hidden');
+    chrome.openReport.disabled = true;
+    delete chrome.openReport.dataset.targetPage;
+    return;
+  }
+
+  chrome.openReport.classList.remove('hidden');
+  chrome.openReport.disabled = false;
+  chrome.openReport.dataset.targetPage = action.targetPage;
+  chrome.openReport.textContent = action.label;
+  chrome.openReport.setAttribute('aria-label', action.ariaLabel);
 }
 
 function setActiveNav() {
-  pageButtons.forEach((button) => button.classList.toggle('active', button.dataset.page === state.activePage));
+  pageButtons.forEach((button) => {
+    const active = button.dataset.page === state.activePage;
+    button.classList.toggle('active', active);
+    if (active) {
+      button.setAttribute('aria-current', 'page');
+    } else {
+      button.removeAttribute('aria-current');
+    }
+  });
 }
 
 function renderAnnotation(id) {
@@ -1316,7 +1652,6 @@ function renderDashboard() {
   const reported = sections.major.length + sections.industry.length;
   const total = state.articles.length;
   const pending = Math.max(total - reported, 0);
-  const selected = sections.major.length;
   const failed = (stats.invalidUrlDropped || 0) + (stats.unusableCandidateDropped || 0);
   const trendItems = buildTrendItems();
   const mediaItems = buildMediaDistribution();
@@ -1392,7 +1727,7 @@ function renderDashboard() {
             ${spotlight.length
               ? spotlight.map((article, index) => `
                 <button class="spotlight-item" data-open="${index}">
-                  <span class="spotlight-tag">${escapeHtml(article.section || 'unclassified')}</span>
+                  <span class="spotlight-tag ${sectionBadgeClass(article.section)}">${escapeHtml(sectionLabel(article.section))}</span>
                   <strong>${escapeHtml(article.title)}</strong>
                   <p>${escapeHtml(article.summary || '')}</p>
                 </button>
@@ -1524,7 +1859,7 @@ function filteredArticles() {
 
 function renderArticlePreview(article) {
   if (!article) {
-    return renderDataEmpty('article-preview-empty', '기사를 선택하세요', '목록에서 한 건을 고르면 요약과 분류 액션이 표시됩니다.');
+    return renderDataEmpty('article-preview-empty', '기사를 선택하세요', '목록에서 한 건을 고르면 체크와 리포트 반영 액션이 표시됩니다.');
   }
 
   const selected = isArticleSelected(article);
@@ -1540,26 +1875,19 @@ function renderArticlePreview(article) {
   const industryLabel = membership.isIndustryReport ? '업계 보도 반영됨' : '업계 보도 추가';
 
   return `
-    <div class="preview-card-body">
-      <div class="preview-head">
-        <div>
-          <span class="status-badge status-${escapeHtml(articleStatus(article))}">${escapeHtml(statusLabel(articleStatus(article)))}</span>
-          <h3>${escapeHtml(article.title)}</h3>
+    <div class="preview-card-body preview-card-body-compact preview-card-body-actions">
+      <div class="preview-inline-head">
+        <div class="preview-inline-copy">
+          <span class="preview-inline-label">선택 기사 액션</span>
+          <strong class="preview-inline-title">표에서 확인한 기사 정보를 바로 반영합니다.</strong>
         </div>
-        <a href="${escapeHtml(article.url)}" target="_blank" rel="noopener noreferrer" class="text-link">원문 열기</a>
+        <div class="builder-chip-row preview-pill-row">
+          ${renderReportPills(article)}
+          <span class="panel-pill tone-neutral">${selected ? '체크됨' : '체크 안 됨'}</span>
+        </div>
       </div>
-      <dl class="meta-list">
-        <div><dt>분류</dt><dd>${escapeHtml(sectionLabel(article.section))}</dd></div>
-        <div><dt>키워드</dt><dd>${escapeHtml(article.keyword || '-')}</dd></div>
-        <div><dt>매체</dt><dd>${escapeHtml(mediaLabel(article))}</dd></div>
-      </dl>
-      <p class="preview-summary">${escapeHtml(article.summary || '요약 정보가 없습니다.')}</p>
-      <div class="builder-chip-row">
-        ${renderReportPills(article)}
-        <span class="panel-pill tone-neutral">${selected ? '선택됨' : '선택 전'}</span>
-      </div>
-      <div class="inline-actions compact">
-        <button class="ghost-btn" id="toggle-preview-selection">${selected ? '선택 해제' : '선택'}</button>
+      <div class="inline-actions compact preview-actions">
+        <button class="ghost-btn" id="toggle-preview-selection">${selected ? '체크 해제' : '체크 추가'}</button>
         ${hideMajorAction ? '' : `<button class="ghost-btn" id="add-preview-major" ${majorDisabled ? 'disabled' : ''}>${escapeHtml(majorLabel)}</button>`}
         <button class="primary-btn secondary-tone" id="add-preview-industry" ${industryDisabled ? 'disabled' : ''}>${escapeHtml(industryLabel)}</button>
       </div>
@@ -1580,13 +1908,18 @@ function renderInbox() {
   state.selectedPage = Math.min(state.selectedPage, maxPage);
   const start = (state.selectedPage - 1) * state.pageSize;
   const visible = data.slice(start, start + state.pageSize);
+  if (!visible.some((article) => articleKey(article) === articleKey(state.selectedArticle))) {
+    state.selectedArticle = visible[0] || null;
+  }
+  const selectableVisible = visible.filter((article) => !isArticleAssigned(article));
   const reviewReady = visible.filter((article) => articleStatus(article) !== 'failed').length;
   const selectedCount = selectedArticleCount();
-  const visibleSelectedCount = visible.filter((article) => isArticleSelected(article)).length;
-  const allVisibleSelected = visible.length > 0 && visibleSelectedCount === visible.length;
+  const visibleSelectedCount = selectableVisible.filter((article) => isArticleSelected(article)).length;
+  const allVisibleSelected = selectableVisible.length > 0 && visibleSelectedCount === selectableVisible.length;
   const selectedArticles = getSelectedArticles();
   const majorAssignment = summarizeAssignableArticles('major', selectedArticles);
   const industryAssignment = summarizeAssignableArticles('industry', selectedArticles);
+  const inboxAssignment = summarizeInboxAssignableArticles(selectedArticles);
   const assignedCount = getSelectedArticles().filter(
     (article) => articleStatus(article) === 'selected' || articleStatus(article) === 'reported'
   ).length;
@@ -1627,7 +1960,7 @@ function renderInbox() {
                 ['major', '주요 보도', statusCounts.major],
                 ['industry', '업계 보도', statusCounts.industry]
               ].map(([value, label, count]) => `
-                <button class="filter-chip ${state.inboxSectionFilter === value ? 'active' : ''}" data-filter="${value}">
+                <button class="filter-chip ${state.inboxSectionFilter === value ? 'active' : ''}" data-filter="${value}" aria-pressed="${state.inboxSectionFilter === value}">
                   <strong>${escapeHtml(label)}</strong>
                   <span>${formatNumber(count)}</span>
                 </button>
@@ -1665,7 +1998,7 @@ function renderInbox() {
                   <button class="primary-btn secondary-tone" id="assign-industry" ${industryAssignment.available.length ? '' : 'disabled'}>업계 보도 추가</button>
                 </div>
                 <div class="action-cluster">
-                  <button class="ghost-btn" id="open-selected" aria-label="Open selected" ${state.selectedArticle ? '' : 'disabled'}>원문 열기</button>
+                  <button class="ghost-btn" id="open-selected" aria-label="Open selected" ${state.selectedArticle ? '' : 'disabled'}>기사 열기</button>
                   <button class="ghost-btn" id="preview-selected" aria-label="Preview inline" ${state.selectedArticle ? '' : 'disabled'}>미리보기</button>
                   <button class="ghost-btn" id="open-builder">빌더 열기</button>
                 </div>
@@ -1743,6 +2076,103 @@ function renderInbox() {
     </section>
   `;
 
+  const selectionToolbar = app.querySelector('.selection-toolbar');
+  const selectAllLabel = selectionToolbar?.querySelector('.table-select-all');
+  const selectionBadge = selectionToolbar?.querySelector('.selection-badge');
+  const toolbarActions = selectionToolbar?.querySelector('.toolbar-actions');
+  if (selectionToolbar && selectAllLabel && selectionBadge && toolbarActions) {
+    let summary = selectionToolbar.querySelector('.selection-toolbar-summary');
+    if (!summary) {
+      summary = document.createElement('div');
+      summary.className = 'selection-toolbar-summary';
+      selectionToolbar.insertBefore(summary, toolbarActions);
+    }
+
+    summary.append(selectAllLabel, selectionBadge);
+
+    let selectionMeta = summary.querySelector('.selection-meta');
+    if (!selectionMeta) {
+      selectionMeta = document.createElement('span');
+      selectionMeta.className = 'selection-meta';
+      summary.append(selectionMeta);
+    }
+    selectionMeta.textContent = `현재 페이지 ${formatNumber(visibleSelectedCount)}건 선택`;
+  }
+
+  const clearSelectionButton = document.getElementById('clear-selection');
+  if (clearSelectionButton) {
+    clearSelectionButton.classList.add('toolbar-btn');
+    clearSelectionButton.textContent = '선택 해제';
+  }
+
+  const openSelectedButton = document.getElementById('open-selected');
+  if (openSelectedButton) {
+    openSelectedButton.classList.add('toolbar-btn');
+    openSelectedButton.textContent = '선택 기사 열기';
+  }
+
+  const bulkAddButtons = [document.getElementById('assign-major'), document.getElementById('assign-industry')].filter(Boolean);
+  const bulkAddButton = bulkAddButtons[0] || null;
+  if (bulkAddButton) {
+    bulkAddButton.id = 'add-selected-to-report';
+    bulkAddButton.classList.add('toolbar-btn');
+    bulkAddButton.classList.remove('secondary-tone');
+    bulkAddButton.disabled = !inboxAssignment.available.length;
+    bulkAddButton.textContent = '보도 추가';
+    bulkAddButton.setAttribute('aria-label', 'Add selected articles to report');
+  }
+  bulkAddButtons.slice(1).forEach((button) => button.remove());
+
+  app.querySelectorAll('.table-row[data-index]').forEach((row) => {
+    const article = data[Number(row.dataset.index)] || null;
+    if (!article) return;
+
+    const targetSection = inboxTargetSection(article);
+    const addEnabled = canAddInboxReport(article);
+    const majorButton = row.querySelector('[data-add-major-article]');
+    const industryButton = row.querySelector('[data-add-industry-article]');
+    const rowAddButton = majorButton || industryButton;
+
+    if (!rowAddButton) return;
+
+    rowAddButton.classList.remove('ghost-btn', 'secondary-tone');
+    rowAddButton.classList.add('primary-btn', 'row-add-btn');
+    rowAddButton.dataset.addReportArticle = row.dataset.index;
+    delete rowAddButton.dataset.addMajorArticle;
+    delete rowAddButton.dataset.addIndustryArticle;
+    rowAddButton.disabled = !addEnabled;
+    rowAddButton.textContent = addEnabled ? '보도 추가' : '보도 반영 완료';
+    rowAddButton.setAttribute(
+      'aria-label',
+      escapeHtml(
+        addEnabled
+          ? `${article.title || '기사'} ${sectionLabel(targetSection)}에 보도 추가`
+          : `${article.title || '기사'} 보도 반영 완료`
+      )
+    );
+
+    if (majorButton && industryButton && majorButton !== rowAddButton) {
+      majorButton.remove();
+    }
+    if (industryButton && industryButton !== rowAddButton) {
+      industryButton.remove();
+    }
+  });
+
+  const toolbarStats = app.querySelector('.toolbar-stats');
+  if (toolbarStats) {
+    const pills = toolbarStats.querySelectorAll('.panel-pill');
+    if (pills[2]) {
+      pills[2].textContent = `현재 페이지 선택 가능 ${formatNumber(selectableVisible.length)}건`;
+    }
+  }
+
+  const toolbarNote = app.querySelector('.toolbar-note');
+  if (toolbarNote) {
+    toolbarNote.classList.remove('has-lock');
+    toolbarNote.innerHTML = '<strong>안내</strong><span>기사 인박스에서는 기본 분류대로만 보도에 추가하고, 주요 보도와 업계 보도 간 변경은 리포트 빌더에서만 지원합니다.</span>';
+  }
+
   document.querySelectorAll('[data-filter]').forEach((button) => {
     button.addEventListener('click', () => {
       state.inboxSectionFilter = button.dataset.filter;
@@ -1780,6 +2210,15 @@ function renderInbox() {
       if (!article) return;
       toggleArticleSelection(article, checkbox.checked);
       renderInbox();
+    });
+  });
+
+  document.querySelectorAll('[data-open-article]').forEach((button) => {
+    button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const article = data[Number(button.dataset.openArticle)] || null;
+      if (!article?.url) return;
+      openArticleUrl(article.url);
     });
   });
 
@@ -1878,17 +2317,17 @@ function renderBuilderColumn(sectionName, items) {
             return `
             <div class="builder-item ${entryKey === state.builderFocusKey ? 'active' : ''}" data-builder-focus="${escapeHtml(entryKey)}">
               <div class="builder-item-head">
-                <span class="drag-label">${sectionName === 'major' ? '주요' : '업계'}</span>
+                <span class="drag-label ${sectionBadgeClass(sectionName)}">${sectionName === 'major' ? '주요' : '업계'}</span>
                 <span class="status-badge status-selected">${escapeHtml(article.keyword || sectionLabel(article.section))}</span>
               </div>
               <strong>${escapeHtml(article.title)}</strong>
               <p class="builder-item-source">${escapeHtml(mediaLabel(article))}</p>
                 <p class="builder-item-note">${escapeHtml(articleSummaryLead(article) || articleKeyPoint(article) || article.summary || '요약 미입력')}</p>
               <div class="builder-chip-row">
-                <span class="panel-pill ${sectionName === 'major' ? 'tone-main' : 'tone-industry'}">${sectionLabel(sectionName)}</span>
+                <span class="panel-pill ${sectionName === 'major' ? 'tone-main section-major' : 'tone-industry section-industry'}">${sectionLabel(sectionName)}</span>
               </div>
               <div class="inline-actions compact">
-                <button class="ghost-btn" data-builder-open="${escapeHtml(article.url || '')}">원문 열기</button>
+                <button class="ghost-btn" data-builder-open="${escapeHtml(article.url || '')}">기사 열기</button>
                 ${
                   sectionName === 'major'
                     ? `<button class="ghost-btn" data-builder-move-industry="${escapeHtml(entryKey)}">업계 보도로 이동</button>`
@@ -1925,7 +2364,7 @@ function renderBuilderDetailPanel() {
   const article = location.item;
   const key = draftEntryKey(location.sectionName, article);
   return `
-    <article class="card detail-panel">
+    <article class="card detail-panel" id="builder-detail-panel" role="tabpanel" aria-labelledby="builder-side-view-detail">
       ${renderAnnotation('SCR-BUILD-DETAIL-001')}
       <div class="panel-heading">
         <div>
@@ -1939,11 +2378,11 @@ function renderBuilderDetailPanel() {
         <p>${escapeHtml(mediaLabel(article))} · ${escapeHtml(article.keyword || '-')}</p>
       </div>
       <div class="builder-chip-row">
-        <span class="panel-pill ${location.sectionName === 'major' ? 'tone-main' : 'tone-industry'}">${sectionLabel(location.sectionName)}</span>
+        <span class="panel-pill ${location.sectionName === 'major' ? 'tone-main section-major' : 'tone-industry section-industry'}">${sectionLabel(location.sectionName)}</span>
       </div>
       ${renderBuilderAiActionButton(key, { mode: 'detail', id: 'builder-ai-summarize' })}
       <div class="inline-actions compact">
-        <button class="ghost-btn" id="builder-detail-open">원문 열기</button>
+        <button class="ghost-btn" id="builder-detail-open">기사 열기</button>
       </div>
       ${location.sectionName === 'major'
         ? '<div class="inline-actions compact"><button class="ghost-btn" id="builder-detail-move-industry">업계 보도로 이동</button></div>'
@@ -1984,20 +2423,16 @@ function renderReportBuilder() {
   updateShellMeta();
   const sections = getReportSections();
   ensureBuilderFocus();
+  normalizeBuilderSideView();
   const reportText = state.reportTextDraft || generateReportText();
   const reportItemCount = sections.major.length + sections.industry.length;
+  const totalDraftChars = characterLength(reportText);
+  const detailAvailable = Boolean(findDraftLocation(state.builderFocusKey));
+  const activeBuilderSideView = detailAvailable && state.builderSideView === 'detail' ? 'detail' : 'draft';
+  state.builderSideView = activeBuilderSideView;
 
   app.innerHTML = `
     <section class="page" id="report-builder-page">
-      <div class="section-banner">
-        ${renderAnnotation('SCR-BUILD-HEAD-001')}
-        <div>
-          <p class="panel-kicker">Report Builder</p>
-          <h3>${formatDateLabel(state.date)} 리포트 빌더</h3>
-          <p>반영된 기사만 정리하고 초안을 다듬습니다.</p>
-        </div>
-      </div>
-
       <div class="builder-layout">
         <div class="builder-workspace">
           <div class="builder-columns">
@@ -2007,38 +2442,72 @@ function renderReportBuilder() {
         </div>
 
         <aside class="builder-side-stack">
-          ${renderBuilderDetailPanel()}
-          <article class="card draft-panel">
-            ${renderAnnotation('SCR-BUILD-DRAFT-001')}
-            <div class="panel-heading">
-              <div>
-                <p class="panel-kicker">리포트 초안</p>
-                <h3>보고서 초안</h3>
-              </div>
-              <span class="panel-pill tone-neutral">${formatNumber(reportItemCount)}건 반영</span>
-            </div>
-            <textarea id="report-text">${escapeHtml(reportText)}</textarea>
-            <div class="draft-summary">
-              <div>
-                <span>주요 보도</span>
-                <strong>${formatNumber(sections.major.length)}</strong>
-              </div>
-              <div>
-                <span>업계 보도</span>
-                <strong>${formatNumber(sections.industry.length)}</strong>
-              </div>
-              <div>
-                <span>리포트 기사</span>
-                <strong>${formatNumber(reportItemCount)}</strong>
-              </div>
-            </div>
-            <div class="inline-actions stack-mobile">
-              <button class="ghost-btn" id="reset-report">초기화</button>
-              <button class="ghost-btn" id="copy-report">복사</button>
-              <button class="primary-btn" id="save-report" aria-label="Save">저장</button>
-              <button class="primary-btn secondary-tone" id="finalize-report">확정</button>
-            </div>
-          </article>
+          <div class="toggle builder-side-toggle" role="tablist" aria-label="builder-side-view-toggle">
+            <button
+              id="builder-side-view-detail"
+              role="tab"
+              aria-label="Article settings"
+              aria-selected="${activeBuilderSideView === 'detail'}"
+              aria-controls="builder-detail-panel"
+              class="${activeBuilderSideView === 'detail' ? 'active' : ''}"
+              data-builder-side-view="detail"
+              tabindex="${activeBuilderSideView === 'detail' ? '0' : '-1'}"
+              ${detailAvailable ? '' : 'disabled'}
+            >
+              기사별 설정
+            </button>
+            <button
+              id="builder-side-view-draft"
+              role="tab"
+              aria-label="Report draft"
+              aria-selected="${activeBuilderSideView === 'draft'}"
+              aria-controls="builder-draft-panel"
+              class="${activeBuilderSideView === 'draft' ? 'active' : ''}"
+              data-builder-side-view="draft"
+              tabindex="${activeBuilderSideView === 'draft' ? '0' : '-1'}"
+            >
+              보고서 초안
+            </button>
+          </div>
+          ${activeBuilderSideView === 'draft'
+            ? `
+              <article class="card draft-panel" id="builder-draft-panel" role="tabpanel" aria-labelledby="builder-side-view-draft">
+                ${renderAnnotation('SCR-BUILD-DRAFT-001')}
+                <div class="panel-heading">
+                  <div>
+                    <p class="panel-kicker">리포트 초안</p>
+                    <h3>보고서 초안</h3>
+                  </div>
+                  <span class="panel-pill tone-neutral">${formatNumber(reportItemCount)}건 반영</span>
+                </div>
+                <p class="panel-note">기사별 설정을 마친 뒤 초안을 검토하고, 마지막 문장만 다듬은 다음 카카오 프리뷰로 보내는 흐름을 기준으로 배치했습니다.</p>
+                <textarea id="report-text">${escapeHtml(reportText)}</textarea>
+                <div class="draft-summary">
+                  <div>
+                    <span>전체 글자 수</span>
+                    <strong id="builder-draft-char-count">${formatNumber(totalDraftChars)}</strong>
+                  </div>
+                  <div>
+                    <span>주요 보도</span>
+                    <strong>${formatNumber(sections.major.length)}</strong>
+                  </div>
+                  <div>
+                    <span>업계 보도</span>
+                    <strong>${formatNumber(sections.industry.length)}</strong>
+                  </div>
+                  <div>
+                    <span>리포트 기사</span>
+                    <strong>${formatNumber(reportItemCount)}</strong>
+                  </div>
+                </div>
+                <div class="inline-actions stack-mobile">
+                  <button class="ghost-btn" id="reset-report">초안 재생성</button>
+                  <button class="ghost-btn" id="copy-report">초안 복사</button>
+                  <button class="primary-btn" id="draft-to-kakao">카카오 프리뷰 보기</button>
+                </div>
+              </article>
+            `
+            : renderBuilderDetailPanel()}
         </aside>
       </div>
     </section>
@@ -2047,6 +2516,14 @@ function renderReportBuilder() {
   app.querySelectorAll('[data-builder-focus]').forEach((node) => {
     node.addEventListener('click', () => {
       setBuilderFocus(node.dataset.builderFocus);
+      renderReportBuilder();
+    });
+  });
+
+  app.querySelectorAll('[data-builder-side-view]').forEach((button) => {
+    button.addEventListener('click', () => {
+      if (button.disabled) return;
+      state.builderSideView = button.dataset.builderSideView === 'draft' ? 'draft' : 'detail';
       renderReportBuilder();
     });
   });
@@ -2072,11 +2549,15 @@ function renderReportBuilder() {
       event.stopPropagation();
       if (!state.capabilities?.aiSummarize) {
         const connected = await connectRemoteAiAccess();
-        if (connected) {
-          renderReportBuilder();
-        }
+        if (!connected) return;
+        renderReportBuilder();
+      }
+
+      if (state.capabilities?.requiresToken && !getStoredAiToken()) {
+        showToast('AI 접근 토큰을 먼저 입력해주세요.');
         return;
       }
+
       await summarizeDraftItemWithAi(button.dataset.builderAi);
     });
   });
@@ -2153,28 +2634,36 @@ function renderReportBuilder() {
     });
   }
 
-  document.getElementById('copy-report').addEventListener('click', async () => {
-    await navigator.clipboard.writeText(document.getElementById('report-text').value);
-    showToast('보고서를 복사했습니다.');
-  });
+  const copyReportButton = document.getElementById('copy-report');
+  if (copyReportButton) {
+    copyReportButton.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(document.getElementById('report-text').value);
+      showToast('보고서 초안을 복사했습니다.');
+    });
+  }
 
-  document.getElementById('save-report').addEventListener('click', () => {
-    showToast('리포트 초안을 저장했습니다.');
-  });
+  const reportTextField = document.getElementById('report-text');
+  if (reportTextField) {
+    reportTextField.addEventListener('input', (event) => {
+      state.reportTextDraft = event.target.value;
+    });
+  }
 
-  document.getElementById('finalize-report').addEventListener('click', () => {
-    showToast('보고서를 확정했습니다.');
-  });
+  const resetReportButton = document.getElementById('reset-report');
+  if (resetReportButton) {
+    resetReportButton.addEventListener('click', () => {
+      state.reportTextDraft = generateReportText();
+      renderReportBuilder();
+      showToast('기사별 설정 기준으로 초안을 다시 만들었습니다.');
+    });
+  }
 
-  document.getElementById('report-text').addEventListener('input', (event) => {
-    state.reportTextDraft = event.target.value;
-  });
-
-  document.getElementById('reset-report').addEventListener('click', () => {
-    state.reportTextDraft = generateReportText();
-    renderReportBuilder();
-    showToast('보고서 편집 상태를 초기화했습니다.');
-  });
+  const draftToKakaoButton = document.getElementById('draft-to-kakao');
+  if (draftToKakaoButton) {
+    draftToKakaoButton.addEventListener('click', () => {
+      render('kakao');
+    });
+  }
 }
 
 function renderKakaoPreview() {
@@ -2282,6 +2771,33 @@ function renderKakaoPreview() {
     </section>
   `;
 
+  const kakaoFullTab = app.querySelector('[data-kakao-view="full"]');
+  const kakaoSegmentedTab = app.querySelector('[data-kakao-view="segmented"]');
+  const kakaoPanels = app.querySelectorAll('.phone-screen');
+  if (kakaoFullTab && kakaoSegmentedTab && kakaoPanels.length >= 2) {
+    kakaoFullTab.id = 'kakao-view-full';
+    kakaoFullTab.setAttribute('aria-controls', 'kakao-panel-full');
+    kakaoFullTab.setAttribute('tabindex', state.kakaoView === 'full' ? '0' : '-1');
+    kakaoSegmentedTab.id = 'kakao-view-segmented';
+    kakaoSegmentedTab.setAttribute('aria-controls', 'kakao-panel-segmented');
+    kakaoSegmentedTab.setAttribute('tabindex', state.kakaoView === 'segmented' ? '0' : '-1');
+    kakaoPanels[0].id = 'kakao-panel-full';
+    kakaoPanels[0].setAttribute('role', 'tabpanel');
+    kakaoPanels[0].setAttribute('aria-labelledby', 'kakao-view-full');
+    kakaoPanels[0].setAttribute('aria-hidden', state.kakaoView === 'full' ? 'false' : 'true');
+    kakaoPanels[1].id = 'kakao-panel-segmented';
+    kakaoPanels[1].setAttribute('role', 'tabpanel');
+    kakaoPanels[1].setAttribute('aria-labelledby', 'kakao-view-segmented');
+    kakaoPanels[1].setAttribute('aria-hidden', state.kakaoView === 'segmented' ? 'false' : 'true');
+  }
+
+  const composeSend = app.querySelector('.compose-send');
+  if (composeSend) {
+    composeSend.setAttribute('tabindex', '-1');
+    composeSend.setAttribute('role', 'presentation');
+    composeSend.setAttribute('aria-hidden', 'true');
+  }
+
   app.querySelectorAll('[data-kakao-view]').forEach((button) => {
     button.addEventListener('click', () => {
       state.kakaoView = button.dataset.kakaoView;
@@ -2290,6 +2806,9 @@ function renderKakaoPreview() {
   });
 
   app.querySelectorAll('[data-segment-order]').forEach((button) => {
+    const selected = Number(button.dataset.segmentOrder) === state.selectedSegmentOrder;
+    button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    button.setAttribute('aria-label', `Part ${button.dataset.segmentOrder} 보기`);
     button.addEventListener('click', () => {
       state.selectedSegmentOrder = Number(button.dataset.segmentOrder);
       renderKakaoPreview();
@@ -2440,43 +2959,33 @@ renderInbox = function renderInboxOverride() {
   state.selectedPage = Math.min(state.selectedPage, maxPage);
   const start = (state.selectedPage - 1) * state.pageSize;
   const visible = data.slice(start, start + state.pageSize);
+  if (!visible.some((article) => articleKey(article) === articleKey(state.selectedArticle))) {
+    state.selectedArticle = visible[0] || null;
+  }
+  const selectableVisible = visible.filter((article) => !isArticleAssigned(article));
   const reviewReady = visible.filter((article) => articleStatus(article) !== 'failed').length;
   const selectedCount = selectedArticleCount();
-  const visibleSelectedCount = visible.filter((article) => isArticleSelected(article)).length;
-  const allVisibleSelected = visible.length > 0 && visibleSelectedCount === visible.length;
+  const visibleSelectedCount = selectableVisible.filter((article) => isArticleSelected(article)).length;
+  const allVisibleSelected = selectableVisible.length > 0 && visibleSelectedCount === selectableVisible.length;
   const selectedArticles = getSelectedArticles();
   const majorAssignment = summarizeAssignableArticles('major', selectedArticles);
   const industryAssignment = summarizeAssignableArticles('industry', selectedArticles);
+  const inboxAssignment = summarizeInboxAssignableArticles(selectedArticles);
   const assignedCount = sections.major.length + sections.industry.length;
   const showMajorActions = state.inboxSectionFilter !== 'industry';
 
   app.innerHTML = `
     <section class="page" id="article-inbox-page">
-      <div class="section-banner section-banner-inline">
-        <div>
-          ${renderAnnotation('SCR-INBOX-HEAD-001')}
-          <p class="panel-kicker">Article Inbox</p>
-          <h3>기사 인박스</h3>
-          <p>테이블에서 선택하고 바로 주요 보도와 업계 보도로 분류합니다.</p>
-        </div>
-        <span class="panel-pill tone-neutral">${formatNumber(data.length)}건 표시</span>
-      </div>
-
       <div class="content-stack inbox-stack">
         <article class="card table-card inbox-table-card">
           ${renderAnnotation('SCR-INBOX-TABLE-001')}
           <div class="toolbar-topline">
             <div>
-              <p class="panel-kicker">Table Controls</p>
+              <p class="panel-kicker">Inbox Controls</p>
               <h3>기사 목록</h3>
             </div>
             <div class="toolbar-meta">
-              <label for="page-size">페이지 크기</label>
-              <select id="page-size">
-                ${[10, 20, 50, 100, 200].map((size) => `
-                  <option value="${size}" ${state.pageSize === size ? 'selected' : ''}>${size}</option>
-                `).join('')}
-              </select>
+              <span class="panel-pill tone-neutral">${formatNumber(data.length)}건 표시</span>
             </div>
           </div>
 
@@ -2487,7 +2996,7 @@ renderInbox = function renderInboxOverride() {
                 ['major', '주요 보도', statusCounts.major],
                 ['industry', '업계 보도', statusCounts.industry]
               ].map(([value, label, count]) => `
-                <button class="filter-chip ${state.inboxSectionFilter === value ? 'active' : ''}" data-filter="${value}">
+                <button class="filter-chip ${state.inboxSectionFilter === value ? 'active' : ''}" data-filter="${value}" aria-pressed="${state.inboxSectionFilter === value}">
                   <strong>${escapeHtml(label)}</strong>
                   <span>${formatNumber(count)}</span>
                 </button>
@@ -2501,11 +3010,11 @@ renderInbox = function renderInboxOverride() {
                   <div class="keyword-filter-band">
                     <strong class="keyword-band-title">${escapeHtml(group.label)}</strong>
                     <div class="chip-group chip-group-inline">
-                      <button class="filter-chip keyword-chip ${state.inboxKeywordFilter === '' ? 'active' : ''}" data-keyword-filter="">
+                      <button class="filter-chip keyword-chip ${state.inboxKeywordFilter === '' ? 'active' : ''}" data-keyword-filter="" aria-pressed="${state.inboxKeywordFilter === ''}">
                         <strong>전체</strong>
                       </button>
                       ${group.options.map((keyword) => `
-                        <button class="filter-chip keyword-chip ${state.inboxKeywordFilter === keyword ? 'active' : ''}" data-keyword-filter="${escapeHtml(keyword)}">
+                        <button class="filter-chip keyword-chip ${state.inboxKeywordFilter === keyword ? 'active' : ''}" data-keyword-filter="${escapeHtml(keyword)}" aria-pressed="${state.inboxKeywordFilter === keyword}">
                           <strong>${escapeHtml(keyword)}</strong>
                         </button>
                       `).join('')}
@@ -2516,16 +3025,18 @@ renderInbox = function renderInboxOverride() {
             : ''}
 
           <div class="selection-toolbar">
-            <label class="table-select-all">
-              <input type="checkbox" id="select-all-visible" ${allVisibleSelected ? 'checked' : ''} />
-              <span>전체 선택</span>
-            </label>
+            <div class="selection-toolbar-summary">
+              <label class="table-select-all">
+                <input type="checkbox" id="select-all-visible" ${allVisibleSelected ? 'checked' : ''} ${selectableVisible.length ? '' : 'disabled'} />
+                <span>전체 선택</span>
+              </label>
+              <div class="selection-badge" aria-live="polite" aria-atomic="true">
+                <span>선택 기사</span>
+                <strong>${formatNumber(selectedCount)}</strong>
+              </div>
+            </div>
             <div class="toolbar-actions">
               <div class="action-cluster">
-                <div class="selection-badge">
-                  <span>현재 선택</span>
-                  <strong>${formatNumber(selectedCount)}</strong>
-                </div>
                 <button class="ghost-btn" id="clear-selection" ${selectedCount ? '' : 'disabled'}>선택 해제</button>
               </div>
               <div class="action-cluster action-cluster-primary">
@@ -2533,7 +3044,7 @@ renderInbox = function renderInboxOverride() {
                 <button class="primary-btn secondary-tone" id="assign-industry" ${industryAssignment.available.length ? '' : 'disabled'}>업계 보도 추가</button>
               </div>
               <div class="action-cluster">
-                <button class="ghost-btn" id="open-selected" aria-label="Open selected" ${state.selectedArticle ? '' : 'disabled'}>원문 열기</button>
+                <button class="ghost-btn" id="open-selected" aria-label="Open selected articles" ${selectedCount ? '' : 'disabled'}>선택 기사 열기</button>
               </div>
             </div>
           </div>
@@ -2548,18 +3059,19 @@ renderInbox = function renderInboxOverride() {
             ? `<div class="toolbar-note ${majorAssignment.blocked.length ? 'has-lock' : ''}">
                 ${majorAssignment.blocked.length
                   ? '<strong>잠금</strong><span>업계 보도에 들어간 기사는 주요 보도로 올릴 수 없습니다.</span>'
-                  : '<strong>안내</strong><span>선택한 기사만 주요 보도 또는 업계 보도로 보낼 수 있습니다.</span>'}
+                  : '<strong>안내</strong><span>선택 기사 열기는 체크한 기사 링크 전체를 새 탭으로 엽니다. 브라우저 팝업 차단이 켜져 있으면 일부 탭이 막힐 수 있습니다.</span>'}
               </div>`
             : ''}
 
           <div class="table table-articles">
             <div class="table-head">
-              <span>선택</span>
-              <span>상태</span>
+              <span class="table-head-label table-head-label-center">선택</span>
+              <span class="table-head-label table-head-label-center">상태</span>
               ${renderInboxSortHeader('media', '매체')}
               ${renderInboxSortHeader('title', '기사')}
               ${renderInboxSortHeader('keyword', '키워드')}
-              ${renderInboxSortHeader('time', '시간')}
+              ${renderInboxSortHeader('time', '발행')}
+              <span class="table-head-label table-head-label-center">액션</span>
             </div>
             ${visible.length
               ? visible.map((article, index) => {
@@ -2567,19 +3079,44 @@ renderInbox = function renderInboxOverride() {
                 const status = articleStatus(article);
                 const focused = articleKey(state.selectedArticle) === articleKey(article);
                 const picked = isArticleSelected(article);
+                const locked = isArticleAssigned(article);
+                const membership = reportMembership(article);
+                const majorDisabled = !canAddMajorReport(article);
+                const industryDisabled = !canAddIndustryReport(article);
+                const hideMajorAction = article.section === 'industry' || membership.isIndustryReport;
+                const rowMajorLabel = membership.isMainReport
+                  ? '주요 보도 반영 완료'
+                  : '주요 보도 추가';
+                const rowIndustryLabel = membership.isIndustryReport
+                  ? '업계 보도 반영 완료'
+                  : '업계 보도 추가';
                 return `
-                  <div class="table-row ${focused ? 'selected' : ''} ${picked ? 'picked' : ''}" data-index="${globalIndex}">
-                    <div class="selection-cell">
-                      <input type="checkbox" data-select-article="${globalIndex}" ${picked ? 'checked' : ''} aria-label="select article ${globalIndex + 1}" />
+                  <div class="table-row-wrap ${focused ? 'is-expanded' : ''}">
+                    <div
+                      class="table-row ${focused ? 'selected' : ''} ${picked ? 'picked' : ''} ${locked ? 'locked' : ''}"
+                      data-index="${globalIndex}"
+                      role="button"
+                      tabindex="0"
+                      aria-label="${escapeHtml(`${article.title || '기사'} 상세 보기`)}"
+                    >
+                      <div class="selection-cell">
+                        <input type="checkbox" data-select-article="${globalIndex}" ${picked ? 'checked' : ''} ${locked ? 'disabled' : ''} aria-label="select article ${globalIndex + 1}" />
+                      </div>
+                      <div class="table-cell table-cell-status" data-label="상태"><span class="status-badge status-${escapeHtml(status)}">${escapeHtml(statusLabel(status))}</span></div>
+                      <div class="table-cell table-cell-media" data-label="매체">${escapeHtml(mediaLabel(article))}</div>
+                      <div class="table-cell table-cell-title title-wrap">
+                        <div class="title-meta-strip">${renderArticleSourcePill(article)}</div>
+                        <strong>${highlightTitleKeywords(article.title, article)}</strong>
+                        <p>${highlightSummaryKeywords(article.summary, article)}</p>
+                      </div>
+                      <div class="table-cell table-cell-keyword" data-label="키워드">${escapeHtml(article.keyword || '-')}</div>
+                      <div class="table-cell table-cell-time" data-label="발행">${escapeHtml(formatArticlePublishedTime(article))}</div>
+                      <div class="table-cell table-cell-actions">
+                        <button class="ghost-btn row-open-btn row-action-btn" data-open-article="${globalIndex}" ${article.url ? '' : 'disabled'} aria-label="${escapeHtml(`${article.title || '기사'} 기사 열기`)}">기사 열기</button>
+                        ${hideMajorAction ? '' : `<button class="ghost-btn row-action-btn" data-add-major-article="${globalIndex}" ${majorDisabled ? 'disabled' : ''} aria-label="${escapeHtml(`${article.title || '기사'} ${rowMajorLabel}`)}">${escapeHtml(rowMajorLabel)}</button>`}
+                        <button class="primary-btn secondary-tone row-action-btn" data-add-industry-article="${globalIndex}" ${industryDisabled ? 'disabled' : ''} aria-label="${escapeHtml(`${article.title || '기사'} ${rowIndustryLabel}`)}">${escapeHtml(rowIndustryLabel)}</button>
+                      </div>
                     </div>
-                    <div><span class="status-badge status-${escapeHtml(status)}">${escapeHtml(statusLabel(status))}</span></div>
-                    <div>${escapeHtml(mediaLabel(article))}</div>
-                    <div class="title-wrap">
-                      <strong>${highlightTitleKeywords(article.title, article)}</strong>
-                      <p>${escapeHtml(article.summary || '').slice(0, 120)}</p>
-                    </div>
-                    <div>${escapeHtml(article.keyword || '-')}</div>
-                    <div>${escapeHtml(formatArticlePublishedTime(article))}</div>
                   </div>
                 `;
               }).join('')
@@ -2587,28 +3124,97 @@ renderInbox = function renderInboxOverride() {
           </div>
 
           <div class="pagination-row">
-            <span>${state.selectedPage} / ${maxPage} 페이지</span>
+            <div class="pagination-meta">
+              <span>${state.selectedPage} / ${maxPage} 페이지</span>
+              <label class="page-size-control" for="page-size">
+                <span>페이지 크기</span>
+                <select id="page-size">
+                  ${[10, 20, 50, 100, 200].map((size) => `
+                    <option value="${size}" ${state.pageSize === size ? 'selected' : ''}>${size}</option>
+                  `).join('')}
+                </select>
+              </label>
+            </div>
             <div class="inline-actions compact">
               <button class="ghost-btn" id="prev-page" ${state.selectedPage <= 1 ? 'disabled' : ''}>이전</button>
               <button class="ghost-btn" id="next-page" ${state.selectedPage >= maxPage ? 'disabled' : ''}>다음</button>
             </div>
           </div>
         </article>
-
-        <article class="card preview-panel" id="article-preview">
-          ${renderAnnotation('SCR-INBOX-PREVIEW-001')}
-          <div class="panel-heading">
-            <div>
-              <p class="panel-kicker">Selected Article</p>
-              <h3>기사 요약</h3>
-            </div>
-            <span class="panel-pill tone-neutral">선택 기사</span>
-          </div>
-          ${renderArticlePreview(state.selectedArticle)}
-        </article>
       </div>
     </section>
   `;
+
+  const clearSelectionButton = document.getElementById('clear-selection');
+  if (clearSelectionButton) {
+    clearSelectionButton.classList.add('toolbar-btn');
+    clearSelectionButton.textContent = '선택 해제';
+  }
+
+  const openSelectedButton = document.getElementById('open-selected');
+  if (openSelectedButton) {
+    openSelectedButton.classList.add('toolbar-btn');
+    openSelectedButton.textContent = '선택 기사 열기';
+  }
+
+  const bulkAddButtons = [document.getElementById('assign-major'), document.getElementById('assign-industry')].filter(Boolean);
+  const bulkAddButton = bulkAddButtons[0] || null;
+  if (bulkAddButton) {
+    bulkAddButton.id = 'add-selected-to-report';
+    bulkAddButton.classList.add('toolbar-btn');
+    bulkAddButton.classList.remove('secondary-tone');
+    bulkAddButton.disabled = !inboxAssignment.available.length;
+    bulkAddButton.textContent = '보도 추가';
+    bulkAddButton.setAttribute('aria-label', 'Add selected articles to report');
+  }
+  bulkAddButtons.slice(1).forEach((button) => button.remove());
+
+  app.querySelectorAll('.table-row[data-index]').forEach((row) => {
+    const article = data[Number(row.dataset.index)] || null;
+    if (!article) return;
+
+    const targetSection = inboxTargetSection(article);
+    const addEnabled = canAddInboxReport(article);
+    const majorButton = row.querySelector('[data-add-major-article]');
+    const industryButton = row.querySelector('[data-add-industry-article]');
+    const rowAddButton = majorButton || industryButton;
+    if (!rowAddButton) return;
+
+    rowAddButton.classList.remove('ghost-btn', 'secondary-tone');
+    rowAddButton.classList.add('primary-btn', 'row-add-btn');
+    rowAddButton.dataset.addReportArticle = row.dataset.index;
+    delete rowAddButton.dataset.addMajorArticle;
+    delete rowAddButton.dataset.addIndustryArticle;
+    rowAddButton.disabled = !addEnabled;
+    rowAddButton.textContent = addEnabled ? '보도 추가' : '보도 반영 완료';
+    rowAddButton.setAttribute(
+      'aria-label',
+      addEnabled
+        ? `${article.title || '기사'} ${sectionLabel(targetSection)}에 보도 추가`
+        : `${article.title || '기사'} 보도 반영 완료`
+    );
+
+    if (majorButton && majorButton !== rowAddButton) {
+      majorButton.remove();
+    }
+    if (industryButton && industryButton !== rowAddButton) {
+      industryButton.remove();
+    }
+  });
+
+  const toolbarStats = app.querySelector('.toolbar-stats');
+  if (toolbarStats) {
+    const pills = toolbarStats.querySelectorAll('.panel-pill');
+    if (pills[2]) {
+      pills[2].textContent = `현재 페이지 선택 가능 ${formatNumber(selectableVisible.length)}건`;
+    }
+  }
+
+  const toolbarNote = app.querySelector('.toolbar-note');
+  if (toolbarNote) {
+    toolbarNote.classList.remove('has-lock');
+    toolbarNote.innerHTML = '<strong>안내</strong><span>기사 인박스에서는 기본 분류대로만 보도에 추가하고, 주요 보도와 업계 보도 간 변경은 리포트 빌더에서만 지원합니다.</span>';
+  }
 
   document.querySelectorAll('[data-filter]').forEach((button) => {
     button.addEventListener('click', () => {
@@ -2666,10 +3272,64 @@ renderInbox = function renderInboxOverride() {
     });
   });
 
+  document.querySelectorAll('[data-open-article]').forEach((button) => {
+    button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const article = data[Number(button.dataset.openArticle)] || null;
+      if (!article?.url) return;
+      openArticleUrl(article.url);
+    });
+  });
+
+  document.querySelectorAll('[data-add-report-article]').forEach((button) => {
+    button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const article = data[Number(button.dataset.addReportArticle)] || null;
+      if (!article) return;
+      const targetSection = inboxTargetSection(article);
+      const result = addArticleToReportSection(targetSection, article);
+      if (result.added) {
+        deselectArticles([article]);
+        showToast(`기사를 ${sectionLabel(targetSection)}에 추가했습니다.`);
+        renderInbox();
+        return;
+      }
+      if (result.added) {
+        deselectArticles([article]);
+        showToast('선택 기사를 주요 보도에 반영했습니다.');
+      } else if (result.reason === 'industry_to_main_blocked') {
+        showToast('업계 보도에 들어간 기사는 주요 보도로 올릴 수 없습니다.');
+      }
+      renderInbox();
+    });
+  });
+
+  document.querySelectorAll('[data-add-industry-article]').forEach((button) => {
+    button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const article = data[Number(button.dataset.addIndustryArticle)] || null;
+      if (!article) return;
+      const result = addArticleToReportSection('industry', article);
+      if (result.added) {
+        deselectArticles([article]);
+        showToast('선택 기사를 업계 보도에 반영했습니다.');
+      }
+      renderInbox();
+    });
+  });
+
   app.querySelectorAll('.table-row[data-index]').forEach((row) => {
-    row.addEventListener('click', () => {
+    const focusArticle = () => {
       state.selectedArticle = data[Number(row.dataset.index)] || null;
       renderInbox();
+    };
+
+    row.addEventListener('click', focusArticle);
+    row.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        focusArticle();
+      }
     });
   });
 
@@ -2683,56 +3343,17 @@ renderInbox = function renderInboxOverride() {
     renderInbox();
   });
 
-  if (showMajorActions) {
-    document.getElementById('assign-major').addEventListener('click', () => {
-      assignSelectedArticlesToSection('major');
+  const addSelectedToReportButton = document.getElementById('add-selected-to-report');
+  if (addSelectedToReportButton) {
+    addSelectedToReportButton.addEventListener('click', () => {
+      assignSelectedArticlesToInboxReport();
       renderInbox();
     });
   }
-
-  document.getElementById('assign-industry').addEventListener('click', () => {
-    assignSelectedArticlesToSection('industry');
-    renderInbox();
-  });
 
   document.getElementById('open-selected').addEventListener('click', () => {
-    if (state.selectedArticle?.url) {
-      window.open(state.selectedArticle.url, '_blank', 'noopener,noreferrer');
-    }
+    openSelectedArticles();
   });
-
-  if (state.selectedArticle) {
-    document.getElementById('toggle-preview-selection').addEventListener('click', () => {
-      toggleArticleSelection(state.selectedArticle);
-      renderInbox();
-    });
-
-    const previewMajorButton = document.getElementById('add-preview-major');
-    if (previewMajorButton && !previewMajorButton.disabled) {
-      previewMajorButton.addEventListener('click', () => {
-        const result = addArticleToReportSection('major', state.selectedArticle);
-        if (result.added) {
-          deselectArticles([state.selectedArticle]);
-          showToast('선택 기사를 주요 보도에 반영했습니다.');
-        } else if (result.reason === 'industry_to_main_blocked') {
-          showToast('업계 보도에 들어간 기사는 주요 보도로 올릴 수 없습니다.');
-        }
-        renderInbox();
-      });
-    }
-
-    const previewIndustryButton = document.getElementById('add-preview-industry');
-    if (previewIndustryButton && !previewIndustryButton.disabled) {
-      previewIndustryButton.addEventListener('click', () => {
-        const result = addArticleToReportSection('industry', state.selectedArticle);
-        if (result.added) {
-          deselectArticles([state.selectedArticle]);
-          showToast('선택 기사를 업계 보도에 반영했습니다.');
-        }
-        renderInbox();
-      });
-    }
-  }
 };
 
 renderBuilderColumn = function renderBuilderColumnOverride(sectionName, items) {
@@ -2751,20 +3372,18 @@ renderBuilderColumn = function renderBuilderColumnOverride(sectionName, items) {
         ${items.length
           ? items.map((article) => {
             const entryKey = draftEntryKey(sectionName, article);
+            const keywordLabel = article.keyword ? escapeHtml(article.keyword) : '키워드 없음';
             return `
               <div class="builder-item ${entryKey === state.builderFocusKey ? 'active' : ''}" data-builder-focus="${escapeHtml(entryKey)}">
                 <div class="builder-item-head">
-                  <span class="drag-label">${sectionName === 'major' ? '주요' : '업계'}</span>
-                  <span class="status-badge status-selected">${escapeHtml(article.keyword || sectionLabel(article.section))}</span>
+                  <span class="status-badge status-selected builder-item-keyword">${keywordLabel}</span>
+                  <span class="builder-item-time">발행 ${escapeHtml(formatArticlePublishedTime(article))}</span>
                 </div>
                 <strong>${escapeHtml(article.title)}</strong>
                 <p class="builder-item-source">${escapeHtml(mediaLabel(article))}</p>
                 <p class="builder-item-note">${escapeHtml(articleSummaryLead(article) || articleKeyPoint(article) || article.summary || '요약을 아직 입력하지 않았습니다.')}</p>
-              <div class="builder-chip-row">
-                <span class="panel-pill ${sectionName === 'major' ? 'tone-main' : 'tone-industry'}">${sectionLabel(sectionName)}</span>
-              </div>
                 <div class="inline-actions compact">
-                  <button class="ghost-btn" data-builder-open="${escapeHtml(article.url || '')}">원문 열기</button>
+                  <button class="ghost-btn" data-builder-open="${escapeHtml(article.url || '')}">기사 열기</button>
                   ${sectionName === 'major'
                     ? `<button class="ghost-btn" data-builder-move-industry="${escapeHtml(entryKey)}">업계로 이동</button>`
                     : ''}
@@ -2799,39 +3418,29 @@ renderBuilderDetailPanel = function renderBuilderDetailPanelOverride() {
   const article = location.item;
   const key = draftEntryKey(location.sectionName, article);
   return `
-    <article class="card detail-panel">
+    <article class="card detail-panel" id="builder-detail-panel" role="tabpanel" aria-labelledby="builder-side-view-detail">
       ${renderAnnotation('SCR-BUILD-DETAIL-001')}
       <div class="panel-heading">
         <div>
           <p class="panel-kicker">기사 설정</p>
           <h3>기사별 설정</h3>
         </div>
-        <span class="panel-pill tone-neutral">${escapeHtml(sectionLabel(location.sectionName))}</span>
       </div>
       <div class="detail-hero">
         <strong>${escapeHtml(article.title)}</strong>
         <p>${escapeHtml(mediaLabel(article))} · ${escapeHtml(article.keyword || '-')}</p>
       </div>
-      <div class="builder-chip-row">
-        <span class="panel-pill ${location.sectionName === 'major' ? 'tone-main' : 'tone-industry'}">${sectionLabel(location.sectionName)}</span>
+      <div class="builder-chip-row detail-meta-pills">
+        ${article.keyword ? `<span class="status-badge status-selected builder-item-keyword">${escapeHtml(article.keyword)}</span>` : ''}
+        <span class="panel-pill tone-neutral">발행 ${escapeHtml(formatArticlePublishedTime(article))}</span>
       </div>
       ${renderBuilderAiActionButton(key, { mode: 'detail', id: 'builder-ai-summarize' })}
       <div class="inline-actions compact">
-        <button class="ghost-btn" id="builder-detail-open">원문 열기</button>
+        <button class="ghost-btn" id="builder-detail-open">기사 열기</button>
+        ${location.sectionName === 'major'
+          ? '<button class="ghost-btn" id="builder-detail-move-industry">업계로 이동</button>'
+          : ''}
       </div>
-      <div class="detail-guide">
-        <strong>기본 생성 기준</strong>
-        <p>타입은 현재 기사 위치에 따라 주요 보도 또는 업계 보도로 표시됩니다.</p>
-        <p>기사 요약 및 결론은 기사 요약이나 제목을 바탕으로 30자 안팎으로 시작합니다.</p>
-        <p>주요 내용 한줄 요약은 기사 본문 요약을 바탕으로 40자 안팎으로 채우고, 제목·매체·링크는 원문 값이 자동 반영됩니다.</p>
-      </div>
-      ${location.sectionName === 'major'
-        ? '<div class="inline-actions compact"><button class="ghost-btn" id="builder-detail-move-industry">업계로 이동</button></div>'
-        : ''}
-      <label class="detail-field">
-        <span>타입</span>
-        <input value="${escapeHtml(sectionLabel(location.sectionName))}" readonly />
-      </label>
       <label class="detail-field">
         <span>기사 요약 및 결론 (30자 내외)</span>
         <input id="builder-summary-lead" data-detail-key="${escapeHtml(key)}" value="${escapeHtml(articleSummaryLead(article))}" />
@@ -2840,22 +3449,11 @@ renderBuilderDetailPanel = function renderBuilderDetailPanelOverride() {
         <span>주요 내용 한줄 요약 (40자 내외)</span>
         <input id="builder-key-point" data-detail-key="${escapeHtml(key)}" value="${escapeHtml(articleKeyPoint(article))}" />
       </label>
-      <label class="detail-field">
-        <span>기사 제목</span>
-        <input value="${escapeHtml(article.title || '')}" readonly />
-      </label>
-      <label class="detail-field">
-        <span>매체</span>
-        <input value="${escapeHtml(mediaLabel(article))}" readonly />
-      </label>
-      <label class="detail-field">
-        <span>링크</span>
-        <input value="${escapeHtml(article.url || '')}" readonly />
-      </label>
       <label class="checkbox-row">
         <input type="checkbox" id="builder-kakao" data-detail-key="${escapeHtml(key)}" ${article.includeInKakao === false ? '' : 'checked'} />
         <span>카카오 메시지에 포함</span>
       </label>
+      <p class="small-copy detail-footnote">기사 열기는 버튼으로 처리하고, 여기서는 요약과 카카오 포함 여부만 빠르게 조정합니다.</p>
     </article>
   `;
 };
@@ -2871,6 +3469,8 @@ renderKakaoPreview = function renderKakaoPreviewOverride() {
   const fullText = buildKakaoPreviewText();
   const derivedSegments = buildKakaoPreviewSegments();
   const activeSegment = derivedSegments.find((segment) => segment.order === state.selectedSegmentOrder) || derivedSegments[0] || null;
+  const totalChars = characterLength(fullText);
+  const activeSegmentChars = activeSegment ? characterLength(activeSegment.content) : 0;
 
   if (!activeSegment && state.selectedSegmentOrder !== 1) {
     state.selectedSegmentOrder = 1;
@@ -2880,15 +3480,6 @@ renderKakaoPreview = function renderKakaoPreviewOverride() {
 
   app.innerHTML = `
     <section class="page" id="kakao-preview-page">
-      <div class="section-banner">
-        ${renderAnnotation('SCR-KAKAO-HEAD-001')}
-        <div>
-          <p class="panel-kicker">Kakao Preview</p>
-          <h3>카카오 프리뷰</h3>
-          <p>리포트 빌더 결과를 카카오톡 형식 그대로 검수하고 복사합니다.</p>
-        </div>
-      </div>
-
       <div class="kakao-layout">
         <article class="card kakao-device-card">
           ${renderAnnotation('SCR-KAKAO-DEVICE-001')}
@@ -2916,14 +3507,17 @@ renderKakaoPreview = function renderKakaoPreviewOverride() {
               </div>
             </div>
             <div class="phone-screen ${state.kakaoView === 'full' ? '' : 'hidden'}">
-              <p class="bubble-meta">전체 메시지</p>
+              <p class="bubble-meta">전체 메시지 · <span id="kakao-full-char-count">${formatNumber(totalChars)}</span>자</p>
               <div class="chat-row self">
                 <div class="kakao-bubble" id="kakao-full">${escapeHtml(fullText || '리포트 빌더 결과가 아직 없습니다.')}</div>
               </div>
             </div>
 
             <div class="phone-screen ${state.kakaoView === 'segmented' ? '' : 'hidden'}">
-              <p class="bubble-meta">분할 메시지</p>
+              <p class="bubble-meta">
+                분할 메시지
+                ${activeSegment ? `· Part ${activeSegment.order} · <span id="kakao-active-segment-char-count">${formatNumber(activeSegmentChars)}</span> / ${formatNumber(KAKAO_SEGMENT_CHAR_LIMIT)}자` : ''}
+              </p>
               ${activeSegment
                 ? `
                   <div class="chat-row self">
@@ -2946,33 +3540,37 @@ renderKakaoPreview = function renderKakaoPreviewOverride() {
               <p class="panel-kicker">분할 메시지</p>
               <h3>한 화면용 파트</h3>
             </div>
-            <span class="panel-pill tone-neutral">${formatNumber(derivedSegments.length)}개</span>
+            <span class="panel-pill tone-neutral">${formatNumber(derivedSegments.length)}개 파트</span>
           </div>
+          <p class="panel-note">전체 글자 수를 먼저 보여주고, 화면형 파트는 각 메시지가 ${formatNumber(KAKAO_SEGMENT_CHAR_LIMIT)}자 이내가 되도록 분할합니다.</p>
           <div class="segment-tabs">
             ${derivedSegments.length
               ? derivedSegments.map((segment) => `
                 <button class="${segment.order === state.selectedSegmentOrder ? 'active' : ''}" data-segment-order="${segment.order}">
                   <span>Part ${segment.order}</span>
-                  <small>${segment.chars || segment.content.length}자</small>
+                  <small>${segment.chars || segment.content.length} / ${KAKAO_SEGMENT_CHAR_LIMIT}자</small>
                 </button>
               `).join('')
               : renderDataEmpty('kakao-empty', '분할 메시지가 없습니다', '리포트 빌더에 반영된 기사로 카카오 메시지를 만들 수 있습니다.')}
           </div>
           <div class="draft-summary">
             <div>
+              <span>전체 글자 수</span>
+              <strong id="kakao-total-char-count">${formatNumber(totalChars)}</strong>
+            </div>
+            <div>
               <span>현재 파트</span>
               <strong>${activeSegment ? `Part ${activeSegment.order}` : '-'}</strong>
             </div>
             <div>
-              <span>문자 수</span>
-              <strong>${activeSegment ? formatNumber(activeSegment.chars || activeSegment.content.length) : '-'}</strong>
+              <span>현재 파트 글자 수</span>
+              <strong id="kakao-part-char-count">${activeSegment ? formatNumber(activeSegmentChars) : '-'}</strong>
             </div>
             <div>
-              <span>예상 줄</span>
-              <strong>${activeSegment ? formatNumber(activeSegment.lineCount || estimateKakaoPreviewLineCount(activeSegment.content)) : '-'}</strong>
+              <span>파트 제한</span>
+              <strong id="kakao-part-char-limit">${formatNumber(KAKAO_SEGMENT_CHAR_LIMIT)}자</strong>
             </div>
           </div>
-          <p class="panel-note">분할 메시지는 기사 3개 안팎을 기준으로 묶고, 긴 기사는 더 잘게 나눠 카카오톡 채팅 화면에서 읽기 쉽게 맞춥니다.</p>
           <div class="inline-actions stack-mobile">
             <button class="ghost-btn" id="copy-all" aria-label="Copy all">전체 복사</button>
             <button class="primary-btn" id="copy-current" aria-label="Copy current" ${activeSegment ? '' : 'disabled'}>현재 파트 복사</button>
@@ -2982,6 +3580,33 @@ renderKakaoPreview = function renderKakaoPreviewOverride() {
     </section>
   `;
 
+  const kakaoFullTab = app.querySelector('[data-kakao-view="full"]');
+  const kakaoSegmentedTab = app.querySelector('[data-kakao-view="segmented"]');
+  const kakaoPanels = app.querySelectorAll('.phone-screen');
+  if (kakaoFullTab && kakaoSegmentedTab && kakaoPanels.length >= 2) {
+    kakaoFullTab.id = 'kakao-view-full';
+    kakaoFullTab.setAttribute('aria-controls', 'kakao-panel-full');
+    kakaoFullTab.setAttribute('tabindex', state.kakaoView === 'full' ? '0' : '-1');
+    kakaoSegmentedTab.id = 'kakao-view-segmented';
+    kakaoSegmentedTab.setAttribute('aria-controls', 'kakao-panel-segmented');
+    kakaoSegmentedTab.setAttribute('tabindex', state.kakaoView === 'segmented' ? '0' : '-1');
+    kakaoPanels[0].id = 'kakao-panel-full';
+    kakaoPanels[0].setAttribute('role', 'tabpanel');
+    kakaoPanels[0].setAttribute('aria-labelledby', 'kakao-view-full');
+    kakaoPanels[0].setAttribute('aria-hidden', state.kakaoView === 'full' ? 'false' : 'true');
+    kakaoPanels[1].id = 'kakao-panel-segmented';
+    kakaoPanels[1].setAttribute('role', 'tabpanel');
+    kakaoPanels[1].setAttribute('aria-labelledby', 'kakao-view-segmented');
+    kakaoPanels[1].setAttribute('aria-hidden', state.kakaoView === 'segmented' ? 'false' : 'true');
+  }
+
+  const composeSend = app.querySelector('.compose-send');
+  if (composeSend) {
+    composeSend.setAttribute('tabindex', '-1');
+    composeSend.setAttribute('role', 'presentation');
+    composeSend.setAttribute('aria-hidden', 'true');
+  }
+
   app.querySelectorAll('[data-kakao-view]').forEach((button) => {
     button.addEventListener('click', () => {
       state.kakaoView = button.dataset.kakaoView;
@@ -2990,6 +3615,9 @@ renderKakaoPreview = function renderKakaoPreviewOverride() {
   });
 
   app.querySelectorAll('[data-segment-order]').forEach((button) => {
+    const selected = Number(button.dataset.segmentOrder) === state.selectedSegmentOrder;
+    button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    button.setAttribute('aria-label', `Part ${button.dataset.segmentOrder} 보기`);
     button.addEventListener('click', () => {
       state.selectedSegmentOrder = Number(button.dataset.segmentOrder);
       renderKakaoPreview();
@@ -3026,15 +3654,6 @@ renderSettings = function renderSettingsOverride() {
 
   app.innerHTML = `
     <section class="page" id="settings-page">
-      <div class="section-banner">
-        ${renderAnnotation('SCR-SET-HEAD-001')}
-        <div>
-          <p class="panel-kicker">Operations</p>
-          <h3>설정</h3>
-          <p>운영 키워드, 크롤링 스케줄, 화이트리스트, 분류 사전을 한 화면에서 확인합니다.</p>
-        </div>
-      </div>
-
       <div class="settings-grid">
         <article class="card settings-card">
           ${renderAnnotation('SCR-SET-KEY-001')}
@@ -3202,82 +3821,27 @@ renderDashboard = function renderDashboardOverride() {
 
   app.innerHTML = `
     <section class="page" id="dashboard-page">
-      <article class="hero-panel">
-        <div>
-          ${renderAnnotation('SCR-DASH-HERO-001')}
-          <p class="hero-kicker">오늘 요약</p>
-          <h3>${formatDateLabel(state.date)} Daily Comm Report</h3>
-          <p class="hero-copy">오늘 수집 기사와 리포트 반영 현황을 한 화면에서 점검하는 운영 대시보드입니다.</p>
-        </div>
-        <div class="hero-stack">
-          <div class="hero-chip">
-            <span>오늘 수집 기사</span>
-            <strong>${formatNumber(total)}건</strong>
-          </div>
-          <div class="hero-chip">
-            <span>리포트 반영률</span>
-            <strong>${coverageRatio}%</strong>
-          </div>
-          <div class="hero-chip">
-            <span>리포트 기사</span>
-            <strong>${formatNumber(reported)}건</strong>
-          </div>
-        </div>
-      </article>
-
       <div class="kpi-grid">
         ${[
-          ['전체 기사', '오늘 수집', total],
-          ['미반영', '미반영 기사', pending],
-          ['주요 보도', '주요 보도', selected],
-          ['리포트 반영', '리포트 반영', reported],
-          ['제외/실패', '실패 / 제외', failed]
+          ['오늘 수집 기사', '수집 기사', `${formatNumber(total)}건`],
+          ['리포트 반영률', '반영률', `${coverageRatio}%`],
+          ['리포트 기사', '리포트 기사', `${formatNumber(reported)}건`],
+          ['미반영 기사', '미반영', `${formatNumber(pending)}건`],
+          ['제외/실패', '제외 / 실패', `${formatNumber(failed)}건`]
         ].map(([caption, label, value], index) => `
           <article class="card kpi-card">
             ${renderAnnotation(`SCR-DASH-CARD-00${index + 1}`)}
-            <p class="metric-caption">${caption}</p>
-            <h3>${escapeHtml(label)}</h3>
-            <p class="kpi-value">${formatNumber(value)}</p>
+            <div class="kpi-copy">
+              <p class="metric-caption">${caption}</p>
+              <h3>${escapeHtml(label)}</h3>
+            </div>
+            <p class="kpi-value">${escapeHtml(value)}</p>
           </article>
         `).join('')}
       </div>
 
       <div class="dashboard-grid">
-        <article class="card panel-card">
-          ${renderAnnotation('SCR-DASH-LOG-001')}
-          <div class="panel-heading">
-            <div>
-              <p class="panel-kicker">운영 로그</p>
-              <h3>최근 실행 기록</h3>
-            </div>
-            <button class="ghost-btn" id="go-inbox">인박스 보기</button>
-          </div>
-          <div class="run-log-list">
-            ${runLogs.map((row) => `
-              <div class="run-log-row">
-                <div>
-                  <strong>${escapeHtml(row.label)}</strong>
-                  <p>${escapeHtml(row.time)}</p>
-                </div>
-                <span class="status-badge status-${escapeHtml(row.statusClass)}">${escapeHtml(row.statusLabel)}</span>
-                <p class="run-log-detail">${escapeHtml(row.detail)}</p>
-              </div>
-            `).join('')}
-          </div>
-          <div class="spotlight-list">
-            ${spotlight.length
-              ? spotlight.map((article, index) => `
-                <button class="spotlight-item" data-open="${index}">
-                  <span class="spotlight-tag">${escapeHtml(article.section || 'unclassified')}</span>
-                  <strong>${escapeHtml(article.title)}</strong>
-                  <p>${escapeHtml(article.summary || '')}</p>
-                </button>
-              `).join('')
-              : renderDataEmpty('dashboard-empty', '표시할 기사가 없습니다', '기사 데이터가 비어 있어 최근 실행 기록을 만들 수 없습니다.')}
-          </div>
-        </article>
-
-        <article class="card panel-card">
+        <article class="card panel-card dashboard-card dashboard-card-trend">
           ${renderAnnotation('SCR-DASH-TREND-001')}
           <div class="panel-heading">
             <div>
@@ -3314,7 +3878,7 @@ renderDashboard = function renderDashboardOverride() {
           </div>
         </article>
 
-        <article class="card panel-card">
+        <article class="card panel-card dashboard-card dashboard-card-media">
           ${renderAnnotation('SCR-DASH-MEDIA-001')}
           <div class="panel-heading">
             <div>
@@ -3339,7 +3903,7 @@ renderDashboard = function renderDashboardOverride() {
           <p class="panel-note">전체 수집 기사 기준 상위 매체 비중입니다. 막대 길이는 전체 기사에서 차지하는 실제 비율을 뜻합니다.</p>
         </article>
 
-        <article class="card panel-card">
+        <article class="card panel-card dashboard-card dashboard-card-composition">
           ${renderAnnotation('SCR-DASH-COMP-001')}
           <div class="panel-heading">
             <div>
@@ -3369,6 +3933,40 @@ renderDashboard = function renderDashboardOverride() {
           <div class="inline-actions compact">
             <button class="ghost-btn" id="dashboard-to-builder">리포트 편집</button>
             <button class="primary-btn" id="dashboard-to-kakao">카카오 보기</button>
+          </div>
+        </article>
+
+        <article class="card panel-card dashboard-card dashboard-card-logs">
+          ${renderAnnotation('SCR-DASH-LOG-001')}
+          <div class="panel-heading">
+            <div>
+              <p class="panel-kicker">운영 로그</p>
+              <h3>최근 실행 기록</h3>
+            </div>
+            <button class="ghost-btn" id="go-inbox">인박스 보기</button>
+          </div>
+          <div class="run-log-list">
+            ${runLogs.map((row) => `
+              <div class="run-log-row">
+                <div>
+                  <strong>${escapeHtml(row.label)}</strong>
+                  <p>${escapeHtml(row.time)}</p>
+                </div>
+                <span class="status-badge status-${escapeHtml(row.statusClass)}">${escapeHtml(row.statusLabel)}</span>
+                <p class="run-log-detail">${escapeHtml(row.detail)}</p>
+              </div>
+            `).join('')}
+          </div>
+          <div class="spotlight-list">
+            ${spotlight.length
+              ? spotlight.map((article, index) => `
+                <button class="spotlight-item" data-open="${index}">
+                  <span class="spotlight-tag ${sectionBadgeClass(article.section)}">${escapeHtml(sectionLabel(article.section))}</span>
+                  <strong>${escapeHtml(article.title)}</strong>
+                  <p>${escapeHtml(article.summary || '')}</p>
+                </button>
+              `).join('')
+              : renderDataEmpty('dashboard-empty', '표시할 기사가 없습니다', '기사 데이터가 비어 있어 최근 실행 기록을 만들 수 없습니다.')}
           </div>
         </article>
       </div>
@@ -3473,9 +4071,19 @@ pageButtons.forEach((button) => {
   button.addEventListener('click', () => render(button.dataset.page));
 });
 
-chrome.openReport.addEventListener('click', () => render('builder'));
-chrome.runCrawl.addEventListener('click', () => {
-  showToast('크롤링 실행은 현재 UI에서 비활성화되어 있습니다.');
-});
+if (chrome.openReport) {
+  chrome.openReport.addEventListener('click', () => {
+    const targetPage = chrome.openReport.dataset.targetPage || 'builder';
+    if (targetPage && targetPage !== state.activePage) {
+      render(targetPage);
+    }
+  });
+}
+
+if (chrome.runCrawl) {
+  chrome.runCrawl.addEventListener('click', () => {
+    showToast('크롤링 실행은 현재 UI에서 비활성화되어 있습니다.');
+  });
+}
 
 await loadData();
