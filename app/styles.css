@@ -72,6 +72,18 @@ body {
   transform: translateY(0);
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 button,
 input,
 select,
@@ -281,31 +293,76 @@ main,
   border: 1px solid var(--border);
   box-shadow: var(--shadow-soft);
   display: grid;
-  gap: 16px;
+  gap: 14px;
 }
 
 .runtime-label {
   color: var(--primary);
+  margin: 0;
+}
+
+.runtime-head {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
 }
 
 .runtime-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  gap: 10px;
 }
 
-.runtime-grid span,
+.runtime-stat {
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: rgba(15, 23, 39, 0.03);
+  border: 1px solid rgba(15, 23, 39, 0.06);
+}
+
+.runtime-stat-wide {
+  grid-column: 1 / -1;
+}
+
+.runtime-stat span,
 .runtime-status {
   font-size: 12px;
   color: var(--text-soft);
 }
 
-.runtime-grid strong {
+.runtime-stat strong {
   display: block;
   margin-top: 4px;
   font-size: 16px;
   color: var(--text);
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+
+.runtime-footnote {
+  margin: -2px 0 0;
+  color: var(--text-soft);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.runtime-footnote strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.runtime-status {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(15, 23, 39, 0.04);
+  line-height: 1.5;
+}
+
+.runtime-status[hidden] {
+  display: none;
 }
 
 .workspace {
@@ -685,7 +742,7 @@ main {
   grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
   grid-template-areas:
     "trend media"
-    "composition logs";
+    "logs logs";
   gap: 18px;
 }
 
@@ -703,6 +760,7 @@ main {
 
 .dashboard-card-logs {
   grid-area: logs;
+  grid-column: 1 / -1;
 }
 
 .panel-card {
@@ -731,13 +789,37 @@ main {
   gap: 12px;
 }
 
+.run-log-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
 .run-log-row {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) auto minmax(0, 1fr);
-  gap: 12px;
-  padding: 16px 18px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 12px;
+  align-items: center;
+  padding: 14px 16px;
   border-radius: 18px;
   background: var(--bg-soft);
+}
+
+.run-log-main {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.run-log-main strong {
+  font-size: 14px;
+}
+
+.run-log-time {
+  color: var(--text-faint);
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 .run-log-row p,
@@ -749,8 +831,11 @@ main {
 }
 
 .run-log-detail {
+  grid-column: 1 / -1;
   color: var(--text-soft);
-  text-align: right;
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.45;
   overflow-wrap: anywhere;
   word-break: break-word;
 }
@@ -799,13 +884,16 @@ main {
   border-radius: 999px;
   background: rgba(0, 64, 148, 0.08);
   color: var(--primary);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  min-height: 34px;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  line-height: 1.1;
 }
 
 .spotlight-tag {
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .trend-row,
@@ -1093,8 +1181,8 @@ main {
 .selection-toolbar {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  padding: 12px 14px;
-  border-radius: 18px;
+  padding: 6px 10px;
+  border-radius: 16px;
   background: rgba(13, 78, 179, 0.05);
   border: 1px solid rgba(13, 78, 179, 0.08);
 }
@@ -1103,7 +1191,7 @@ main {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .toolbar-actions {
@@ -1117,7 +1205,7 @@ main {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  padding-left: 10px;
+  padding-left: 8px;
   margin-left: 2px;
   border-left: 1px solid rgba(15, 23, 39, 0.08);
 }
@@ -1156,9 +1244,9 @@ main {
 
 .selection-badge {
   min-width: auto;
-  min-height: 40px;
-  padding: 8px 12px;
-  border-radius: 14px;
+  min-height: 36px;
+  padding: 5px 10px;
+  border-radius: 12px;
   background: rgba(0, 64, 148, 0.08);
   color: var(--primary-strong);
   display: inline-flex;
@@ -1167,21 +1255,29 @@ main {
 }
 
 .selection-badge span {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-soft);
   white-space: nowrap;
 }
 
 .selection-badge strong {
-  font-size: 18px;
+  font-size: 15px;
   line-height: 1;
   font-family: "Manrope", "Noto Sans KR", sans-serif;
 }
 
 .selection-meta {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 6px 10px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(15, 23, 39, 0.08);
   color: var(--text-soft);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
+  line-height: 1;
 }
 
 .selection-insight {
@@ -1230,12 +1326,13 @@ main {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  min-height: 40px;
-  padding: 8px 12px;
-  border-radius: 14px;
+  min-height: 36px;
+  padding: 5px 10px;
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.92);
   border: 1px solid var(--border);
   font-weight: 700;
+  font-size: 14px;
 }
 
 .table-select-all input {
@@ -1251,9 +1348,9 @@ main {
 }
 
 .toolbar-btn {
-  min-height: 38px;
+  min-height: 36px;
   min-width: 104px;
-  padding: 8px 14px;
+  padding: 5px 12px;
   border-radius: 12px;
 }
 
@@ -1292,22 +1389,28 @@ main {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  align-items: flex-start;
+  align-content: flex-start;
 }
 
 .settings-tag {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 84px;
-  min-height: 36px;
+  align-self: flex-start;
+  flex: 0 0 auto;
+  width: fit-content;
+  min-width: 0;
+  min-height: 44px;
   max-width: 100%;
-  padding: 8px 14px;
+  padding: 10px 14px;
   border-radius: 999px;
   background: rgba(13, 78, 179, 0.08);
   color: var(--primary-strong);
   font-weight: 700;
   font-size: 13px;
   line-height: 1.2;
+  white-space: nowrap;
   box-shadow: inset 0 0 0 1px rgba(13, 78, 179, 0.08);
 }
 
@@ -1347,10 +1450,10 @@ main {
 .table-head,
 .table-row {
   display: grid;
-  grid-template-columns: 72px 120px 112px minmax(0, 1fr) 120px 100px 312px;
-  gap: 16px;
+  grid-template-columns: 60px 104px 92px minmax(0, 1.65fr) 108px 84px 112px;
+  gap: 12px;
   align-items: center;
-  padding: 18px 20px;
+  padding: 18px;
 }
 
 .table-head {
@@ -1398,7 +1501,7 @@ main {
 .table-sort-media,
 .table-sort-keyword,
 .table-sort-time {
-  justify-self: center;
+  justify-self: start;
 }
 
 .table-sort-btn.active {
@@ -1443,8 +1546,8 @@ main {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 6px;
+  flex-wrap: nowrap;
 }
 
 .table-row:hover,
@@ -1602,7 +1705,15 @@ main {
   letter-spacing: 0.03em;
 }
 
-.row-open-btn,
+.row-action-btn {
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0;
+  border-radius: 14px;
+}
+
 .preview-open-btn {
   min-width: auto;
   min-height: 40px;
@@ -1610,15 +1721,96 @@ main {
   border-radius: 14px;
 }
 
-.row-action-btn {
-  min-width: 84px;
-  min-height: 36px;
-  padding: 8px 10px;
-  border-radius: 12px;
+.icon-action-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(15, 23, 39, 0.1);
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--text-soft);
+  box-shadow: none;
+  transition:
+    transform 0.16s ease,
+    border-color 0.16s ease,
+    background 0.16s ease,
+    color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.icon-action-btn svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.icon-action-btn svg .icon-accent-fill {
+  fill: currentColor;
+  stroke: none;
+}
+
+.icon-action-btn svg .icon-accent-contrast {
+  stroke: #ffffff;
+  stroke-width: 2.6;
+}
+
+.icon-action-btn.is-primary {
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--primary-strong);
+  border-color: rgba(15, 23, 39, 0.1);
+}
+
+.icon-action-btn.is-complete {
+  background: rgba(15, 23, 39, 0.04);
+  color: var(--text-faint);
+  border-style: dashed;
+}
+
+.icon-action-btn:hover:not(:disabled),
+.icon-action-btn:focus-visible:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(13, 78, 179, 0.28);
+  color: var(--primary-strong);
+  box-shadow: var(--shadow-soft);
+}
+
+.icon-action-btn::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(16, 24, 38, 0.94);
+  color: #fff;
   font-size: 12px;
-  line-height: 1.3;
-  white-space: normal;
-  text-align: center;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(4px);
+  pointer-events: none;
+  transition: opacity 0.16s ease, transform 0.16s ease;
+  z-index: 4;
+}
+
+.icon-action-btn:hover::after,
+.icon-action-btn:focus-visible::after {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.icon-action-btn:disabled {
+  opacity: 0.62;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.icon-action-btn:disabled::after {
+  display: none;
 }
 
 .pagination-row {
@@ -2181,8 +2373,8 @@ main {
     z-index: 20;
     height: auto;
     overflow: visible;
-    padding: 16px;
-    gap: 12px;
+    padding: 14px;
+    gap: 10px;
     border-right: 0;
     border-bottom: 1px solid var(--border);
     background: rgba(251, 252, 254, 0.94);
@@ -2191,7 +2383,7 @@ main {
   }
 
   .brand-block {
-    padding: 18px;
+    padding: 16px;
   }
 
   .brand-block h1 {
@@ -2216,17 +2408,36 @@ main {
 
   .runtime-card {
     align-self: start;
-    padding: 16px 18px;
-    gap: 12px;
+    padding: 14px 16px;
+    gap: 10px;
+  }
+
+  .runtime-head {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 8px;
   }
 
   .runtime-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
   }
 
-  .runtime-grid strong {
+  .runtime-stat {
+    padding: 10px 12px;
+  }
+
+  .runtime-status {
+    padding: 10px 12px;
+  }
+
+  .runtime-stat strong {
     font-size: 15px;
     line-height: 1.4;
+  }
+
+  .runtime-footnote {
+    margin-top: 0;
   }
 
   .workspace {
@@ -2243,6 +2454,10 @@ main {
   }
 
   .selection-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .run-log-list {
     grid-template-columns: 1fr;
   }
 
@@ -2322,7 +2537,8 @@ main {
 
   .table-head,
   .table-row {
-    grid-template-columns: 72px 96px minmax(0, 1fr) 96px 260px;
+    grid-template-columns: 56px 88px minmax(0, 1fr) 74px 98px;
+    gap: 10px;
   }
 
   .kpi-card {
@@ -2414,7 +2630,7 @@ main {
 
   .table-control-bar,
   .selection-toolbar {
-    padding: 14px;
+    padding: 10px 12px;
   }
 
   .toolbar-topline,
@@ -2499,17 +2715,19 @@ main {
   }
 
   .table-row {
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: 28px minmax(0, 1fr) auto;
     grid-template-areas:
       "select title open"
       "select title time"
-      "media keyword status";
-    gap: 10px 12px;
-    padding: 16px;
+      "select media status"
+      "select keyword status";
+    gap: 8px 10px;
+    padding: 14px;
     border-radius: 20px;
     border: 1px solid rgba(15, 23, 39, 0.08);
     background: rgba(255, 255, 255, 0.92);
     border-bottom: 0;
+    align-items: start;
   }
 
   .table-row-wrap:last-child .table-row {
@@ -2529,9 +2747,9 @@ main {
 
   .table-cell-status {
     grid-area: status;
-    justify-self: center;
+    justify-self: end;
     display: flex;
-    justify-content: center;
+    justify-content: flex-end;
   }
 
   .table-cell-title {
@@ -2548,8 +2766,11 @@ main {
   .table-cell-time {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 4px;
     align-items: center;
+    justify-content: flex-start;
+    text-align: left;
+    font-size: 12px;
   }
 
   .table-cell-media {
@@ -2558,19 +2779,19 @@ main {
 
   .table-cell-keyword {
     grid-area: keyword;
-    justify-self: center;
+    justify-self: start;
   }
 
   .table-cell-time {
     grid-area: time;
-    justify-self: center;
+    justify-self: end;
   }
 
   .table-cell-actions {
     grid-area: open;
     justify-self: end;
     align-self: start;
-    max-width: min(100%, 260px);
+    max-width: none;
   }
 
   .table-cell-media::before,
@@ -2604,6 +2825,13 @@ main {
   .preview-open-btn,
   .row-action-btn {
     width: auto;
+  }
+
+  .row-action-btn {
+    width: 38px;
+    min-width: 38px;
+    height: 38px;
+    min-height: 38px;
   }
 
   .title-wrap strong,

@@ -43,26 +43,25 @@
         </nav>
 
         <section class="runtime-card" id="runtime-card">
-          <p class="runtime-label">오늘 상태</p>
+          <div class="runtime-head">
+            <p class="runtime-label">현황판 (STATUS)</p>
+          </div>
           <div class="runtime-grid">
-            <div>
-              <span>생성</span>
-              <strong id="runtime-generated">-</strong>
-            </div>
-            <div>
-              <span>기사</span>
+            <div class="runtime-stat runtime-stat-wide">
+              <span>리포트/전체 기사</span>
               <strong id="runtime-usable">-</strong>
             </div>
-            <div>
-              <span>리포트</span>
+            <div class="runtime-stat">
+              <span>주요/업계</span>
               <strong id="runtime-report">-</strong>
             </div>
-            <div>
-              <span>세그먼트</span>
+            <div class="runtime-stat">
+              <span>분할 메시지</span>
               <strong id="runtime-segments">-</strong>
             </div>
           </div>
-          <p class="runtime-status" id="runtime-status" role="status" aria-live="polite" aria-atomic="true">Loading</p>
+          <p class="runtime-footnote">마지막 수집: <strong id="runtime-generated">-</strong></p>
+          <p class="runtime-status" id="runtime-status" role="status" aria-live="polite" aria-atomic="true" hidden>Loading</p>
         </section>
       </aside>
 
