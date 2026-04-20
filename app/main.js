@@ -286,6 +286,7 @@ function renderBuilderAiActionButton(key, options = {}) {
   const busy = state.aiBusyKey === key;
   const canConnect = hasRemoteAiConfigured();
   const buttonClass = mode === 'detail' ? 'primary-btn' : 'ghost-btn';
+  const showTokenInput = mode === 'detail' || mode === 'draft';
   const label = busy
     ? 'AI 정리 중...'
     : readyToSummarize
@@ -295,7 +296,7 @@ function renderBuilderAiActionButton(key, options = {}) {
         : canConnect
           ? (storedToken ? 'AI 연결 후 정리' : 'AI 연결')
           : 'AI 연결 필요';
-  const tokenInput = mode === 'detail' && canConnect
+  const tokenInput = showTokenInput && (canConnect || enabled || requiresToken)
     ? `
       <label class="ai-token-field">
         <span>AI 접근 토큰</span>
@@ -493,6 +494,19 @@ function setStoredAiToken(value) {
   }
 }
 
+function isLocalUiRuntime() {
+  try {
+    const host = String(window.location.hostname || '').trim().toLowerCase();
+    return host === 'localhost' || host === '127.0.0.1';
+  } catch {
+    return false;
+  }
+}
+
+function buildLocalAiApiUrl(pathname) {
+  return `../api${pathname}`;
+}
+
 function buildAiApiUrl(pathname, config = state.config) {
   return `${getAiApiBase(config)}${pathname}`;
 }
@@ -617,6 +631,62 @@ async function requestAiSummary(article) {
   return payload || {};
 }
 
+async function requestAiDraftPolish(reportText) {
+  const token = getStoredAiToken();
+  const headers = {
+    'Content-Type': 'application/json; charset=utf-8'
+  };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const candidateUrls = [];
+  if (isLocalUiRuntime()) {
+    candidateUrls.push(buildLocalAiApiUrl('/ai/report-draft'));
+  }
+  candidateUrls.push(buildAiApiUrl('/ai/report-draft'));
+
+  const apiUrls = [...new Set(candidateUrls)];
+  let lastError = null;
+
+  for (const [index, apiUrl] of apiUrls.entries()) {
+    let response;
+    try {
+      response = await fetch(apiUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          reportText: String(reportText || '')
+        })
+      });
+    } catch (error) {
+      lastError = new Error(normalizeAiRequestError(error, 'AI 정리에 실패했습니다.'));
+      if (index < apiUrls.length - 1) {
+        continue;
+      }
+      throw lastError;
+    }
+
+    const payload = await response.json().catch(() => null);
+    if (response.status === 401) {
+      setStoredAiToken('');
+      throw new Error(payload?.error || 'AI 접근 토큰을 다시 입력해주세요.');
+    }
+
+    if (!response.ok) {
+      lastError = new Error(payload?.error || 'AI 정리에 실패했습니다.');
+      if (index < apiUrls.length - 1 && [404, 405, 500, 502, 503].includes(response.status)) {
+        continue;
+      }
+      throw lastError;
+    }
+
+    return payload || {};
+  }
+
+  throw lastError || new Error('AI 정리에 실패했습니다.');
+}
+
 function normalizeArticles(payload) {
   const items = Array.isArray(payload)
     ? payload
@@ -704,6 +774,38 @@ function articleSummaryLead(article) {
 
 function articleKeyPoint(article) {
   return String(article?.keyPoint || article?.oneLine || article?.angle || article?.summary || article?.title || '').trim();
+}
+
+function articleBuilderSummary(article) {
+  return articleSummaryLead(article) || String(article?.summary || article?.title || '').trim();
+}
+
+function articleBuilderOneLine(article) {
+  return articleKeyPoint(article) || String(article?.oneLine || article?.summary || article?.title || '').trim();
+}
+
+function renderBuilderItemSummaryRows(article) {
+  const rows = [
+    {
+      label: '기사 요약 및 결론',
+      value: articleBuilderSummary(article) || '요약을 아직 입력하지 않았습니다.'
+    },
+    {
+      label: '주요 내용 한줄 요약',
+      value: articleBuilderOneLine(article) || '한줄 요약을 아직 입력하지 않았습니다.'
+    }
+  ];
+
+  return `
+    <div class="builder-item-report-lines">
+      ${rows.map((row) => `
+        <div class="builder-item-report-line">
+          <span class="builder-item-report-label">${escapeHtml(row.label)}</span>
+          <strong class="builder-item-report-value" ${row.label === '기사 요약 및 결론' ? 'data-builder-summary-value' : 'data-builder-oneline-value'}>${escapeHtml(row.value)}</strong>
+        </div>
+      `).join('')}
+    </div>
+  `;
 }
 
 function reportMembership(article) {
@@ -1218,12 +1320,17 @@ function syncBuilderCardPreview(key) {
   const location = findDraftLocation(key);
   if (!location) return;
 
-  const nextNote = articleSummaryLead(location.item) || articleKeyPoint(location.item) || location.item.summary || '요약 미입력';
+  const nextSummary = articleBuilderSummary(location.item) || '요약을 아직 입력하지 않았습니다.';
+  const nextOneLine = articleBuilderOneLine(location.item) || '한줄 요약을 아직 입력하지 않았습니다.';
   document.querySelectorAll('[data-builder-focus]').forEach((node) => {
     if (node.dataset.builderFocus !== key) return;
-    const note = node.querySelector('.builder-item-note');
-    if (note) {
-      note.textContent = nextNote;
+    const summaryValue = node.querySelector('[data-builder-summary-value]');
+    if (summaryValue) {
+      summaryValue.textContent = nextSummary;
+    }
+    const oneLineValue = node.querySelector('[data-builder-oneline-value]');
+    if (oneLineValue) {
+      oneLineValue.textContent = nextOneLine;
     }
   });
 }
@@ -1280,20 +1387,55 @@ function openSelectedArticles() {
   showToast(`기사 ${openedCount}/${total}건을 열었습니다. 팝업 차단이 켜져 있으면 일부 탭이 막힐 수 있습니다.`);
 }
 
-async function summarizeDraftItemWithAi(key) {
+function buildAiSummaryUpdates(article, result) {
+  const nextSummaryLead = String(result?.summaryLead || articleSummaryLead(article)).trim();
+  const nextKeyPoint = String(result?.keyPoint || articleKeyPoint(article)).trim();
+  return {
+    summaryLead: nextSummaryLead,
+    keyPoint: nextKeyPoint,
+    conclusion: nextSummaryLead,
+    oneLine: nextKeyPoint
+  };
+}
+
+async function applyAiSummaryToDraftItem(key) {
   const location = findDraftLocation(key);
-  if (!location) return;
+  if (!location) {
+    return {
+      updated: false,
+      changed: false
+    };
+  }
+
+  const previousSummaryLead = articleSummaryLead(location.item);
+  const previousKeyPoint = articleKeyPoint(location.item);
+  const result = await requestAiSummary(location.item);
+  const updates = buildAiSummaryUpdates(location.item, result);
+  const changed = previousSummaryLead !== updates.summaryLead || previousKeyPoint !== updates.keyPoint;
+
+  updateDraftItem(key, updates);
+  return {
+    updated: true,
+    changed
+  };
+}
+
+function generateReportText() {
+  return buildKakaoPreviewText();
+}
+
+async function summarizeDraftItemWithAi(key) {
   if (state.aiBusyKey) return;
 
   state.aiBusyKey = key;
   renderReportBuilder();
 
   try {
-    const result = await requestAiSummary(location.item);
-    updateDraftItem(key, {
-      summaryLead: result.summaryLead || articleSummaryLead(location.item),
-      keyPoint: result.keyPoint || articleKeyPoint(location.item)
-    });
+    const outcome = await applyAiSummaryToDraftItem(key);
+    if (!outcome?.updated) {
+      showToast('리포트에 반영된 기사만 AI 정리를 사용할 수 있습니다.');
+      return;
+    }
     showToast('AI 정리로 요약을 채웠습니다.');
   } catch (error) {
     showToast(error instanceof Error ? error.message : 'AI 정리에 실패했습니다.');
@@ -1303,8 +1445,67 @@ async function summarizeDraftItemWithAi(key) {
   }
 }
 
-function generateReportText() {
-  return buildKakaoPreviewText();
+async function summarizeReportDraftWithAi() {
+  if (state.aiBusyKey) return;
+
+  const sections = getReportSections();
+  const entryKeys = [
+    ...sections.major.map((article) => draftEntryKey('major', article)),
+    ...sections.industry.map((article) => draftEntryKey('industry', article))
+  ];
+  if (!entryKeys.length) {
+    showToast('리포트에 반영된 기사가 있을 때 사용할 수 있습니다.');
+    return;
+  }
+
+  state.aiBusyKey = 'report-draft';
+  renderReportBuilder();
+
+  let successCount = 0;
+  let changedCount = 0;
+  let failedCount = 0;
+  let lastError = null;
+
+  try {
+    for (const key of entryKeys) {
+      try {
+        const outcome = await applyAiSummaryToDraftItem(key);
+        if (!outcome?.updated) {
+          continue;
+        }
+        successCount += 1;
+        if (outcome.changed) {
+          changedCount += 1;
+        }
+      } catch (error) {
+        failedCount += 1;
+        lastError = error;
+      }
+    }
+
+    if (!successCount && lastError) {
+      throw lastError;
+    }
+
+    state.reportTextDraft = generateReportText();
+
+    if (failedCount > 0) {
+      showToast(`AI가 기사 ${successCount}건을 정리했고 ${failedCount}건은 실패했습니다.`);
+      return;
+    }
+
+    if (changedCount > 0) {
+      showToast(`AI가 기사 ${changedCount}건을 정리하고 보고서 초안을 갱신했습니다.`);
+      return;
+    }
+
+    showToast(`AI가 기사 ${successCount}건을 검토하고 보고서 초안을 다시 생성했습니다.`);
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : 'AI 정리에 실패했습니다.');
+  } finally {
+    state.aiBusyKey = '';
+    renderReportBuilder();
+  }
 }
 
 function characterLength(text) {
@@ -1440,8 +1641,8 @@ function buildKakaoArticleLines(article) {
 
 function buildKakaoBlocks() {
   const sections = [
-    { title: '1. 주요 보도 및 배경', items: getReportSections().major.filter((article) => article.includeInKakao !== false) },
-    { title: '2. 업계 보도', items: getReportSections().industry.filter((article) => article.includeInKakao !== false) }
+    { title: '1. 주요 보도 및 배경', items: getReportSections().major },
+    { title: '2. 업계 보도', items: getReportSections().industry }
   ];
 
   const blocks = [];
@@ -1471,8 +1672,41 @@ function buildKakaoPreviewText() {
   return buildKakaoBlocks().join('\n\n');
 }
 
+function normalizeComparableDraftText(value) {
+  return String(value || '')
+    .replace(/\r\n/g, '\n')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n[ \t]+/g, '\n')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function hasReportDraftChanged(previousText, nextText) {
+  return normalizeComparableDraftText(previousText) !== normalizeComparableDraftText(nextText);
+}
+
+function getCurrentReportText() {
+  const draftText = String(state.reportTextDraft || '').trim();
+  return draftText || buildKakaoPreviewText();
+}
+
+function getCurrentReportBlocks() {
+  const draftText = String(state.reportTextDraft || '').trim();
+  if (!draftText) {
+    return buildKakaoBlocks();
+  }
+
+  const blocks = draftText
+    .split(/\n{2,}/u)
+    .map((block) => block.trim())
+    .filter(Boolean);
+
+  return blocks.length ? blocks : buildKakaoBlocks();
+}
+
 function buildKakaoPreviewSegments(maxChars = KAKAO_SEGMENT_CHAR_LIMIT) {
-  const blocks = buildKakaoBlocks();
+  const blocks = getCurrentReportBlocks();
   const segments = [];
   let current = '';
 
@@ -2456,7 +2690,7 @@ function renderBuilderColumn(sectionName, items) {
               </div>
               <strong>${escapeHtml(article.title)}</strong>
               <p class="builder-item-source">${escapeHtml(mediaLabel(article))}</p>
-                <p class="builder-item-note">${escapeHtml(articleSummaryLead(article) || articleKeyPoint(article) || article.summary || '요약 미입력')}</p>
+              ${renderBuilderItemSummaryRows(article)}
               <div class="builder-chip-row">
                 <span class="panel-pill ${sectionName === 'major' ? 'tone-main section-major' : 'tone-industry section-industry'}">${sectionLabel(sectionName)}</span>
               </div>
@@ -2514,7 +2748,6 @@ function renderBuilderDetailPanel() {
       <div class="builder-chip-row">
         <span class="panel-pill ${location.sectionName === 'major' ? 'tone-main section-major' : 'tone-industry section-industry'}">${sectionLabel(location.sectionName)}</span>
       </div>
-      ${renderBuilderAiActionButton(key, { mode: 'detail', id: 'builder-ai-summarize' })}
       <div class="inline-actions compact">
         <button class="ghost-btn" id="builder-detail-open">기사 열기</button>
       </div>
@@ -2545,10 +2778,11 @@ function renderBuilderDetailPanel() {
         <span>링크</span>
         <input value="${escapeHtml(article.url || '')}" readonly />
       </label>
-      <label class="checkbox-row">
-        <input type="checkbox" id="builder-kakao" data-detail-key="${escapeHtml(key)}" ${article.includeInKakao === false ? '' : 'checked'} />
-        <span>카카오 메시지에 포함</span>
-      </label>
+      <div class="detail-static-row">
+        <span>카카오 메시지</span>
+        <strong>항상 포함</strong>
+      </div>
+      ${renderBuilderAiActionButton(key, { mode: 'detail', id: 'builder-ai-summarize', extraClass: 'detail-ai-actions' })}
     </article>
   `;
 }
@@ -2614,7 +2848,6 @@ function renderReportBuilder() {
                   </div>
                   <span class="panel-pill tone-neutral">${formatNumber(reportItemCount)}건 반영</span>
                 </div>
-                <p class="panel-note">기사별 설정을 마친 뒤 초안을 검토하고, 마지막 문장만 다듬은 다음 카카오 프리뷰로 보내는 흐름을 기준으로 배치했습니다.</p>
                 <textarea id="report-text">${escapeHtml(reportText)}</textarea>
                 <div class="draft-summary">
                   <div>
@@ -2634,9 +2867,13 @@ function renderReportBuilder() {
                     <strong>${formatNumber(reportItemCount)}</strong>
                   </div>
                 </div>
-                <div class="inline-actions stack-mobile">
-                  <button class="ghost-btn" id="reset-report">초안 재생성</button>
-                  <button class="ghost-btn" id="copy-report">초안 복사</button>
+                ${renderBuilderAiActionButton('report-draft', {
+                  mode: 'draft',
+                  id: 'builder-draft-ai',
+                  extraClass: 'draft-ai-actions'
+                })}
+                <div class="inline-actions stack-mobile draft-primary-actions">
+                  <button class="ghost-btn" id="reset-report">보고서 초기화</button>
                   <button class="primary-btn" id="draft-to-kakao">카카오 프리뷰 보기</button>
                 </div>
               </article>
@@ -2692,6 +2929,11 @@ function renderReportBuilder() {
         return;
       }
 
+      if (button.dataset.builderAi === 'report-draft') {
+        await summarizeReportDraftWithAi();
+        return;
+      }
+
       await summarizeDraftItemWithAi(button.dataset.builderAi);
     });
   });
@@ -2719,7 +2961,10 @@ function renderReportBuilder() {
   const detailSummaryLead = document.getElementById('builder-summary-lead');
   if (detailSummaryLead) {
     detailSummaryLead.addEventListener('input', (event) => {
-      updateDraftItem(event.target.dataset.detailKey, { summaryLead: event.target.value });
+      updateDraftItem(event.target.dataset.detailKey, {
+        summaryLead: event.target.value,
+        conclusion: event.target.value
+      });
       syncBuilderCardPreview(event.target.dataset.detailKey);
       syncBuilderReportTextArea();
     });
@@ -2728,7 +2973,10 @@ function renderReportBuilder() {
   const detailKeyPoint = document.getElementById('builder-key-point');
   if (detailKeyPoint) {
     detailKeyPoint.addEventListener('input', (event) => {
-      updateDraftItem(event.target.dataset.detailKey, { keyPoint: event.target.value });
+      updateDraftItem(event.target.dataset.detailKey, {
+        keyPoint: event.target.value,
+        oneLine: event.target.value
+      });
       syncBuilderCardPreview(event.target.dataset.detailKey);
       syncBuilderReportTextArea();
     });
@@ -2738,14 +2986,6 @@ function renderReportBuilder() {
   if (detailAiSummarize) {
     detailAiSummarize.addEventListener('click', async () => {
       await summarizeDraftItemWithAi(state.builderFocusKey);
-    });
-  }
-
-  const detailKakao = document.getElementById('builder-kakao');
-  if (detailKakao) {
-    detailKakao.addEventListener('change', (event) => {
-      updateDraftItem(event.target.dataset.detailKey, { includeInKakao: event.target.checked });
-      renderReportBuilder();
     });
   }
 
@@ -2768,14 +3008,6 @@ function renderReportBuilder() {
     });
   }
 
-  const copyReportButton = document.getElementById('copy-report');
-  if (copyReportButton) {
-    copyReportButton.addEventListener('click', async () => {
-      await navigator.clipboard.writeText(document.getElementById('report-text').value);
-      showToast('보고서 초안을 복사했습니다.');
-    });
-  }
-
   const reportTextField = document.getElementById('report-text');
   if (reportTextField) {
     reportTextField.addEventListener('input', (event) => {
@@ -2788,7 +3020,7 @@ function renderReportBuilder() {
     resetReportButton.addEventListener('click', () => {
       state.reportTextDraft = generateReportText();
       renderReportBuilder();
-      showToast('기사별 설정 기준으로 초안을 다시 만들었습니다.');
+      showToast('기사별 설정 기준으로 보고서 초안을 초기화했습니다.');
     });
   }
 
@@ -3508,7 +3740,7 @@ renderBuilderColumn = function renderBuilderColumnOverride(sectionName, items) {
                 </div>
                 <strong>${escapeHtml(article.title)}</strong>
                 <p class="builder-item-source">${escapeHtml(mediaLabel(article))}</p>
-                <p class="builder-item-note">${escapeHtml(articleSummaryLead(article) || articleKeyPoint(article) || article.summary || '요약을 아직 입력하지 않았습니다.')}</p>
+                ${renderBuilderItemSummaryRows(article)}
                 <div class="inline-actions compact">
                   <button class="ghost-btn" data-builder-open="${escapeHtml(article.url || '')}">기사 열기</button>
                   ${sectionName === 'major'
@@ -3561,7 +3793,6 @@ renderBuilderDetailPanel = function renderBuilderDetailPanelOverride() {
         ${article.keyword ? `<span class="status-badge status-selected builder-item-keyword">${escapeHtml(article.keyword)}</span>` : ''}
         <span class="panel-pill tone-neutral">발행 ${escapeHtml(formatArticlePublishedTime(article))}</span>
       </div>
-      ${renderBuilderAiActionButton(key, { mode: 'detail', id: 'builder-ai-summarize' })}
       <div class="inline-actions compact">
         <button class="ghost-btn" id="builder-detail-open">기사 열기</button>
         ${location.sectionName === 'major'
@@ -3576,11 +3807,12 @@ renderBuilderDetailPanel = function renderBuilderDetailPanelOverride() {
         <span>주요 내용 한줄 요약 (40자 내외)</span>
         <input id="builder-key-point" data-detail-key="${escapeHtml(key)}" value="${escapeHtml(articleKeyPoint(article))}" />
       </label>
-      <label class="checkbox-row">
-        <input type="checkbox" id="builder-kakao" data-detail-key="${escapeHtml(key)}" ${article.includeInKakao === false ? '' : 'checked'} />
-        <span>카카오 메시지에 포함</span>
-      </label>
-      <p class="small-copy detail-footnote">기사 열기는 버튼으로 처리하고, 여기서는 요약과 카카오 포함 여부만 빠르게 조정합니다.</p>
+      <div class="detail-static-row">
+        <span>카카오 메시지</span>
+        <strong>항상 포함</strong>
+      </div>
+      ${renderBuilderAiActionButton(key, { mode: 'detail', id: 'builder-ai-summarize', extraClass: 'detail-ai-actions' })}
+      <p class="small-copy detail-footnote">기사별 설정에서 정리한 값은 주요 보도와 업계 보도 카드, 보고서 초안에 함께 반영됩니다.</p>
     </article>
   `;
 };
@@ -3593,7 +3825,7 @@ renderReportBuilder = function renderReportBuilderOverride() {
 
 renderKakaoPreview = function renderKakaoPreviewOverride() {
   updateShellMeta();
-  const fullText = buildKakaoPreviewText();
+  const fullText = getCurrentReportText();
   const derivedSegments = buildKakaoPreviewSegments();
   const activeSegment = derivedSegments.find((segment) => segment.order === state.selectedSegmentOrder) || derivedSegments[0] || null;
   const totalChars = characterLength(fullText);

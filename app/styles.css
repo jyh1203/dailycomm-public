@@ -1929,16 +1929,6 @@ main {
   line-height: 1.45;
 }
 
-.builder-item-note {
-  margin: 0;
-  color: var(--text-soft);
-  line-height: 1.6;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
 .builder-chip-row {
   display: flex;
   flex-wrap: wrap;
@@ -1973,9 +1963,72 @@ main {
   white-space: nowrap;
 }
 
+.builder-item-report-lines {
+  display: grid;
+  gap: 10px;
+}
+
+.builder-item-report-line {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: rgba(15, 23, 39, 0.04);
+  border: 1px solid rgba(15, 23, 39, 0.05);
+}
+
+.builder-item-report-label {
+  color: var(--text-soft);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.builder-item-report-value {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  white-space: normal;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
 .draft-panel {
   align-content: start;
   position: static;
+}
+
+.draft-ai-actions {
+  width: 100%;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+}
+
+.detail-ai-actions {
+  width: 100%;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+}
+
+.draft-ai-actions .ai-token-field,
+.detail-ai-actions .ai-token-field {
+  min-width: 0;
+}
+
+.draft-ai-actions .ghost-btn,
+.draft-ai-actions .primary-btn,
+.detail-ai-actions .ghost-btn,
+.detail-ai-actions .primary-btn {
+  white-space: nowrap;
+}
+
+.draft-primary-actions {
+  justify-content: flex-end;
+}
+
+.draft-primary-actions .ghost-btn,
+.draft-primary-actions .primary-btn {
+  flex: 1 1 0;
 }
 
 .selection-queue-card,
@@ -2036,9 +2089,26 @@ main {
 }
 
 .detail-field span,
-.checkbox-row span {
+.checkbox-row span,
+.detail-static-row span {
   color: var(--text-soft);
   font-size: 13px;
+}
+
+.detail-static-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(15, 23, 39, 0.04);
+  border: 1px solid rgba(15, 23, 39, 0.05);
+}
+
+.detail-static-row strong {
+  font-size: 13px;
+  color: var(--text);
 }
 
 .checkbox-row {
@@ -2579,6 +2649,15 @@ main {
   .table-row {
     grid-template-columns: 56px 88px minmax(0, 1fr) 74px 98px;
     gap: 10px;
+  }
+
+  .draft-ai-actions,
+  .detail-ai-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .draft-primary-actions {
+    justify-content: stretch;
   }
 
   .kpi-card {
