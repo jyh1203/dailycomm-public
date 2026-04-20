@@ -3935,7 +3935,7 @@ buildMediaDistribution = function buildMediaDistributionOverride() {
   const total = Math.max(state.articles.length, 1);
   return Object.entries(counts)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 6)
+    .slice(0, 8)
     .map(([name, count]) => ({
       name,
       count,
@@ -4002,7 +4002,7 @@ renderDashboard = function renderDashboardOverride() {
       <div class="dashboard-grid">
         <article class="card panel-card dashboard-card dashboard-card-trend">
           ${renderAnnotation('SCR-DASH-TREND-001')}
-          <div class="panel-heading">
+          <div class="panel-heading dashboard-panel-heading">
             <div>
               <p class="panel-kicker">트렌드</p>
               <h3>키워드 트렌드</h3>
@@ -4039,7 +4039,7 @@ renderDashboard = function renderDashboardOverride() {
 
         <article class="card panel-card dashboard-card dashboard-card-media">
           ${renderAnnotation('SCR-DASH-MEDIA-001')}
-          <div class="panel-heading">
+          <div class="panel-heading dashboard-panel-heading">
             <div>
               <p class="panel-kicker">분포</p>
               <h3>매체 분포</h3>

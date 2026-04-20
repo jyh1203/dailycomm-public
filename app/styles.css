@@ -744,6 +744,7 @@ main {
     "trend media"
     "logs logs";
   gap: 18px;
+  align-items: start;
 }
 
 .dashboard-card-trend {
@@ -761,6 +762,16 @@ main {
 .dashboard-card-logs {
   grid-area: logs;
   grid-column: 1 / -1;
+}
+
+.dashboard-panel-heading {
+  min-height: 76px;
+  align-items: flex-start;
+}
+
+.dashboard-panel-heading > div {
+  display: grid;
+  gap: 6px;
 }
 
 .panel-card {
@@ -900,6 +911,12 @@ main {
 .distribution-row {
   display: grid;
   gap: 10px;
+}
+
+.dashboard-card-trend .trend-list,
+.dashboard-card-media .distribution-list,
+.dashboard-card-logs .spotlight-list {
+  align-content: start;
 }
 
 .trend-labels,
@@ -2343,6 +2360,13 @@ main {
     grid-template-areas: none;
   }
 
+  .dashboard-card-trend,
+  .dashboard-card-media,
+  .dashboard-card-logs {
+    grid-area: auto;
+    grid-column: auto;
+  }
+
   .builder-layout {
     grid-template-columns: minmax(0, 1fr) minmax(300px, 34vw);
     gap: 14px;
@@ -2459,6 +2483,22 @@ main {
 
   .run-log-list {
     grid-template-columns: 1fr;
+  }
+
+  .dashboard-grid {
+    gap: 14px;
+  }
+
+  .dashboard-panel-heading {
+    min-height: 0;
+  }
+
+  .dashboard-card-logs .panel-heading {
+    align-items: stretch;
+  }
+
+  .dashboard-card-logs .panel-heading .ghost-btn {
+    width: 100%;
   }
 
   .toolbar-actions {
@@ -2704,6 +2744,19 @@ main {
 
   .run-log-row {
     grid-template-columns: 1fr;
+  }
+
+  .dashboard-grid {
+    gap: 12px;
+  }
+
+  .dashboard-card {
+    padding: 18px;
+  }
+
+  .dashboard-card .panel-pill {
+    max-width: 100%;
+    white-space: normal;
   }
 
   .run-log-detail {
