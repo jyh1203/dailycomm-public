@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-20T10:15:11.537Z",
+  "generatedAt": "2026-04-20T10:34:53.537Z",
   "tone": "declarative",
   "recommendedLength": "600-1200 chars",
   "sections": {
@@ -9,12 +9,12 @@
         "url": "https://v.daum.net/v/20260420190301619",
         "summary": "전자결제시스템 연계 양해각서(MOU)를 체결해 상대국 방문 시 자국의 QR 결제 시스템을 그대로 사용할 수 있게 했다. 한국의 네이버·카카오페이 QR코드 결제를 인도에서 사용할 수 있게 되는 셈이다. 문화 분야에서는 K팝 상설 공연장인 '뭄바이 코리아 센터'를...",
         "publisher": "한국일보",
-        "recencyText": "10분 전",
-        "recencyScore": 10,
+        "recencyText": "30분 전",
+        "recencyScore": 30,
         "source": "daum",
         "keyword": "카카오",
         "section": "major",
-        "publishedAt": "2026-04-20T10:05:11.447Z",
+        "publishedAt": "2026-04-20T10:04:53.428Z",
         "sourceDomainUnknown": false
       },
       {
@@ -27,22 +27,61 @@
         "source": "daum",
         "keyword": "김범수",
         "section": "major",
-        "publishedAt": "2026-04-20T00:15:11.450Z",
+        "publishedAt": "2026-04-20T00:34:53.430Z",
         "sourceDomainUnknown": false
       }
     ],
     "industry": [
       {
-        "title": "이 대통령·모디와 셀카 찍은 이재용... 그걸 포착한 청와대 사진사",
-        "url": "https://v.daum.net/v/20260420191035778",
-        "summary": "국빈방문 중인 이재명 대통령이 20일(현지시간) 인도 뉴델리 영빈관에서 열린 총리 초청 오찬에서 모디 인도 총리와 이재용 삼성전자 회장과 셀카를 찍고 있다. 청와대 제공 인도를 국빈 방문 중인 이재명 대통령과 나렌드라 모디 인도 총리가 20일(현지시간) 이재용...",
-        "publisher": "한국일보",
+        "title": "동영상 첨부된 문서",
+        "url": "https://v.daum.net/v/20260420193002212",
+        "summary": "또 두 정상이 인도 현지에서 생산된 갤럭시 휴대전화로 함께 찍은 '셀카'도 공개했습니다. 정상회담을 마친 이 대통령은 이재용 삼성전자 부회장 등 우리 경제인들과 한-인도 비즈니스 포럼에 참석하고 있습니다. 이어 인도 대통령이 주최하는 국빈만찬을 끝으로...",
+        "publisher": "JTBC",
         "recencyText": "4분 전",
         "recencyScore": 4,
         "source": "daum",
         "keyword": "삼성전자",
         "section": "industry",
-        "publishedAt": "2026-04-20T10:11:11.446Z",
+        "publishedAt": "2026-04-20T10:30:53.427Z",
+        "sourceDomainUnknown": false
+      },
+      {
+        "title": "아몬 퀼컴 CEO 방한, 삼성·SK하이닉스 찾는다",
+        "url": "https://v.daum.net/v/20260420192907197",
+        "summary": "메모리가 부족해지면서 AP 제조에 쓰이는 저전력(LPDDR) D램 물량 확보에도 제동이 걸렸기 때문이다. 업계 관계자는 “젠슨 황 엔비디아 CEO, 리사 수 AMD CEO 등이 잇달아 방한해 메모리 공급 방안을 찾았듯이, 아몬 CEO도 D램 확보에 유리한 입지를 차지하기 위해...",
+        "publisher": "한국경제",
+        "recencyText": "5분 전",
+        "recencyScore": 5,
+        "source": "daum",
+        "keyword": "엔비디아",
+        "section": "industry",
+        "publishedAt": "2026-04-20T10:29:53.427Z",
+        "sourceDomainUnknown": false
+      },
+      {
+        "title": "이 대통령, 이재용·모디와 '갤럭시 플립7'으로 셀카…인도 공장 생산 제품으로 찍어(종합)",
+        "url": "https://v.daum.net/v/20260420192504114",
+        "summary": "[뉴델리=뉴시스] 고범준 기자 = 인도를 국빈 방문 중인 이재명 대통령과 이재용 삼성전자 회장이 20일 뉴델리 영빈관 하이데라바드 하우스에서 열린 나렌드라 모디 총리 주최 오찬 및 한-인도 경제인 대화에서 모디 총리와 함께 인도 노이다 공장에서 생산한 갤럭시Z...",
+        "publisher": "뉴시스",
+        "recencyText": "9분 전",
+        "recencyScore": 9,
+        "source": "daum",
+        "keyword": "삼성전자",
+        "section": "industry",
+        "publishedAt": "2026-04-20T10:25:53.427Z",
+        "sourceDomainUnknown": false
+      },
+      {
+        "title": "인도 생산 삼성폰으로 이 대통령·모디와 셀카 찍은 이재용... 이를 포착한 청와대 사진사",
+        "url": "https://v.daum.net/v/20260420191035778",
+        "summary": "국빈방문 중인 이재명 대통령이 20일(현지시간) 인도 뉴델리 영빈관에서 열린 총리 초청 오찬에서 모디 인도 총리, 이재용 삼성전자 회장과 셀카를 찍고 있다. 청와대 제공 인도를 국빈 방문 중인 이재명 대통령과 나렌드라 모디 인도 총리가 20일(현지시간) 이재용...",
+        "publisher": "한국일보",
+        "recencyText": "24분 전",
+        "recencyScore": 24,
+        "source": "daum",
+        "keyword": "삼성전자",
+        "section": "industry",
+        "publishedAt": "2026-04-20T10:10:53.427Z",
         "sourceDomainUnknown": false
       },
       {
@@ -50,12 +89,12 @@
         "url": "https://v.daum.net/v/20260420190504669",
         "summary": "총리 청사에서 열린 나렌드라 모디 인도 총리 주최 오찬 및 한-인도 경제인 대화에서 모디 총리, 이재용 삼성전자 회장과 기념촬영을 하고 있다. 삼성은 이재용 회장이 인도 노이다 공장에서 생산한 플립7으로 촬영한 셀카라고 삼성뉴스룸에 내용을 알렸다...",
         "publisher": "연합뉴스",
-        "recencyText": "9분 전",
-        "recencyScore": 9,
+        "recencyText": "29분 전",
+        "recencyScore": 29,
         "source": "daum",
         "keyword": "삼성전자",
         "section": "industry",
-        "publishedAt": "2026-04-20T10:06:11.447Z",
+        "publishedAt": "2026-04-20T10:05:53.428Z",
         "sourceDomainUnknown": false
       },
       {
@@ -63,12 +102,12 @@
         "url": "https://v.daum.net/v/20260420190134585",
         "summary": "지적했다. 한은의 중장기 과제로는 디지털 통화 체계 정비도 거론된다. 석 교수는 \"중앙은행 디지털 화폐(CBDC) 도입과 원화 스테이블코인 간 역할을 어떻게 나누고 균형을 맞출지가 핵심 과제가 될 것\"이라고 말했다. 이어 \"스테이블코인 도입으로 CBDC 무용론도...",
         "publisher": "한국일보",
-        "recencyText": "12분 전",
-        "recencyScore": 12,
+        "recencyText": "32분 전",
+        "recencyScore": 32,
         "source": "daum",
         "keyword": "스테이블 코인",
         "section": "industry",
-        "publishedAt": "2026-04-20T10:03:11.447Z",
+        "publishedAt": "2026-04-20T10:02:53.428Z",
         "sourceDomainUnknown": false
       },
       {
@@ -76,12 +115,12 @@
         "url": "https://v.daum.net/v/20260420185907541",
         "summary": "확보하고 있다. 시장조사 업체 옴디아에 따르면 지난해 전 세계에 출하된 AI 스마트글라스는 약 870만 대다. 이 중 미국의 메타가 내수시장을 기반으로 약 740만 대(85.2%)를 판매해 압도적 1위를 기록했다. 2위인 중국의 로키드(34만 대·3.9%)와 3위 샤오미(30만...",
         "publisher": "서울경제",
-        "recencyText": "14분 전",
-        "recencyScore": 14,
+        "recencyText": "34분 전",
+        "recencyScore": 34,
         "source": "daum",
         "keyword": "메타",
         "section": "industry",
-        "publishedAt": "2026-04-20T10:01:11.447Z",
+        "publishedAt": "2026-04-20T10:00:53.428Z",
         "sourceDomainUnknown": false
       },
       {
@@ -89,12 +128,12 @@
         "url": "https://v.daum.net/v/20260420185905538",
         "summary": "뉴델리=연합뉴스) 임형섭 황윤기 기자 = 인도를 국빈 방문한 이재명 대통령이 20일(현지시간) 나렌드라 모디 인도 총리, 이재용 삼성전자 회장과 '깜짝 셀카' 기념사진을 찍었다. 세 사람의 만남은 모디 총리 주최로 인도 영빈관인 '하이데라바드 하우스'에서 열린...",
         "publisher": "연합뉴스",
-        "recencyText": "15분 전",
-        "recencyScore": 15,
+        "recencyText": "35분 전",
+        "recencyScore": 35,
         "source": "daum",
         "keyword": "삼성전자",
         "section": "industry",
-        "publishedAt": "2026-04-20T10:00:11.447Z",
+        "publishedAt": "2026-04-20T09:59:53.428Z",
         "sourceDomainUnknown": false
       },
       {
@@ -102,12 +141,12 @@
         "url": "https://v.daum.net/v/20260420185533476",
         "summary": "35조542억원으로 집계됐다. 이는 전년(30조3451억원) 대비 15.5% 늘어난 수준이다. 상장사 799곳 가운데 71%가 현금배당을 했다. 삼성전자와 SK하이닉스 등 코스피 대장주의 영업이익이 크게 늘어난 데다 정부가 유도한 기업가치 제고(밸류업) 정책이 더해진 영향...",
         "publisher": "중앙일보",
-        "recencyText": "19분 전",
-        "recencyScore": 19,
+        "recencyText": "39분 전",
+        "recencyScore": 39,
         "source": "daum",
         "keyword": "삼성전자",
         "section": "industry",
-        "publishedAt": "2026-04-20T09:56:11.447Z",
+        "publishedAt": "2026-04-20T09:55:53.428Z",
         "sourceDomainUnknown": false
       },
       {
@@ -115,12 +154,12 @@
         "url": "https://v.daum.net/v/20260420185308418",
         "summary": "[뉴델리=뉴시스] 고범준 기자 = 인도를 국빈 방문 중인 이재명 대통령과 이재용 삼성전자 회장이 20일 뉴델리 영빈관 하이데라바드 하우스에서 열린 나렌드라 모디 총리 주최 오찬 및 한-인도 경제인 대화에서 모디 총리와 함께 인도 노이다 공장에서 생산한 갤럭시Z...",
         "publisher": "뉴시스",
-        "recencyText": "21분 전",
-        "recencyScore": 21,
+        "recencyText": "41분 전",
+        "recencyScore": 41,
         "source": "daum",
         "keyword": "삼성전자",
         "section": "industry",
-        "publishedAt": "2026-04-20T09:54:11.447Z",
+        "publishedAt": "2026-04-20T09:53:53.428Z",
         "sourceDomainUnknown": false
       },
       {
@@ -128,12 +167,12 @@
         "url": "https://v.daum.net/v/20260420185034370",
         "summary": "20일(현지시간) 이재명 대통령(왼쪽부터)과 나렌드라 모디 인도 총리, 이재용 삼성전자 회장이 플래그십 폴더블폰 ‘갤럭시 플립7’을 활용해 셀카를 촬영하고 있다. 사진 삼성전자 이재용 삼성전자 회장은 인도를 국빈 방문 중인 이재명 대통령, 나렌드라 모디 인도...",
         "publisher": "중앙일보",
-        "recencyText": "24분 전",
-        "recencyScore": 24,
+        "recencyText": "44분 전",
+        "recencyScore": 44,
         "source": "daum",
         "keyword": "삼성전자",
         "section": "industry",
-        "publishedAt": "2026-04-20T09:51:11.447Z",
+        "publishedAt": "2026-04-20T09:50:53.428Z",
         "sourceDomainUnknown": false
       },
       {
@@ -141,12 +180,12 @@
         "url": "https://v.daum.net/v/20260420184234230",
         "summary": "이재용(오른쪽) 삼성전자 회장이 20일 인도에서 이재명 대통령, 나렌드라 모디 인도 총리와 함께 셀카(selfie)를 찍은 모습./사진=삼성전자 뉴스룸 이재용 삼성전자 회장이 인도를 국빈 방문 중인 이재명 대통령·나렌드라 모디 인도 총리와 함께 찍은 '셀카'를 공개...",
         "publisher": "한국경제",
-        "recencyText": "32분 전",
-        "recencyScore": 32,
+        "recencyText": "52분 전",
+        "recencyScore": 52,
         "source": "daum",
         "keyword": "삼성전자",
         "section": "industry",
-        "publishedAt": "2026-04-20T09:43:11.447Z",
+        "publishedAt": "2026-04-20T09:42:53.428Z",
         "sourceDomainUnknown": false
       },
       {
@@ -154,64 +193,25 @@
         "url": "https://v.daum.net/v/20260420184200209",
         "summary": "이재용 삼성전자 회장이 인도를 국빈 방문 중인 이재명 대통령과 나렌드라 모디 인도 총리와 함께 찍은 사진이 오늘(20일) 공개됐습니다. 이날 삼성전자 뉴스룸 인스타그램에는 이 대통령과 모디 총리, 이 회장이 한 자리에 모인 사진의 원본이 공개됐습니다. 삼성...",
         "publisher": "SBS",
-        "recencyText": "33분 전",
-        "recencyScore": 33,
+        "recencyText": "52분 전",
+        "recencyScore": 52,
         "source": "daum",
         "keyword": "삼성전자",
         "section": "industry",
-        "publishedAt": "2026-04-20T09:42:11.447Z",
+        "publishedAt": "2026-04-20T09:42:53.428Z",
         "sourceDomainUnknown": false
       },
       {
-        "title": "동영상 첨부된 문서",
-        "url": "https://v.daum.net/v/20260420184018175",
-        "summary": "Q. 이번 주 목요일 SK하이닉스 1분기 실적 결과가 지수의 추가 상승을 결정지을 텐데, 현재 컨센서스는 어떻게 형성되어 있고. 삼성전자처럼 서프라이즈를 보여주게 될지요? Q. 최근 삼성전기 너무 잘 오르고 있습니다. 어떤 점에서 이렇게 오르고 있는 건가요? 현재...",
-        "publisher": "SBS",
-        "recencyText": "34분 전",
-        "recencyScore": 34,
+        "title": "李, 모디 총리와 회담…“韓·印 최적 파트너, 공급망 협력 강화”",
+        "url": "https://v.daum.net/v/20260420183903136",
+        "summary": "국빈방문 중인 이재명 대통령이 20일(현지시간) 인도 뉴델리 영빈관에서 열린 총리 초청 오찬에서 모디 인도 총리와 이재용 삼성전자 회장과 셀카를 찍고 있다. 청와대사진기자단 이 대통령과 모디 총리의 만남은 지난해 6월 주요 7개국(G7) 정상회의 기간 정상회담...",
+        "publisher": "중앙일보",
+        "recencyText": "55분 전",
+        "recencyScore": 55,
         "source": "daum",
         "keyword": "삼성전자",
         "section": "industry",
-        "publishedAt": "2026-04-20T09:41:11.447Z",
-        "sourceDomainUnknown": false
-      },
-      {
-        "title": "\"이재용이 찍었다\"…이재명 대통령·모디 총리와 '깜짝 셀카' 공개",
-        "url": "https://v.daum.net/v/20260420183434992",
-        "summary": "이재명 대통령의 인도 국빈 방문에 동행한 이재용 삼성전자 회장이 이 대통령, 나렌드라 모디 총리와 함께 찍은 '셀카'(셀프카메라)를 깜짝 공개했다./사진 제공=삼성전자 이재명 대통령의 인도 국빈 방문에 동행한 이재용 삼성전자 회장이 이 대통령, 나렌드라 모디...",
-        "publisher": "머니투데이",
-        "recencyText": "40분 전",
-        "recencyScore": 40,
-        "source": "daum",
-        "keyword": "삼성전자",
-        "section": "industry",
-        "publishedAt": "2026-04-20T09:35:11.448Z",
-        "sourceDomainUnknown": false
-      },
-      {
-        "title": "이재명 대통령, 모디 인도 총리, 이재용 삼성전자 회장 셀카",
-        "url": "https://v.daum.net/v/20260420183312974",
-        "summary": "[서울=뉴시스] 이재명 대통령과 나렌드라 모디 인도 총리, 그리고 이재용 삼성전자 회장이 20일 인도 노이다 공장에 생산된 '갤럭시 Z플립7'을 직접 셀카를 촬영하고 있다. (사진=삼성전자 뉴스룸 인스타그램 캡처) 2026.04.20. photo@newsis.com *재판매 및 DB 금지",
-        "publisher": "뉴시스",
-        "recencyText": "41분 전",
-        "recencyScore": 41,
-        "source": "daum",
-        "keyword": "삼성전자",
-        "section": "industry",
-        "publishedAt": "2026-04-20T09:34:11.448Z",
-        "sourceDomainUnknown": false
-      },
-      {
-        "title": "삼성 이재용, 이 대통령·모디 총리와 인도서 만든 갤럭시폰으로 ‘찰칵’",
-        "url": "https://v.daum.net/v/20260420183258951",
-        "summary": "이재용 삼성전자 회장이 20일(현지시간) 인도를 국빈 방문 중인 이재명 대통령과 나렌드라 모디 인도 총리와 함께 사진을 찍었다. 삼성전자 뉴스룸 인스타그램 갈무리 이재용 삼성전자 회장이 20일(현지시간) 인도를 국빈 방문 중인 이재명 대통령과 나렌드라 모디...",
-        "publisher": "경향신문",
-        "recencyText": "42분 전",
-        "recencyScore": 42,
-        "source": "daum",
-        "keyword": "삼성전자",
-        "section": "industry",
-        "publishedAt": "2026-04-20T09:33:11.448Z",
+        "publishedAt": "2026-04-20T09:39:53.428Z",
         "sourceDomainUnknown": false
       },
       {
@@ -219,64 +219,12 @@
         "url": "https://v.daum.net/v/20260420183003885",
         "summary": "고객사로 확보하게 됐다. 벤츠는 특히 안정성이 높아 ‘꿈의 배터리’라고 불리는 전고체 배터리 공급도 삼성SDI와 논의하고 있다고 밝혔다. 이재용 삼성전자 회장이 칼레니우스 회장과 지난해 11월 서울에서 회동하며 모빌리티 협력 방안을 검토한 후 5개월 만에...",
         "publisher": "매일경제",
-        "recencyText": "44분 전",
-        "recencyScore": 44,
+        "recencyText": "1시간 전",
+        "recencyScore": 60,
         "source": "daum",
         "keyword": "삼성전자",
         "section": "industry",
-        "publishedAt": "2026-04-20T09:31:11.448Z",
-        "sourceDomainUnknown": false
-      },
-      {
-        "title": "‘이재용이 찰칵’…인도 생산 ‘Z플립7’으로 李·모디와 셀카",
-        "url": "https://v.daum.net/v/20260420182615776",
-        "summary": "사진=삼성전자 뉴스룸 인스타그램 이재명 대통령과 인도 국빈 방문에 동행한 이재용 삼성전자 회장, 나렌드라 모디 인도 총리가 인도에서 생산된 삼성전자 스마트폰으로 셀카를 촬영했다. 삼성전자는 뉴스룸 인스타그램에서 20일 “이재명 대통령 인도 국빈방문 계기...",
-        "publisher": "동아일보",
-        "recencyText": "48분 전",
-        "recencyScore": 48,
-        "source": "daum",
-        "keyword": "삼성전자",
-        "section": "industry",
-        "publishedAt": "2026-04-20T09:27:11.448Z",
-        "sourceDomainUnknown": false
-      },
-      {
-        "title": "6년째 멈춘 규제완화…韓 기술·소재 다 있는데 완성품은 ‘그림의 떡’ [코어파워 KOREA]",
-        "url": "https://v.daum.net/v/20260420182259655",
-        "summary": "20일 업계에 따르면 국내 기업 중 AR 글라스를 정식 출시한 곳은 아직까지 한 곳도 없다. 엑스리얼 등 중국 기업들과 미국 메타 등이 사실상 무주공산인 국내시장을 선점할 태세다. 산업계는 스마트글라스 시장이 열리지 못하는 근본 원인으로 낡은 규제를 꼽는다...",
-        "publisher": "서울경제",
-        "recencyText": "50분 전",
-        "recencyScore": 50,
-        "source": "daum",
-        "keyword": "메타",
-        "section": "industry",
-        "publishedAt": "2026-04-20T09:25:11.448Z",
-        "sourceDomainUnknown": false
-      },
-      {
-        "title": "이재용 회장, 이 대통령·모디 총리와 인도 생산 플립7으로 '셀카'",
-        "url": "https://v.daum.net/v/20260420182259656",
-        "summary": "국빈 방문 중인 이재명 대통령과 나렌드라 모디 인도 총리와 '셀카'(셀프카메라)를 촬영해 화제를 모으고 있습니다. 오늘(20일) 삼성전자 뉴스룸 인스타그램에는 이 대통령과 모디 총리, 이 회장이 한 자리에 모인 사진의 원본이 공개됐습니다. 게시글에 따르면 이...",
-        "publisher": "연합뉴스",
-        "recencyText": "52분 전",
-        "recencyScore": 52,
-        "source": "daum",
-        "keyword": "삼성전자",
-        "section": "industry",
-        "publishedAt": "2026-04-20T09:23:11.448Z",
-        "sourceDomainUnknown": false
-      },
-      {
-        "title": "이재용, 李대통령·모디 총리와 '인도산 갤럭시'로 깜짝 셀카…삼성, 14억 인구대국 공략 가속화",
-        "url": "https://v.daum.net/v/20260420181913488",
-        "summary": "이재명 대통령과 나렌드라 모디 인도 총리, 그리고 이재용 삼성전자 회장이 20일 인도 노이다 공장에 생산된 '갤럭시 Z플립7'을 직접 셀카를 촬영하고 있다.(출처=삼성전자 뉴스룸 인스타그램) *재판매 및 DB 금지 [서울=뉴시스]남주현 기자 = 이재용 삼성전자 회장...",
-        "publisher": "뉴시스",
-        "recencyText": "55분 전",
-        "recencyScore": 55,
-        "source": "daum",
-        "keyword": "삼성전자",
-        "section": "industry",
-        "publishedAt": "2026-04-20T09:20:11.448Z",
+        "publishedAt": "2026-04-20T09:34:53.428Z",
         "sourceDomainUnknown": false
       },
       {
@@ -289,20 +237,20 @@
         "source": "daum",
         "keyword": "메타",
         "section": "industry",
-        "publishedAt": "2026-04-20T09:15:11.448Z",
+        "publishedAt": "2026-04-20T09:34:53.428Z",
         "sourceDomainUnknown": false
       },
       {
-        "title": "‘시끄러웠던’ 한은 총재 이창용, 오늘 퇴임···구조개혁 강조",
-        "url": "https://v.daum.net/v/20260420173234525",
-        "summary": "몇 개월 원유를 못받게 되면 인플레이션뿐만 아니라 생산을 못하는 것이 상당히 문제가 될 것”이라고 우려했다. 그는 또, “앤트로픽의 ‘미토스’가 해킹에 쓰일 수 있어 사이버 보안이 큰 이슈가 되고 있다”며 “정보를 어떻게 교환하고 국제적으로 인공지능(AI...",
-        "publisher": "경향신문",
+        "title": "‘이재용이 찰칵’…인도 생산 ‘Z플립7’으로 李·모디와 셀카",
+        "url": "https://v.daum.net/v/20260420182615776",
+        "summary": "사진=삼성전자 뉴스룸 인스타그램 이재명 대통령과 인도 국빈 방문에 동행한 이재용 삼성전자 회장, 나렌드라 모디 인도 총리가 인도에서 생산된 삼성전자 스마트폰으로 셀카를 촬영했다. 삼성전자는 뉴스룸 인스타그램에서 20일 “이재명 대통령 인도 국빈방문 계기...",
+        "publisher": "동아일보",
         "recencyText": "1시간 전",
         "recencyScore": 60,
         "source": "daum",
-        "keyword": "Anthropic",
+        "keyword": "삼성전자",
         "section": "industry",
-        "publishedAt": "2026-04-20T09:15:11.448Z",
+        "publishedAt": "2026-04-20T09:34:53.428Z",
         "sourceDomainUnknown": false
       },
       {
@@ -315,7 +263,7 @@
         "source": "daum",
         "keyword": "아마존",
         "section": "industry",
-        "publishedAt": "2026-04-20T09:15:11.448Z",
+        "publishedAt": "2026-04-20T09:34:53.428Z",
         "sourceDomainUnknown": false
       },
       {
@@ -328,7 +276,7 @@
         "source": "daum",
         "keyword": "테슬라",
         "section": "industry",
-        "publishedAt": "2026-04-20T09:15:11.448Z",
+        "publishedAt": "2026-04-20T09:34:53.428Z",
         "sourceDomainUnknown": false
       },
       {
@@ -341,7 +289,7 @@
         "source": "daum",
         "keyword": "엔비디아",
         "section": "industry",
-        "publishedAt": "2026-04-20T09:15:11.448Z",
+        "publishedAt": "2026-04-20T09:34:53.428Z",
         "sourceDomainUnknown": false
       },
       {
@@ -354,7 +302,20 @@
         "source": "daum",
         "keyword": "메타",
         "section": "industry",
-        "publishedAt": "2026-04-20T09:15:11.448Z",
+        "publishedAt": "2026-04-20T09:34:53.428Z",
+        "sourceDomainUnknown": false
+      },
+      {
+        "title": "\"이재용이 찍었다\"…이재명 대통령·모디 총리와 '깜짝 셀카' 공개",
+        "url": "https://v.daum.net/v/20260420183434992",
+        "summary": "이재명 대통령의 인도 국빈 방문에 동행한 이재용 삼성전자 회장이 이 대통령, 나렌드라 모디 총리와 함께 찍은 '셀카'(셀프카메라)를 깜짝 공개했다./사진 제공=삼성전자 이재명 대통령의 인도 국빈 방문에 동행한 이재용 삼성전자 회장이 이 대통령, 나렌드라 모디...",
+        "publisher": "머니투데이",
+        "recencyText": "1시간 전",
+        "recencyScore": 60,
+        "source": "daum",
+        "keyword": "삼성전자",
+        "section": "industry",
+        "publishedAt": "2026-04-20T09:34:53.428Z",
         "sourceDomainUnknown": false
       },
       {
@@ -367,7 +328,7 @@
         "source": "daum",
         "keyword": "엔비디아",
         "section": "industry",
-        "publishedAt": "2026-04-20T09:15:11.448Z",
+        "publishedAt": "2026-04-20T09:34:53.428Z",
         "sourceDomainUnknown": false
       },
       {
@@ -380,7 +341,7 @@
         "source": "daum",
         "keyword": "하이닉스",
         "section": "industry",
-        "publishedAt": "2026-04-20T09:15:11.448Z",
+        "publishedAt": "2026-04-20T09:34:53.428Z",
         "sourceDomainUnknown": false
       },
       {
@@ -393,7 +354,7 @@
         "source": "daum",
         "keyword": "OpenAI",
         "section": "industry",
-        "publishedAt": "2026-04-20T09:15:11.448Z",
+        "publishedAt": "2026-04-20T09:34:53.428Z",
         "sourceDomainUnknown": false
       },
       {
@@ -406,7 +367,20 @@
         "source": "daum",
         "keyword": "메타",
         "section": "industry",
-        "publishedAt": "2026-04-20T09:15:11.448Z",
+        "publishedAt": "2026-04-20T09:34:53.428Z",
+        "sourceDomainUnknown": false
+      },
+      {
+        "title": "6년째 멈춘 규제완화…韓 기술·소재 다 있는데 완성품은 ‘그림의 떡’ [코어파워 KOREA]",
+        "url": "https://v.daum.net/v/20260420182259655",
+        "summary": "20일 업계에 따르면 국내 기업 중 AR 글라스를 정식 출시한 곳은 아직까지 한 곳도 없다. 엑스리얼 등 중국 기업들과 미국 메타 등이 사실상 무주공산인 국내시장을 선점할 태세다. 산업계는 스마트글라스 시장이 열리지 못하는 근본 원인으로 낡은 규제를 꼽는다...",
+        "publisher": "서울경제",
+        "recencyText": "1시간 전",
+        "recencyScore": 60,
+        "source": "daum",
+        "keyword": "메타",
+        "section": "industry",
+        "publishedAt": "2026-04-20T09:34:53.428Z",
         "sourceDomainUnknown": false
       },
       {
@@ -419,20 +393,7 @@
         "source": "daum",
         "keyword": "하이닉스",
         "section": "industry",
-        "publishedAt": "2026-04-20T09:15:11.448Z",
-        "sourceDomainUnknown": false
-      },
-      {
-        "title": "8000명 해고하는 메타…AI發 칼바람, 빅테크의 속뜻은? [팩플]",
-        "url": "https://v.daum.net/v/20260420171611753",
-        "summary": "마크 저커버그 메타 최고경영자(CEO)와 메타 로고. AFP=연합뉴스 미국 빅테크들의 인공지능(AI)발(發) 대규모 구조조정이 계속되고 있다. 회사의 조직과 투자 방향성을 AI 중심으로 재편한다는 게 명분이다. 일각에선 빅테크들이 ‘AI 워싱(washing)’으로 수익성을...",
-        "publisher": "중앙일보",
-        "recencyText": "1시간 전",
-        "recencyScore": 60,
-        "source": "daum",
-        "keyword": "메타",
-        "section": "industry",
-        "publishedAt": "2026-04-20T09:15:11.448Z",
+        "publishedAt": "2026-04-20T09:34:53.428Z",
         "sourceDomainUnknown": false
       },
       {
@@ -445,20 +406,7 @@
         "source": "daum",
         "keyword": "테슬라",
         "section": "industry",
-        "publishedAt": "2026-04-20T09:15:11.448Z",
-        "sourceDomainUnknown": false
-      },
-      {
-        "title": "그리핏, 족저근막염 겨냥 '2단계 조절형 발아치 패드' 출시",
-        "url": "https://v.daum.net/v/20260420171634779",
-        "summary": "플랫폼 마쿠아케에서 펀딩에 성공했으며, '스포텍 도쿄 2024·2025'에도 참가한 바 있다. 이번 신제품을 앞세워 일본 및 미국 아마존 등 글로벌 이커머스 채널 점유율을 확대할 계획이다. 회사 관계자는 \"단순 깔창의 한계를 넘어 물리치료학적 관점에서 접근한 제품...",
-        "publisher": "머니투데이",
-        "recencyText": "1시간 전",
-        "recencyScore": 60,
-        "source": "daum",
-        "keyword": "아마존",
-        "section": "industry",
-        "publishedAt": "2026-04-20T09:15:11.448Z",
+        "publishedAt": "2026-04-20T09:34:53.428Z",
         "sourceDomainUnknown": false
       },
       {
@@ -471,7 +419,7 @@
         "source": "daum",
         "keyword": "테슬라",
         "section": "industry",
-        "publishedAt": "2026-04-20T09:15:11.448Z",
+        "publishedAt": "2026-04-20T09:34:53.428Z",
         "sourceDomainUnknown": false
       },
       {
@@ -484,20 +432,7 @@
         "source": "daum",
         "keyword": "하이닉스",
         "section": "industry",
-        "publishedAt": "2026-04-20T09:15:11.448Z",
-        "sourceDomainUnknown": false
-      },
-      {
-        "title": "문턱 낮추는 '공공 클라우드' 시장…글로벌 빅테크, 韓공략 본격화",
-        "url": "https://v.daum.net/v/20260420173014417",
-        "summary": "운용하는 클라우드보안인증(CSAP) 제도는 민간의 자율 인증으로 전환된다. 이에 따라 한국 공공 클라우드 시장 진출이 어려웠던 아마존웹서비스(AWS), 마이크로소프트(MS) 등 미국 빅테크가 한국의 공공 영역에 진입할 여지가 커졌다. 과기정통부와 국정원은 20일 이...",
-        "publisher": "한국경제",
-        "recencyText": "1시간 전",
-        "recencyScore": 60,
-        "source": "daum",
-        "keyword": "아마존",
-        "section": "industry",
-        "publishedAt": "2026-04-20T09:15:11.449Z",
+        "publishedAt": "2026-04-20T09:34:53.428Z",
         "sourceDomainUnknown": false
       },
       {
@@ -510,7 +445,7 @@
         "source": "daum",
         "keyword": "엔비디아",
         "section": "industry",
-        "publishedAt": "2026-04-20T09:15:11.449Z",
+        "publishedAt": "2026-04-20T09:34:53.428Z",
         "sourceDomainUnknown": false
       },
       {
@@ -523,20 +458,20 @@
         "source": "daum",
         "keyword": "메타",
         "section": "industry",
-        "publishedAt": "2026-04-20T09:15:11.449Z",
+        "publishedAt": "2026-04-20T09:34:53.428Z",
         "sourceDomainUnknown": false
       },
       {
         "title": "배당 1.9조 늘린 삼전닉스 … 작년 증가액의 40% 차지",
         "url": "https://v.daum.net/v/20260420174807209",
-        "summary": "유가증권시장에서 배당총액이 2024년에서 2025년 사이 4조7000억원 늘어나는 데 가장 큰 기여를 한 두 기업은 삼성전자와 SK하이닉스였다. 2025년도 사업보고서에 따르면 삼성전자가 배당소득분리과세 요건까지 충족하며 배당액은 1조3000억원 늘었고 영업이익이...",
+        "summary": "때문이다. 유가증권시장에서 배당총액이 2025년 전년 대비 4조7000억원 늘어나는 데 가장 큰 기여를 한 두 기업은 삼성전자와 SK하이닉스였다. 2025년도 사업보고서에 따르면 삼성전자가 배당소득분리과세 요건까지 충족하며 결산 배당액은 1조3000억원 늘었고 영업...",
         "publisher": "매일경제",
         "recencyText": "1시간 전",
         "recencyScore": 60,
         "source": "daum",
         "keyword": "하이닉스",
         "section": "industry",
-        "publishedAt": "2026-04-20T09:15:11.449Z",
+        "publishedAt": "2026-04-20T09:34:53.428Z",
         "sourceDomainUnknown": false
       },
       {
@@ -549,20 +484,7 @@
         "source": "daum",
         "keyword": "하이닉스",
         "section": "industry",
-        "publishedAt": "2026-04-20T09:15:11.449Z",
-        "sourceDomainUnknown": false
-      },
-      {
-        "title": "벤츠, 내년 한국서 '알파마요' 탑재 자율주행차 선보인다",
-        "url": "https://v.daum.net/v/20260420172212086",
-        "summary": "계획이다. 요르그 부르저 벤츠 최고기술책임자(CTO)는 자율주행과 관련해선 \"내년 정도면 한국에서 레벨2++가 적용된 (엔비디아의 자율주행 플랫폼) '알파마요'를 차량에서 제공할 수 있을 것\"이라며 \"한국의 규제 당국 승인에 따라 유동적이겠지만 이미 (알파마요를...",
-        "publisher": "머니투데이",
-        "recencyText": "1시간 전",
-        "recencyScore": 60,
-        "source": "daum",
-        "keyword": "엔비디아",
-        "section": "industry",
-        "publishedAt": "2026-04-20T09:15:11.449Z",
+        "publishedAt": "2026-04-20T09:34:53.428Z",
         "sourceDomainUnknown": false
       },
       {
@@ -575,7 +497,7 @@
         "source": "daum",
         "keyword": "엔비디아",
         "section": "industry",
-        "publishedAt": "2026-04-20T09:15:11.449Z",
+        "publishedAt": "2026-04-20T09:34:53.428Z",
         "sourceDomainUnknown": false
       },
       {
@@ -588,7 +510,20 @@
         "source": "daum",
         "keyword": "아마존",
         "section": "industry",
-        "publishedAt": "2026-04-20T09:15:11.449Z",
+        "publishedAt": "2026-04-20T09:34:53.428Z",
+        "sourceDomainUnknown": false
+      },
+      {
+        "title": "삼성 이재용, 이 대통령·모디 총리와 인도서 만든 갤럭시폰으로 ‘찰칵’",
+        "url": "https://v.daum.net/v/20260420183258951",
+        "summary": "이재용 삼성전자 회장이 20일(현지시간) 인도를 국빈 방문 중인 이재명 대통령과 나렌드라 모디 인도 총리와 함께 사진을 찍었다. 삼성전자 뉴스룸 인스타그램 갈무리 이재용 삼성전자 회장이 20일(현지시간) 인도를 국빈 방문 중인 이재명 대통령과 나렌드라 모디...",
+        "publisher": "경향신문",
+        "recencyText": "1시간 전",
+        "recencyScore": 60,
+        "source": "daum",
+        "keyword": "삼성전자",
+        "section": "industry",
+        "publishedAt": "2026-04-20T09:34:53.428Z",
         "sourceDomainUnknown": false
       },
       {
@@ -601,20 +536,7 @@
         "source": "daum",
         "keyword": "엔비디아",
         "section": "industry",
-        "publishedAt": "2026-04-20T09:15:11.449Z",
-        "sourceDomainUnknown": false
-      },
-      {
-        "title": "신현송 ‘전직장’ BIS 사무총장 “스테이블코인, 화폐로는 자격 미달”",
-        "url": "https://v.daum.net/v/20260420171533734",
-        "summary": "파블로 에르난데스 데코스 BIS 사무총장. /로이터 뉴스1 한국 정부가 도입을 추진 중인 스테이블코인에 대해 BIS(국제결제은행) 파블로 에르난데스 데코스(de Cos) 사무총장이 “화폐 역할을 하기엔 부족하다”는 의견을 냈다. 그는 20일 일본 도쿄에 있는 일본은행...",
-        "publisher": "조선일보",
-        "recencyText": "1시간 전",
-        "recencyScore": 60,
-        "source": "daum",
-        "keyword": "스테이블 코인",
-        "section": "industry",
-        "publishedAt": "2026-04-20T09:15:11.449Z",
+        "publishedAt": "2026-04-20T09:34:53.428Z",
         "sourceDomainUnknown": false
       },
       {
@@ -627,20 +549,7 @@
         "source": "daum",
         "keyword": "메타",
         "section": "industry",
-        "publishedAt": "2026-04-20T09:15:11.449Z",
-        "sourceDomainUnknown": false
-      },
-      {
-        "title": "온라인에 널렸는데…주사기 부족하다고?",
-        "url": "https://v.daum.net/v/20260420171733824",
-        "summary": "의료기관들이 구매비용을 높이지 않고, 기존 경로에서만 더 많은 물량을 사두려다 보니 품절 문제가 생긴 것”이라고 했다. 아마존과 쿠팡 등 온라인 플랫폼에는 여전히 주사기 판매 물량이 많다. 보건당국에서 허가받은 국내외 판매업자를 잘 물색해 시가로 주문을...",
-        "publisher": "한국경제",
-        "recencyText": "1시간 전",
-        "recencyScore": 60,
-        "source": "daum",
-        "keyword": "아마존",
-        "section": "industry",
-        "publishedAt": "2026-04-20T09:15:11.449Z",
+        "publishedAt": "2026-04-20T09:34:53.429Z",
         "sourceDomainUnknown": false
       },
       {
@@ -653,7 +562,20 @@
         "source": "daum",
         "keyword": "하이닉스",
         "section": "industry",
-        "publishedAt": "2026-04-20T09:15:11.449Z",
+        "publishedAt": "2026-04-20T09:34:53.429Z",
+        "sourceDomainUnknown": false
+      },
+      {
+        "title": "이재명 대통령, 모디 인도 총리, 이재용 삼성전자 회장 셀카",
+        "url": "https://v.daum.net/v/20260420183312974",
+        "summary": "[서울=뉴시스] 이재명 대통령과 나렌드라 모디 인도 총리, 그리고 이재용 삼성전자 회장이 20일 인도 노이다 공장에 생산된 '갤럭시 Z플립7'을 직접 셀카를 촬영하고 있다. (사진=삼성전자 뉴스룸 인스타그램 캡처) 2026.04.20. photo@newsis.com *재판매 및 DB 금지",
+        "publisher": "뉴시스",
+        "recencyText": "1시간 전",
+        "recencyScore": 60,
+        "source": "daum",
+        "keyword": "삼성전자",
+        "section": "industry",
+        "publishedAt": "2026-04-20T09:34:53.429Z",
         "sourceDomainUnknown": false
       },
       {
@@ -666,7 +588,7 @@
         "source": "daum",
         "keyword": "테슬라",
         "section": "industry",
-        "publishedAt": "2026-04-20T09:15:11.449Z",
+        "publishedAt": "2026-04-20T09:34:53.429Z",
         "sourceDomainUnknown": false
       },
       {
@@ -679,7 +601,7 @@
         "source": "daum",
         "keyword": "엔비디아",
         "section": "industry",
-        "publishedAt": "2026-04-20T09:15:11.449Z",
+        "publishedAt": "2026-04-20T09:34:53.429Z",
         "sourceDomainUnknown": false
       },
       {
@@ -692,7 +614,7 @@
         "source": "daum",
         "keyword": "하이닉스",
         "section": "industry",
-        "publishedAt": "2026-04-20T09:15:11.449Z",
+        "publishedAt": "2026-04-20T09:34:53.429Z",
         "sourceDomainUnknown": false
       },
       {
@@ -705,7 +627,7 @@
         "source": "daum",
         "keyword": "스테이블 코인",
         "section": "industry",
-        "publishedAt": "2026-04-20T09:15:11.449Z",
+        "publishedAt": "2026-04-20T09:34:53.429Z",
         "sourceDomainUnknown": false
       },
       {
@@ -718,7 +640,7 @@
         "source": "daum",
         "keyword": "메타",
         "section": "industry",
-        "publishedAt": "2026-04-20T09:15:11.449Z",
+        "publishedAt": "2026-04-20T09:34:53.429Z",
         "sourceDomainUnknown": false
       },
       {
@@ -731,20 +653,7 @@
         "source": "daum",
         "keyword": "엔비디아",
         "section": "industry",
-        "publishedAt": "2026-04-20T09:15:11.449Z",
-        "sourceDomainUnknown": false
-      },
-      {
-        "title": "iM금융, 블록체인 선불결제 실증 성공",
-        "url": "https://v.daum.net/v/20260420171858898",
-        "summary": "상용 서비스 수준의 성능을 확인했다고 설명했다. 황병우 iM금융그룹 회장은 “이번 성과는 2027년 토큰증권 제도화와 향후 스테이블코인 제도화에 대비한 그룹의 선제적 포석”이라며 “현행 법제 안에서 상용 수준의 실증을 만들어냈다”고 했다. 조지원 기자 jw...",
-        "publisher": "서울경제",
-        "recencyText": "1시간 전",
-        "recencyScore": 60,
-        "source": "daum",
-        "keyword": "스테이블 코인",
-        "section": "industry",
-        "publishedAt": "2026-04-20T09:15:11.449Z",
+        "publishedAt": "2026-04-20T09:34:53.429Z",
         "sourceDomainUnknown": false
       },
       {
@@ -757,7 +666,7 @@
         "source": "daum",
         "keyword": "하이닉스",
         "section": "industry",
-        "publishedAt": "2026-04-20T09:15:11.449Z",
+        "publishedAt": "2026-04-20T09:34:53.429Z",
         "sourceDomainUnknown": false
       },
       {
@@ -770,20 +679,20 @@
         "source": "daum",
         "keyword": "하이닉스",
         "section": "industry",
-        "publishedAt": "2026-04-20T09:15:11.449Z",
+        "publishedAt": "2026-04-20T09:34:53.429Z",
         "sourceDomainUnknown": false
       },
       {
-        "title": "SK하이닉스, 차세대 메모리 모듈 양산",
-        "url": "https://v.daum.net/v/20260420172240111",
-        "summary": "SK하이닉스가 10나노급 6세대(1c) D램으로 만든 차세대 메모리 모듈 ‘소캠2’를 본격 양산한다고 20일 발표했다. 엔비디아가 발주하는 소캠 물량을 누가 따내느냐를 두고 SK하이닉스와 삼성전자, 미국 마이크론테크놀로지 등 D램 업체들의 주도권 경쟁이 본격화할...",
-        "publisher": "한국경제",
-        "recencyText": "1시간 전",
-        "recencyScore": 60,
+        "title": "‘시끄러웠던’ 한은 총재 이창용, 오늘 퇴임···구조개혁 강조",
+        "url": "https://v.daum.net/v/20260420173234525",
+        "summary": "몇 개월 원유를 못받게 되면 인플레이션뿐만 아니라 생산을 못하는 것이 상당히 문제가 될 것”이라고 우려했다. 그는 또, “앤트로픽의 ‘미토스’가 해킹에 쓰일 수 있어 사이버 보안이 큰 이슈가 되고 있다”며 “정보를 어떻게 교환하고 국제적으로 인공지능(AI...",
+        "publisher": "경향신문",
+        "recencyText": "2시간 전",
+        "recencyScore": 120,
         "source": "daum",
-        "keyword": "엔비디아",
+        "keyword": "Anthropic",
         "section": "industry",
-        "publishedAt": "2026-04-20T09:15:11.449Z",
+        "publishedAt": "2026-04-20T08:34:53.429Z",
         "sourceDomainUnknown": false
       },
       {
@@ -796,7 +705,7 @@
         "source": "daum",
         "keyword": "하이닉스",
         "section": "industry",
-        "publishedAt": "2026-04-20T08:15:11.449Z",
+        "publishedAt": "2026-04-20T08:34:53.429Z",
         "sourceDomainUnknown": false
       },
       {
@@ -809,7 +718,7 @@
         "source": "daum",
         "keyword": "엔비디아",
         "section": "industry",
-        "publishedAt": "2026-04-20T08:15:11.449Z",
+        "publishedAt": "2026-04-20T08:34:53.429Z",
         "sourceDomainUnknown": false
       },
       {
@@ -822,7 +731,20 @@
         "source": "daum",
         "keyword": "아마존",
         "section": "industry",
-        "publishedAt": "2026-04-20T08:15:11.449Z",
+        "publishedAt": "2026-04-20T08:34:53.429Z",
+        "sourceDomainUnknown": false
+      },
+      {
+        "title": "8000명 해고하는 메타…AI發 칼바람, 빅테크의 속뜻은? [팩플]",
+        "url": "https://v.daum.net/v/20260420171611753",
+        "summary": "마크 저커버그 메타 최고경영자(CEO)와 메타 로고. AFP=연합뉴스 미국 빅테크들의 인공지능(AI)발(發) 대규모 구조조정이 계속되고 있다. 회사의 조직과 투자 방향성을 AI 중심으로 재편한다는 게 명분이다. 일각에선 빅테크들이 ‘AI 워싱(washing)’으로 수익성을...",
+        "publisher": "중앙일보",
+        "recencyText": "2시간 전",
+        "recencyScore": 120,
+        "source": "daum",
+        "keyword": "메타",
+        "section": "industry",
+        "publishedAt": "2026-04-20T08:34:53.429Z",
         "sourceDomainUnknown": false
       },
       {
@@ -835,7 +757,20 @@
         "source": "daum",
         "keyword": "하이닉스",
         "section": "industry",
-        "publishedAt": "2026-04-20T08:15:11.449Z",
+        "publishedAt": "2026-04-20T08:34:53.429Z",
+        "sourceDomainUnknown": false
+      },
+      {
+        "title": "그리핏, 족저근막염 겨냥 '2단계 조절형 발아치 패드' 출시",
+        "url": "https://v.daum.net/v/20260420171634779",
+        "summary": "플랫폼 마쿠아케에서 펀딩에 성공했으며, '스포텍 도쿄 2024·2025'에도 참가한 바 있다. 이번 신제품을 앞세워 일본 및 미국 아마존 등 글로벌 이커머스 채널 점유율을 확대할 계획이다. 회사 관계자는 \"단순 깔창의 한계를 넘어 물리치료학적 관점에서 접근한 제품...",
+        "publisher": "머니투데이",
+        "recencyText": "2시간 전",
+        "recencyScore": 120,
+        "source": "daum",
+        "keyword": "아마존",
+        "section": "industry",
+        "publishedAt": "2026-04-20T08:34:53.429Z",
         "sourceDomainUnknown": false
       },
       {
@@ -848,46 +783,59 @@
         "source": "daum",
         "keyword": "메타",
         "section": "industry",
-        "publishedAt": "2026-04-20T08:15:11.449Z",
+        "publishedAt": "2026-04-20T08:34:53.429Z",
         "sourceDomainUnknown": false
       },
       {
-        "title": "베이조스도 로켓 재사용 성공…머스크 스페이스X에 도전장",
-        "url": "https://v.daum.net/v/20260420162708468",
-        "summary": "우주군 기지에서 블루오리진의 ‘차세대 재사용 대형 로켓’ 뉴글렌 3호기가 발사되고 있다. 블루오리진 X 캡처 화면. 미국 아마존 창업자 제프 베이조스가 이끄는 우주기업 블루오리진이 로켓 재사용에 처음으로 성공했다. 한번 사용했던 1단 로켓을 바다에서 회수...",
-        "publisher": "동아일보",
+        "title": "문턱 낮추는 '공공 클라우드' 시장…글로벌 빅테크, 韓공략 본격화",
+        "url": "https://v.daum.net/v/20260420173014417",
+        "summary": "운용하는 클라우드보안인증(CSAP) 제도는 민간의 자율 인증으로 전환된다. 이에 따라 한국 공공 클라우드 시장 진출이 어려웠던 아마존웹서비스(AWS), 마이크로소프트(MS) 등 미국 빅테크가 한국의 공공 영역에 진입할 여지가 커졌다. 과기정통부와 국정원은 20일 이...",
+        "publisher": "한국경제",
         "recencyText": "2시간 전",
         "recencyScore": 120,
         "source": "daum",
         "keyword": "아마존",
         "section": "industry",
-        "publishedAt": "2026-04-20T08:15:11.449Z",
+        "publishedAt": "2026-04-20T08:34:53.429Z",
         "sourceDomainUnknown": false
       },
       {
-        "title": "삼성물산 손잡을 스타트업 찾는다…'퓨처스케이프' 참가사 모집",
-        "url": "https://v.daum.net/v/20260420163132646",
-        "summary": "제공된다. 전문가 멘토링과 액셀러레이팅 프로그램이 함께 지원되며 일부 기업에 대해서는 투자 검토도 이뤄진다. 아울러 AWS(아마존웹서비스), 네이버클라우드, 메가존클라우드 등 AI(인공지능) 클라우드 인프라를 지원하며, 실제 현장과 고객을 중심으로 실증 협업...",
+        "title": "벤츠, 내년 한국서 '알파마요' 탑재 자율주행차 선보인다",
+        "url": "https://v.daum.net/v/20260420172212086",
+        "summary": "계획이다. 요르그 부르저 벤츠 최고기술책임자(CTO)는 자율주행과 관련해선 \"내년 정도면 한국에서 레벨2++가 적용된 (엔비디아의 자율주행 플랫폼) '알파마요'를 차량에서 제공할 수 있을 것\"이라며 \"한국의 규제 당국 승인에 따라 유동적이겠지만 이미 (알파마요를...",
         "publisher": "머니투데이",
         "recencyText": "2시간 전",
         "recencyScore": 120,
         "source": "daum",
-        "keyword": "아마존",
+        "keyword": "엔비디아",
         "section": "industry",
-        "publishedAt": "2026-04-20T08:15:11.449Z",
+        "publishedAt": "2026-04-20T08:34:53.429Z",
         "sourceDomainUnknown": false
       },
       {
-        "title": "암 투병 끝 사망한 15세 소녀 질문 리스트에 답변한 머스크",
-        "url": "https://v.daum.net/v/20260420161836987",
-        "summary": "사망한 15세 소녀 올리비아 리브 페로토가 남긴 질문들. X 캡쳐 암 투병 끝에 세상을 떠난 15세 소녀가 남긴 질문에 일론 머스크 테슬라 CEO가 일일이 답변했다는 사실이 뒤늦게 알려져 감동을 주고 있다. 17일 미국 방송인 글렌 벡은 자신의 소셜미디어에 하늘로...",
-        "publisher": "중앙일보",
+        "title": "신현송 ‘전직장’ BIS 사무총장 “스테이블코인, 화폐로는 자격 미달”",
+        "url": "https://v.daum.net/v/20260420171533734",
+        "summary": "파블로 에르난데스 데코스 BIS 사무총장. /로이터 뉴스1 한국 정부가 도입을 추진 중인 스테이블코인에 대해 BIS(국제결제은행) 파블로 에르난데스 데코스(de Cos) 사무총장이 “화폐 역할을 하기엔 부족하다”는 의견을 냈다. 그는 20일 일본 도쿄에 있는 일본은행...",
+        "publisher": "조선일보",
         "recencyText": "2시간 전",
         "recencyScore": 120,
         "source": "daum",
-        "keyword": "테슬라",
+        "keyword": "스테이블 코인",
         "section": "industry",
-        "publishedAt": "2026-04-20T08:15:11.449Z",
+        "publishedAt": "2026-04-20T08:34:53.429Z",
+        "sourceDomainUnknown": false
+      },
+      {
+        "title": "온라인에 널렸는데…주사기 부족하다고?",
+        "url": "https://v.daum.net/v/20260420171733824",
+        "summary": "의료기관들이 구매비용을 높이지 않고, 기존 경로에서만 더 많은 물량을 사두려다 보니 품절 문제가 생긴 것”이라고 했다. 아마존과 쿠팡 등 온라인 플랫폼에는 여전히 주사기 판매 물량이 많다. 보건당국에서 허가받은 국내외 판매업자를 잘 물색해 시가로 주문을...",
+        "publisher": "한국경제",
+        "recencyText": "2시간 전",
+        "recencyScore": 120,
+        "source": "daum",
+        "keyword": "아마존",
+        "section": "industry",
+        "publishedAt": "2026-04-20T08:34:53.429Z",
         "sourceDomainUnknown": false
       },
       {
@@ -900,7 +848,7 @@
         "source": "daum",
         "keyword": "아마존",
         "section": "industry",
-        "publishedAt": "2026-04-20T08:15:11.449Z",
+        "publishedAt": "2026-04-20T08:34:53.429Z",
         "sourceDomainUnknown": false
       },
       {
@@ -913,7 +861,7 @@
         "source": "daum",
         "keyword": "엔비디아",
         "section": "industry",
-        "publishedAt": "2026-04-20T08:15:11.449Z",
+        "publishedAt": "2026-04-20T08:34:53.429Z",
         "sourceDomainUnknown": false
       },
       {
@@ -926,7 +874,7 @@
         "source": "daum",
         "keyword": "메타",
         "section": "industry",
-        "publishedAt": "2026-04-20T08:15:11.449Z",
+        "publishedAt": "2026-04-20T08:34:53.429Z",
         "sourceDomainUnknown": false
       },
       {
@@ -939,7 +887,7 @@
         "source": "daum",
         "keyword": "메타",
         "section": "industry",
-        "publishedAt": "2026-04-20T08:15:11.449Z",
+        "publishedAt": "2026-04-20T08:34:53.429Z",
         "sourceDomainUnknown": false
       },
       {
@@ -952,33 +900,20 @@
         "source": "daum",
         "keyword": "메타",
         "section": "industry",
-        "publishedAt": "2026-04-20T08:15:11.449Z",
+        "publishedAt": "2026-04-20T08:34:53.429Z",
         "sourceDomainUnknown": false
       },
       {
-        "title": "호르무즈 긴장 고조에도 코스피 소폭 상승 마감",
-        "url": "https://v.daum.net/v/20260420170116984",
-        "summary": "기관이 매수세를 보였습니다. 삼성전자는 보합권인 0.69% 하락해 214,500원을 기록했고, 오는 23일 1분기 실적 발표를 앞둔 SK하이닉스는 3.37% 뛴 1,166,000원으로 마감했습니다. 0.25% 내린 1,167로 시작한 코스닥은 장중 상승 전환해 0.41% 상승한 1,174에 거래를...",
-        "publisher": "YTN",
+        "title": "iM금융, 블록체인 선불결제 실증 성공",
+        "url": "https://v.daum.net/v/20260420171858898",
+        "summary": "상용 서비스 수준의 성능을 확인했다고 설명했다. 황병우 iM금융그룹 회장은 “이번 성과는 2027년 토큰증권 제도화와 향후 스테이블코인 제도화에 대비한 그룹의 선제적 포석”이라며 “현행 법제 안에서 상용 수준의 실증을 만들어냈다”고 했다. 조지원 기자 jw...",
+        "publisher": "서울경제",
         "recencyText": "2시간 전",
         "recencyScore": 120,
         "source": "daum",
-        "keyword": "하이닉스",
+        "keyword": "스테이블 코인",
         "section": "industry",
-        "publishedAt": "2026-04-20T08:15:11.449Z",
-        "sourceDomainUnknown": false
-      },
-      {
-        "title": "CPU, AI 에이전트 타고 화려한 부활...GPU·메모리 따라 품귀 현상에 가격 급등",
-        "url": "https://v.daum.net/v/20260420162417305",
-        "summary": "것”이라고 했다. ◇메모리 판도에도 변화 이런 흐름에 따라 반도체 업계에서도 자체 CPU 개발 움직임이 불고 있다. GPU 최강자 엔비디아는 지난 2월 GPU와 함께 제공하던 그레이스, 베라 등 CPU를 독립 제품으로 확대했다. 영국 반도체 설계 지식재산권(IP) 기업...",
-        "publisher": "조선일보",
-        "recencyText": "2시간 전",
-        "recencyScore": 120,
-        "source": "daum",
-        "keyword": "엔비디아",
-        "section": "industry",
-        "publishedAt": "2026-04-20T08:15:11.449Z",
+        "publishedAt": "2026-04-20T08:34:53.429Z",
         "sourceDomainUnknown": false
       },
       {
@@ -991,7 +926,20 @@
         "source": "daum",
         "keyword": "스테이블 코인",
         "section": "industry",
-        "publishedAt": "2026-04-20T08:15:11.449Z",
+        "publishedAt": "2026-04-20T08:34:53.429Z",
+        "sourceDomainUnknown": false
+      },
+      {
+        "title": "SK하이닉스, 차세대 메모리 모듈 양산",
+        "url": "https://v.daum.net/v/20260420172240111",
+        "summary": "SK하이닉스가 10나노급 6세대(1c) D램으로 만든 차세대 메모리 모듈 ‘소캠2’를 본격 양산한다고 20일 발표했다. 엔비디아가 발주하는 소캠 물량을 누가 따내느냐를 두고 SK하이닉스와 삼성전자, 미국 마이크론테크놀로지 등 D램 업체들의 주도권 경쟁이 본격화할...",
+        "publisher": "한국경제",
+        "recencyText": "2시간 전",
+        "recencyScore": 120,
+        "source": "daum",
+        "keyword": "엔비디아",
+        "section": "industry",
+        "publishedAt": "2026-04-20T08:34:53.429Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1004,20 +952,7 @@
         "source": "daum",
         "keyword": "엔비디아",
         "section": "industry",
-        "publishedAt": "2026-04-20T07:15:11.449Z",
-        "sourceDomainUnknown": false
-      },
-      {
-        "title": "'최대 10조 예상' 이재용 배터리 세일즈 통했다…벤츠 손 잡은 삼성SDI",
-        "url": "https://v.daum.net/v/20260420151902861",
-        "summary": "전반에서 협력이 가능하다는 관측이다. 삼성은 오디오·전장 자회사 하만을 미래 핵심 동력 중 하나로 삼고 있고, 지난해 7월에는 테슬라와 차세대 자율주행용 반도체 공급 계약을 발표하는 등 관련 보폭을 넓히고 있다. 삼성SDI 관계자는 \"이번 파트너십은 양사가...",
-        "publisher": "머니투데이",
-        "recencyText": "3시간 전",
-        "recencyScore": 180,
-        "source": "daum",
-        "keyword": "테슬라",
-        "section": "industry",
-        "publishedAt": "2026-04-20T07:15:11.449Z",
+        "publishedAt": "2026-04-20T07:34:53.429Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1030,7 +965,7 @@
         "source": "daum",
         "keyword": "테슬라",
         "section": "industry",
-        "publishedAt": "2026-04-20T07:15:11.449Z",
+        "publishedAt": "2026-04-20T07:34:53.429Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1043,7 +978,7 @@
         "source": "daum",
         "keyword": "메타",
         "section": "industry",
-        "publishedAt": "2026-04-20T07:15:11.449Z",
+        "publishedAt": "2026-04-20T07:34:53.429Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1056,7 +991,7 @@
         "source": "daum",
         "keyword": "엔비디아",
         "section": "industry",
-        "publishedAt": "2026-04-20T07:15:11.449Z",
+        "publishedAt": "2026-04-20T07:34:53.429Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1069,7 +1004,7 @@
         "source": "daum",
         "keyword": "메타",
         "section": "industry",
-        "publishedAt": "2026-04-20T07:15:11.449Z",
+        "publishedAt": "2026-04-20T07:34:53.429Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1082,7 +1017,7 @@
         "source": "daum",
         "keyword": "스테이블 코인",
         "section": "industry",
-        "publishedAt": "2026-04-20T07:15:11.449Z",
+        "publishedAt": "2026-04-20T07:34:53.429Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1095,7 +1030,7 @@
         "source": "daum",
         "keyword": "엔비디아",
         "section": "industry",
-        "publishedAt": "2026-04-20T07:15:11.449Z",
+        "publishedAt": "2026-04-20T07:34:53.429Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1108,7 +1043,7 @@
         "source": "daum",
         "keyword": "아마존",
         "section": "industry",
-        "publishedAt": "2026-04-20T07:15:11.449Z",
+        "publishedAt": "2026-04-20T07:34:53.430Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1121,7 +1056,20 @@
         "source": "daum",
         "keyword": "Anthropic",
         "section": "industry",
-        "publishedAt": "2026-04-20T07:15:11.449Z",
+        "publishedAt": "2026-04-20T07:34:53.430Z",
+        "sourceDomainUnknown": false
+      },
+      {
+        "title": "베이조스도 로켓 재사용 성공…머스크 스페이스X에 도전장",
+        "url": "https://v.daum.net/v/20260420162708468",
+        "summary": "우주군 기지에서 블루오리진의 ‘차세대 재사용 대형 로켓’ 뉴글렌 3호기가 발사되고 있다. 블루오리진 X 캡처 화면. 미국 아마존 창업자 제프 베이조스가 이끄는 우주기업 블루오리진이 로켓 재사용에 처음으로 성공했다. 한번 사용했던 1단 로켓을 바다에서 회수...",
+        "publisher": "동아일보",
+        "recencyText": "3시간 전",
+        "recencyScore": 180,
+        "source": "daum",
+        "keyword": "아마존",
+        "section": "industry",
+        "publishedAt": "2026-04-20T07:34:53.430Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1134,7 +1082,33 @@
         "source": "daum",
         "keyword": "아마존",
         "section": "industry",
-        "publishedAt": "2026-04-20T07:15:11.449Z",
+        "publishedAt": "2026-04-20T07:34:53.430Z",
+        "sourceDomainUnknown": false
+      },
+      {
+        "title": "삼성물산 손잡을 스타트업 찾는다…'퓨처스케이프' 참가사 모집",
+        "url": "https://v.daum.net/v/20260420163132646",
+        "summary": "제공된다. 전문가 멘토링과 액셀러레이팅 프로그램이 함께 지원되며 일부 기업에 대해서는 투자 검토도 이뤄진다. 아울러 AWS(아마존웹서비스), 네이버클라우드, 메가존클라우드 등 AI(인공지능) 클라우드 인프라를 지원하며, 실제 현장과 고객을 중심으로 실증 협업...",
+        "publisher": "머니투데이",
+        "recencyText": "3시간 전",
+        "recencyScore": 180,
+        "source": "daum",
+        "keyword": "아마존",
+        "section": "industry",
+        "publishedAt": "2026-04-20T07:34:53.430Z",
+        "sourceDomainUnknown": false
+      },
+      {
+        "title": "암 투병 끝 사망한 15세 소녀 질문 리스트에 답변한 머스크",
+        "url": "https://v.daum.net/v/20260420161836987",
+        "summary": "사망한 15세 소녀 올리비아 리브 페로토가 남긴 질문들. X 캡쳐 암 투병 끝에 세상을 떠난 15세 소녀가 남긴 질문에 일론 머스크 테슬라 CEO가 일일이 답변했다는 사실이 뒤늦게 알려져 감동을 주고 있다. 17일 미국 방송인 글렌 벡은 자신의 소셜미디어에 하늘로...",
+        "publisher": "중앙일보",
+        "recencyText": "3시간 전",
+        "recencyScore": 180,
+        "source": "daum",
+        "keyword": "테슬라",
+        "section": "industry",
+        "publishedAt": "2026-04-20T07:34:53.430Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1147,7 +1121,7 @@
         "source": "daum",
         "keyword": "아마존",
         "section": "industry",
-        "publishedAt": "2026-04-20T07:15:11.449Z",
+        "publishedAt": "2026-04-20T07:34:53.430Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1160,20 +1134,7 @@
         "source": "daum",
         "keyword": "메타",
         "section": "industry",
-        "publishedAt": "2026-04-20T07:15:11.449Z",
-        "sourceDomainUnknown": false
-      },
-      {
-        "title": "오픈AI에 무슨 일이…하루새 핵심 임원 3명 퇴사",
-        "url": "https://v.daum.net/v/20260420153214614",
-        "summary": "샘 올트만 오픈AI CEO/AFPBBNews=뉴스1 챗GPT 개발사 오픈AI에서 17일(현지시간) 하루새 3명의 핵심 임원이 회사를 떠났다. 기업공개(IPO)를 앞두고 사업 포트폴리오 재편과 맞물려 조직 개편이 속도를 내고 있단 분석이 나온다. 19일 비즈니스인사이드에 따르면 2...",
-        "publisher": "머니투데이",
-        "recencyText": "3시간 전",
-        "recencyScore": 180,
-        "source": "daum",
-        "keyword": "OpenAI",
-        "section": "industry",
-        "publishedAt": "2026-04-20T07:15:11.449Z",
+        "publishedAt": "2026-04-20T07:34:53.430Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1186,7 +1147,7 @@
         "source": "daum",
         "keyword": "엔비디아",
         "section": "industry",
-        "publishedAt": "2026-04-20T07:15:11.449Z",
+        "publishedAt": "2026-04-20T07:34:53.430Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1199,7 +1160,7 @@
         "source": "daum",
         "keyword": "Anthropic",
         "section": "industry",
-        "publishedAt": "2026-04-20T07:15:11.449Z",
+        "publishedAt": "2026-04-20T07:34:53.430Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1212,7 +1173,7 @@
         "source": "daum",
         "keyword": "메타",
         "section": "industry",
-        "publishedAt": "2026-04-20T07:15:11.449Z",
+        "publishedAt": "2026-04-20T07:34:53.430Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1225,7 +1186,7 @@
         "source": "daum",
         "keyword": "메타",
         "section": "industry",
-        "publishedAt": "2026-04-20T07:15:11.449Z",
+        "publishedAt": "2026-04-20T07:34:53.430Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1238,7 +1199,7 @@
         "source": "daum",
         "keyword": "OpenAI",
         "section": "industry",
-        "publishedAt": "2026-04-20T07:15:11.449Z",
+        "publishedAt": "2026-04-20T07:34:53.430Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1251,20 +1212,20 @@
         "source": "daum",
         "keyword": "메타",
         "section": "industry",
-        "publishedAt": "2026-04-20T07:15:11.449Z",
+        "publishedAt": "2026-04-20T07:34:53.430Z",
         "sourceDomainUnknown": false
       },
       {
-        "title": "iM금융, 국내 최초 블록체인 선불결제 실증 성공",
-        "url": "https://v.daum.net/v/20260420151734801",
-        "summary": "기술을 결합한 구조다. iM금융그룹은 이번 성과가 그룹 하이브리드 전략의 결과물이라고 평가했다. 현재 입법이 논의 중인 스테이블코인 제도화보다 앞서 기존 금융법상의 '선불전자지급수단' 체계 안에서 블록체인 결제를 상용화 수준까지 구현했다는 것이다. 특히...",
-        "publisher": "머니투데이",
+        "title": "CPU, AI 에이전트 타고 화려한 부활...GPU·메모리 따라 품귀 현상에 가격 급등",
+        "url": "https://v.daum.net/v/20260420162417305",
+        "summary": "것”이라고 했다. ◇메모리 판도에도 변화 이런 흐름에 따라 반도체 업계에서도 자체 CPU 개발 움직임이 불고 있다. GPU 최강자 엔비디아는 지난 2월 GPU와 함께 제공하던 그레이스, 베라 등 CPU를 독립 제품으로 확대했다. 영국 반도체 설계 지식재산권(IP) 기업...",
+        "publisher": "조선일보",
         "recencyText": "3시간 전",
         "recencyScore": 180,
         "source": "daum",
-        "keyword": "스테이블 코인",
+        "keyword": "엔비디아",
         "section": "industry",
-        "publishedAt": "2026-04-20T07:15:11.449Z",
+        "publishedAt": "2026-04-20T07:34:53.430Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1277,7 +1238,20 @@
         "source": "daum",
         "keyword": "테슬라",
         "section": "industry",
-        "publishedAt": "2026-04-20T06:15:11.449Z",
+        "publishedAt": "2026-04-20T06:34:53.430Z",
+        "sourceDomainUnknown": false
+      },
+      {
+        "title": "'최대 10조 예상' 이재용 배터리 세일즈 통했다…벤츠 손 잡은 삼성SDI",
+        "url": "https://v.daum.net/v/20260420151902861",
+        "summary": "전반에서 협력이 가능하다는 관측이다. 삼성은 오디오·전장 자회사 하만을 미래 핵심 동력 중 하나로 삼고 있고, 지난해 7월에는 테슬라와 차세대 자율주행용 반도체 공급 계약을 발표하는 등 관련 보폭을 넓히고 있다. 삼성SDI 관계자는 \"이번 파트너십은 양사가...",
+        "publisher": "머니투데이",
+        "recencyText": "4시간 전",
+        "recencyScore": 240,
+        "source": "daum",
+        "keyword": "테슬라",
+        "section": "industry",
+        "publishedAt": "2026-04-20T06:34:53.430Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1290,7 +1264,33 @@
         "source": "daum",
         "keyword": "Anthropic",
         "section": "industry",
-        "publishedAt": "2026-04-20T06:15:11.450Z",
+        "publishedAt": "2026-04-20T06:34:53.430Z",
+        "sourceDomainUnknown": false
+      },
+      {
+        "title": "오픈AI에 무슨 일이…하루새 핵심 임원 3명 퇴사",
+        "url": "https://v.daum.net/v/20260420153214614",
+        "summary": "샘 올트만 오픈AI CEO/AFPBBNews=뉴스1 챗GPT 개발사 오픈AI에서 17일(현지시간) 하루새 3명의 핵심 임원이 회사를 떠났다. 기업공개(IPO)를 앞두고 사업 포트폴리오 재편과 맞물려 조직 개편이 속도를 내고 있단 분석이 나온다. 19일 비즈니스인사이드에 따르면 2...",
+        "publisher": "머니투데이",
+        "recencyText": "4시간 전",
+        "recencyScore": 240,
+        "source": "daum",
+        "keyword": "OpenAI",
+        "section": "industry",
+        "publishedAt": "2026-04-20T06:34:53.430Z",
+        "sourceDomainUnknown": false
+      },
+      {
+        "title": "iM금융, 국내 최초 블록체인 선불결제 실증 성공",
+        "url": "https://v.daum.net/v/20260420151734801",
+        "summary": "기술을 결합한 구조다. iM금융그룹은 이번 성과가 그룹 하이브리드 전략의 결과물이라고 평가했다. 현재 입법이 논의 중인 스테이블코인 제도화보다 앞서 기존 금융법상의 '선불전자지급수단' 체계 안에서 블록체인 결제를 상용화 수준까지 구현했다는 것이다. 특히...",
+        "publisher": "머니투데이",
+        "recencyText": "4시간 전",
+        "recencyScore": 240,
+        "source": "daum",
+        "keyword": "스테이블 코인",
+        "section": "industry",
+        "publishedAt": "2026-04-20T06:34:53.430Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1303,7 +1303,7 @@
         "source": "daum",
         "keyword": "Anthropic",
         "section": "industry",
-        "publishedAt": "2026-04-20T05:15:11.450Z",
+        "publishedAt": "2026-04-20T05:34:53.430Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1316,7 +1316,7 @@
         "source": "daum",
         "keyword": "아마존",
         "section": "industry",
-        "publishedAt": "2026-04-20T05:15:11.450Z",
+        "publishedAt": "2026-04-20T05:34:53.430Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1329,7 +1329,7 @@
         "source": "daum",
         "keyword": "아마존",
         "section": "industry",
-        "publishedAt": "2026-04-20T05:15:11.450Z",
+        "publishedAt": "2026-04-20T05:34:53.430Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1342,7 +1342,7 @@
         "source": "daum",
         "keyword": "아마존",
         "section": "industry",
-        "publishedAt": "2026-04-20T05:15:11.450Z",
+        "publishedAt": "2026-04-20T05:34:53.430Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1355,7 +1355,7 @@
         "source": "daum",
         "keyword": "아마존",
         "section": "industry",
-        "publishedAt": "2026-04-20T05:15:11.450Z",
+        "publishedAt": "2026-04-20T05:34:53.430Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1368,20 +1368,7 @@
         "source": "daum",
         "keyword": "스테이블 코인",
         "section": "industry",
-        "publishedAt": "2026-04-20T05:15:11.450Z",
-        "sourceDomainUnknown": false
-      },
-      {
-        "title": "\"석유 필요없네\" 유럽판매 50%↑·美도 관심…전쟁에 빛본 이 제품",
-        "url": "https://v.daum.net/v/20260420121634382",
-        "summary": "구조적 전환이 가속하는 계기가 될 수 있다고 내다봤다. 지난달 30일(현지시간) 미국 캘리포니아주 패서디나의 테슬라 슈퍼차저 스테이션에서 테슬라 차량들이 충전을 하고 있다./AFPBBNews=뉴스1 ━ 유럽, 전기차 판매 급증…3월 등록 전년 대비 50%↑ ━ 올해 1...",
-        "publisher": "머니투데이",
-        "recencyText": "6시간 전",
-        "recencyScore": 360,
-        "source": "daum",
-        "keyword": "테슬라",
-        "section": "industry",
-        "publishedAt": "2026-04-20T04:15:11.450Z",
+        "publishedAt": "2026-04-20T05:34:53.430Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1394,7 +1381,7 @@
         "source": "daum",
         "keyword": "아마존",
         "section": "industry",
-        "publishedAt": "2026-04-20T04:15:11.450Z",
+        "publishedAt": "2026-04-20T04:34:53.430Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1407,7 +1394,20 @@
         "source": "daum",
         "keyword": "Anthropic",
         "section": "industry",
-        "publishedAt": "2026-04-20T03:15:11.450Z",
+        "publishedAt": "2026-04-20T03:34:53.430Z",
+        "sourceDomainUnknown": false
+      },
+      {
+        "title": "\"석유 필요없네\" 유럽판매 50%↑·美도 관심…전쟁에 빛본 이 제품",
+        "url": "https://v.daum.net/v/20260420121634382",
+        "summary": "구조적 전환이 가속하는 계기가 될 수 있다고 내다봤다. 지난달 30일(현지시간) 미국 캘리포니아주 패서디나의 테슬라 슈퍼차저 스테이션에서 테슬라 차량들이 충전을 하고 있다./AFPBBNews=뉴스1 ━ 유럽, 전기차 판매 급증…3월 등록 전년 대비 50%↑ ━ 올해 1...",
+        "publisher": "머니투데이",
+        "recencyText": "7시간 전",
+        "recencyScore": 420,
+        "source": "daum",
+        "keyword": "테슬라",
+        "section": "industry",
+        "publishedAt": "2026-04-20T03:34:53.430Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1420,7 +1420,7 @@
         "source": "daum",
         "keyword": "아마존",
         "section": "industry",
-        "publishedAt": "2026-04-20T03:15:11.450Z",
+        "publishedAt": "2026-04-20T03:34:53.430Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1433,7 +1433,7 @@
         "source": "daum",
         "keyword": "Anthropic",
         "section": "industry",
-        "publishedAt": "2026-04-20T03:15:11.450Z",
+        "publishedAt": "2026-04-20T03:34:53.430Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1446,7 +1446,7 @@
         "source": "daum",
         "keyword": "Anthropic",
         "section": "industry",
-        "publishedAt": "2026-04-20T03:15:11.450Z",
+        "publishedAt": "2026-04-20T03:34:53.430Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1459,20 +1459,7 @@
         "source": "daum",
         "keyword": "Anthropic",
         "section": "industry",
-        "publishedAt": "2026-04-20T02:15:11.450Z",
-        "sourceDomainUnknown": false
-      },
-      {
-        "title": "“미 국가안보국, 블랙리스트 오른 앤트로픽 미토스 사용”",
-        "url": "https://v.daum.net/v/20260420102615041",
-        "summary": "미국 국방부 산하 첩보기관 국가안보국(NSA)이 블랙리스트에 오른 앤트로픽의 인공지능(AI) 모델을 사용하는 것으로 알려졌습니다. 미 온라인 매체 악시오스는 현지시각 19일 복수 소식통을 인용해 NSA에서 앤트로픽의 최신 모델인 ‘클로드 미토스 프리뷰’가 사용...",
-        "publisher": "KBS",
-        "recencyText": "8시간 전",
-        "recencyScore": 480,
-        "source": "daum",
-        "keyword": "Anthropic",
-        "section": "industry",
-        "publishedAt": "2026-04-20T02:15:11.450Z",
+        "publishedAt": "2026-04-20T02:34:53.430Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1485,7 +1472,7 @@
         "source": "daum",
         "keyword": "구글",
         "section": "industry",
-        "publishedAt": "2026-04-20T02:15:11.450Z",
+        "publishedAt": "2026-04-20T02:34:53.430Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1498,33 +1485,7 @@
         "source": "daum",
         "keyword": "테슬라",
         "section": "industry",
-        "publishedAt": "2026-04-20T02:15:11.450Z",
-        "sourceDomainUnknown": false
-      },
-      {
-        "title": "국방부는 금지, 안보국은 몰래 사용...미, 앤트로픽 딜레마",
-        "url": "https://v.daum.net/v/20260420103312430",
-        "summary": "미국 국방부 블랙리스트에 오른 AI 기업 앤트로픽의 최신 모델을 미 정보기관이 몰래 사용 중인 것으로 드러나 파장이 일고 있습니다. 현지시간 19일 미 온라인 매체 악시오스는 미 국가안보국 NSA가 앤트로픽의 차세대 AI 모델인 '클로드 미토스 프리뷰'를 사용하고...",
-        "publisher": "YTN",
-        "recencyText": "8시간 전",
-        "recencyScore": 480,
-        "source": "daum",
-        "keyword": "Anthropic",
-        "section": "industry",
-        "publishedAt": "2026-04-20T02:15:11.450Z",
-        "sourceDomainUnknown": false
-      },
-      {
-        "title": "듀오백, 북유럽 시장 진출 성공…판로 확대 가속화",
-        "url": "https://v.daum.net/v/20260420102522006",
-        "summary": "오픈을 통해 판매채널 구축을 완료했다. 추가로 폴란드 최대 온라인 마켓플레이스(Marketplace) 알레그로(Allegro)와 아마존(Amazon)에 입점 준비를 마치고 이른 시일 내에 본격적인 판매에 돌입할 계획이다. 향후 옥외광고 등 다각적인 마케팅과 B2B(기업간거래...",
-        "publisher": "뉴시스",
-        "recencyText": "8시간 전",
-        "recencyScore": 480,
-        "source": "daum",
-        "keyword": "아마존",
-        "section": "industry",
-        "publishedAt": "2026-04-20T02:15:11.450Z",
+        "publishedAt": "2026-04-20T02:34:53.430Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1537,7 +1498,7 @@
         "source": "daum",
         "keyword": "아마존",
         "section": "industry",
-        "publishedAt": "2026-04-20T02:15:11.450Z",
+        "publishedAt": "2026-04-20T02:34:53.430Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1550,7 +1511,7 @@
         "source": "daum",
         "keyword": "Anthropic",
         "section": "industry",
-        "publishedAt": "2026-04-20T02:15:11.450Z",
+        "publishedAt": "2026-04-20T02:34:53.430Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1563,7 +1524,20 @@
         "source": "daum",
         "keyword": "Anthropic",
         "section": "industry",
-        "publishedAt": "2026-04-20T02:15:11.450Z",
+        "publishedAt": "2026-04-20T02:34:53.430Z",
+        "sourceDomainUnknown": false
+      },
+      {
+        "title": "“미 국가안보국, 블랙리스트 오른 앤트로픽 미토스 사용”",
+        "url": "https://v.daum.net/v/20260420102615041",
+        "summary": "미국 국방부 산하 첩보기관 국가안보국(NSA)이 블랙리스트에 오른 앤트로픽의 인공지능(AI) 모델을 사용하는 것으로 알려졌습니다. 미 온라인 매체 악시오스는 현지시각 19일 복수 소식통을 인용해 NSA에서 앤트로픽의 최신 모델인 ‘클로드 미토스 프리뷰’가 사용...",
+        "publisher": "KBS",
+        "recencyText": "9시간 전",
+        "recencyScore": 540,
+        "source": "daum",
+        "keyword": "Anthropic",
+        "section": "industry",
+        "publishedAt": "2026-04-20T01:34:53.430Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1576,7 +1550,7 @@
         "source": "daum",
         "keyword": "Anthropic",
         "section": "industry",
-        "publishedAt": "2026-04-20T01:15:11.450Z",
+        "publishedAt": "2026-04-20T01:34:53.430Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1589,20 +1563,33 @@
         "source": "daum",
         "keyword": "테슬라",
         "section": "industry",
-        "publishedAt": "2026-04-20T01:15:11.450Z",
+        "publishedAt": "2026-04-20T01:34:53.430Z",
         "sourceDomainUnknown": false
       },
       {
-        "title": "벨로크, 美 로봇기업 '피규어 AI' 시리즈A 투자",
-        "url": "https://v.daum.net/v/20260420092420948",
-        "summary": "활용할 수 있는 피규어(Figure) 03 모델을 선보이며 양산화를 앞두고 있다. 마이크로소프트(Microsoft), 엔비디아(NVIDIA), 오픈AI(OpenAI) 등 세계적인 빅테크 기업들이 전략적 투자자로 참여할 만큼 기술력과 성장 잠재력을 인정받고 있으며, 연간 1만2000대 규모...",
+        "title": "국방부는 금지, 안보국은 몰래 사용...미, 앤트로픽 딜레마",
+        "url": "https://v.daum.net/v/20260420103312430",
+        "summary": "미국 국방부 블랙리스트에 오른 AI 기업 앤트로픽의 최신 모델을 미 정보기관이 몰래 사용 중인 것으로 드러나 파장이 일고 있습니다. 현지시간 19일 미 온라인 매체 악시오스는 미 국가안보국 NSA가 앤트로픽의 차세대 AI 모델인 '클로드 미토스 프리뷰'를 사용하고...",
+        "publisher": "YTN",
+        "recencyText": "9시간 전",
+        "recencyScore": 540,
+        "source": "daum",
+        "keyword": "Anthropic",
+        "section": "industry",
+        "publishedAt": "2026-04-20T01:34:53.430Z",
+        "sourceDomainUnknown": false
+      },
+      {
+        "title": "듀오백, 북유럽 시장 진출 성공…판로 확대 가속화",
+        "url": "https://v.daum.net/v/20260420102522006",
+        "summary": "오픈을 통해 판매채널 구축을 완료했다. 추가로 폴란드 최대 온라인 마켓플레이스(Marketplace) 알레그로(Allegro)와 아마존(Amazon)에 입점 준비를 마치고 이른 시일 내에 본격적인 판매에 돌입할 계획이다. 향후 옥외광고 등 다각적인 마케팅과 B2B(기업간거래...",
         "publisher": "뉴시스",
         "recencyText": "9시간 전",
         "recencyScore": 540,
         "source": "daum",
-        "keyword": "OpenAI",
+        "keyword": "아마존",
         "section": "industry",
-        "publishedAt": "2026-04-20T01:15:11.450Z",
+        "publishedAt": "2026-04-20T01:34:53.430Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1615,7 +1602,7 @@
         "source": "daum",
         "keyword": "Anthropic",
         "section": "industry",
-        "publishedAt": "2026-04-20T01:15:11.450Z",
+        "publishedAt": "2026-04-20T01:34:53.430Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1628,20 +1615,7 @@
         "source": "daum",
         "keyword": "Anthropic",
         "section": "industry",
-        "publishedAt": "2026-04-20T01:15:11.450Z",
-        "sourceDomainUnknown": false
-      },
-      {
-        "title": "“1400억 넣어 3조5000억 됐습니다”…‘베팅성공’ SKT 목표가 상향 [오늘 나온 보고서]",
-        "url": "https://v.daum.net/v/20260420083300967",
-        "summary": "서울 중구 SK텔레콤 본사 [뉴시스] 유안타증권은 20일 SK텔레콤이 보유한 미국 인공지능(AI) 기업 앤트로픽 지분가치 상승을 반영해 이 회사 목표주가를 기존 10만원에서 11만8000원으로 18% 상향 조정했다. 유안타증권은 앤트로픽의 기업가치가 현재 8000억~1조달러...",
-        "publisher": "매일경제",
-        "recencyText": "10시간 전",
-        "recencyScore": 600,
-        "source": "daum",
-        "keyword": "Anthropic",
-        "section": "industry",
-        "publishedAt": "2026-04-20T00:15:11.450Z",
+        "publishedAt": "2026-04-20T01:34:53.430Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1654,7 +1628,7 @@
         "source": "daum",
         "keyword": "Anthropic",
         "section": "industry",
-        "publishedAt": "2026-04-20T00:15:11.450Z",
+        "publishedAt": "2026-04-20T00:34:53.430Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1667,7 +1641,20 @@
         "source": "daum",
         "keyword": "구글",
         "section": "industry",
-        "publishedAt": "2026-04-20T00:15:11.450Z",
+        "publishedAt": "2026-04-20T00:34:53.430Z",
+        "sourceDomainUnknown": false
+      },
+      {
+        "title": "벨로크, 美 로봇기업 '피규어 AI' 시리즈A 투자",
+        "url": "https://v.daum.net/v/20260420092420948",
+        "summary": "활용할 수 있는 피규어(Figure) 03 모델을 선보이며 양산화를 앞두고 있다. 마이크로소프트(Microsoft), 엔비디아(NVIDIA), 오픈AI(OpenAI) 등 세계적인 빅테크 기업들이 전략적 투자자로 참여할 만큼 기술력과 성장 잠재력을 인정받고 있으며, 연간 1만2000대 규모...",
+        "publisher": "뉴시스",
+        "recencyText": "10시간 전",
+        "recencyScore": 600,
+        "source": "daum",
+        "keyword": "OpenAI",
+        "section": "industry",
+        "publishedAt": "2026-04-20T00:34:53.430Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1680,7 +1667,20 @@
         "source": "daum",
         "keyword": "Anthropic",
         "section": "industry",
-        "publishedAt": "2026-04-20T00:15:11.450Z",
+        "publishedAt": "2026-04-20T00:34:53.430Z",
+        "sourceDomainUnknown": false
+      },
+      {
+        "title": "“1400억 넣어 3조5000억 됐습니다”…‘베팅성공’ SKT 목표가 상향 [오늘 나온 보고서]",
+        "url": "https://v.daum.net/v/20260420083300967",
+        "summary": "서울 중구 SK텔레콤 본사 [뉴시스] 유안타증권은 20일 SK텔레콤이 보유한 미국 인공지능(AI) 기업 앤트로픽 지분가치 상승을 반영해 이 회사 목표주가를 기존 10만원에서 11만8000원으로 18% 상향 조정했다. 유안타증권은 앤트로픽의 기업가치가 현재 8000억~1조달러...",
+        "publisher": "매일경제",
+        "recencyText": "11시간 전",
+        "recencyScore": 660,
+        "source": "daum",
+        "keyword": "Anthropic",
+        "section": "industry",
+        "publishedAt": "2026-04-19T23:34:53.430Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1693,7 +1693,7 @@
         "source": "daum",
         "keyword": "구글",
         "section": "industry",
-        "publishedAt": "2026-04-19T14:15:11.450Z",
+        "publishedAt": "2026-04-19T14:34:53.430Z",
         "sourceDomainUnknown": false
       }
     ]
