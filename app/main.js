@@ -469,7 +469,7 @@ function deploymentConfig(config = state.config) {
 }
 
 function canImportCustomBuilderArticles(config = state.config) {
-  return deploymentConfig(config).visibility !== 'public-readonly';
+  return isLocalUiRuntime() || hasRemoteAiConfigured(config);
 }
 
 function getAiApiBase(config = state.config) {
@@ -529,6 +529,32 @@ function buildAiApiUrl(pathname, config = state.config) {
   return `${getAiApiBase(config)}${pathname}`;
 }
 
+function buildArticleImportApiUrls(config = state.config) {
+  const candidateUrls = [];
+  const preferRemote = deploymentConfig(config).visibility === 'public-readonly' && hasRemoteAiConfigured(config);
+  if (preferRemote) {
+    candidateUrls.push(buildAiApiUrl('/articles/import', config));
+  }
+  if (isLocalUiRuntime()) {
+    candidateUrls.push(buildLocalOperatorApiUrl('/articles/import'));
+  }
+  if (!preferRemote && hasRemoteAiConfigured(config)) {
+    candidateUrls.push(buildAiApiUrl('/articles/import', config));
+  }
+  return [...new Set(candidateUrls)];
+}
+
+function buildApiJsonHeaders() {
+  const headers = {
+    'Content-Type': 'application/json; charset=utf-8'
+  };
+  const token = getStoredAiToken();
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  return headers;
+}
+
 function normalizeAiRequestError(error, fallback = 'AI 연결을 확인해주세요.') {
   const message = String(error?.message || '').trim();
   if (!message) return fallback;
@@ -538,11 +564,11 @@ function normalizeAiRequestError(error, fallback = 'AI 연결을 확인해주세
   return message;
 }
 
-function normalizeArticleImportError(error, fallback = '기사 링크를 가져오지 못했습니다.') {
+function normalizeArticleImportError(error, fallback = '\uAE30\uC0AC \uB9C1\uD06C\uB97C \uAC00\uC838\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.') {
   const message = String(error?.message || '').trim();
   if (!message) return fallback;
   if (/failed to fetch|networkerror|load failed/i.test(message)) {
-    return '기사 추가 API에 연결하지 못했습니다. 로컬 서버 연결 상태를 확인해주세요.';
+    return '\uAE30\uC0AC \uCD94\uAC00 API\uC5D0 \uC5F0\uACB0\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. \uB124\uD2B8\uC6CC\uD06C \uB610\uB294 \uC6D0\uACA9 API \uC811\uADFC \uD5C8\uC6A9 \uC124\uC815\uC744 \uD655\uC778\uD574\uC8FC\uC138\uC694.';
   }
   return message;
 }
@@ -759,29 +785,60 @@ function inferConfiguredKeyword(article) {
 }
 
 async function importBuilderArticleByUrl(rawUrl) {
-  const response = await fetch(buildLocalOperatorApiUrl('/articles/import'), {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json; charset=utf-8'
-    },
-    body: JSON.stringify({
-      url: String(rawUrl || '').trim()
-    })
-  });
-
-  const payload = await response.json().catch(() => null);
-  if (!response.ok) {
-    throw new Error(payload?.error || '기사 링크를 가져오지 못했습니다.');
+  const apiUrls = buildArticleImportApiUrls();
+  if (!apiUrls.length) {
+    throw new Error('\uAE30\uC0AC \uCD94\uAC00 API \uC8FC\uC18C\uAC00 \uC124\uC815\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4.');
   }
 
-  if (!payload?.article || typeof payload.article !== 'object') {
-    throw new Error('기사 정보를 불러오지 못했습니다.');
+  let lastError = null;
+
+  for (const [index, apiUrl] of apiUrls.entries()) {
+    let response;
+    try {
+      response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: buildApiJsonHeaders(),
+        body: JSON.stringify({
+          url: String(rawUrl || '').trim()
+        })
+      });
+    } catch (error) {
+      lastError = new Error(normalizeArticleImportError(error));
+      if (index < apiUrls.length - 1) {
+        continue;
+      }
+      throw lastError;
+    }
+
+    const payload = await response.json().catch(() => null);
+    if (response.status === 401) {
+      setStoredAiToken('');
+      throw new Error(payload?.error || 'AI \uC811\uADFC \uD1A0\uD070\uC744 \uB2E4\uC2DC \uC785\uB825\uD574\uC8FC\uC138\uC694.');
+    }
+
+    if (!response.ok) {
+      lastError = new Error(payload?.error || '\uAE30\uC0AC \uB9C1\uD06C\uB97C \uAC00\uC838\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.');
+      if (index < apiUrls.length - 1 && [404, 405, 500, 502, 503].includes(response.status)) {
+        continue;
+      }
+      throw lastError;
+    }
+
+    if (!payload?.article || typeof payload.article !== 'object') {
+      lastError = new Error('\uAE30\uC0AC \uC815\uBCF4\uB97C \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.');
+      if (index < apiUrls.length - 1) {
+        continue;
+      }
+      throw lastError;
+    }
+
+    return {
+      ...payload.article,
+      keyword: payload.article.keyword || inferConfiguredKeyword(payload.article)
+    };
   }
 
-  return {
-    ...payload.article,
-    keyword: payload.article.keyword || inferConfiguredKeyword(payload.article)
-  };
+  throw lastError || new Error('\uAE30\uC0AC \uB9C1\uD06C\uB97C \uAC00\uC838\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.');
 }
 
 function mediaLabel(article) {
