@@ -24,7 +24,9 @@ const SEOUL_TIME_ZONE = 'Asia/Seoul';
 const INBOX_PRESET_STORAGE_KEY = 'dailycomm.inboxPresets.v1';
 const INBOX_RECENT_SEARCHES_STORAGE_KEY = 'dailycomm.inboxRecentSearches.v1';
 const BUILDER_DRAFT_STORAGE_PREFIX = 'dailycomm.builderDraft.v1';
+const ACTIVITY_LOG_STORAGE_KEY = 'dailycomm.activityLog.v1';
 const UNDO_TOAST_DURATION = 4200;
+const MAX_ACTIVITY_LOG_ITEMS = 12;
 
 function readJsonStorage(key, fallback) {
   try {
@@ -71,6 +73,43 @@ function loadStoredInboxRecentSearches() {
     .map((value) => String(value || '').trim())
     .filter(Boolean)
     .slice(0, 6);
+}
+
+function loadStoredActivityLog() {
+  return readJsonStorage(ACTIVITY_LOG_STORAGE_KEY, [])
+    .map((item) => ({
+      id: String(item?.id || ''),
+      title: String(item?.title || '').trim(),
+      detail: String(item?.detail || '').trim(),
+      tone: String(item?.tone || 'reported').trim() || 'reported',
+      page: String(item?.page || '').trim(),
+      createdAt: String(item?.createdAt || '').trim()
+    }))
+    .filter((item) => item.id && item.title)
+    .slice(0, MAX_ACTIVITY_LOG_ITEMS);
+}
+
+function persistStoredActivityLog() {
+  writeJsonStorage(ACTIVITY_LOG_STORAGE_KEY, state.activityLog.slice(0, MAX_ACTIVITY_LOG_ITEMS));
+}
+
+function pushActivityLog({ title, detail = '', tone = 'reported', page = state.activePage } = {}) {
+  const normalizedTitle = String(title || '').trim();
+  if (!normalizedTitle) return;
+
+  state.activityLog = [
+    {
+      id: `activity-${Date.now()}`,
+      title: normalizedTitle,
+      detail: String(detail || '').trim(),
+      tone: String(tone || 'reported').trim() || 'reported',
+      page: String(page || '').trim(),
+      createdAt: new Date().toISOString()
+    },
+    ...state.activityLog
+  ].slice(0, MAX_ACTIVITY_LOG_ITEMS);
+
+  persistStoredActivityLog();
 }
 
 const pageMeta = {
@@ -155,6 +194,7 @@ let state = {
   inboxPreviewOpen: false,
   inboxSavedPresets: loadStoredInboxPresets(),
   inboxRecentSearches: loadStoredInboxRecentSearches(),
+  activityLog: loadStoredActivityLog(),
   builderSideView: 'detail',
   builderFocusKey: '',
   builderImportOpen: false,
@@ -164,7 +204,11 @@ let state = {
   builderDraftStatus: 'idle',
   builderDraftSavedAt: '',
   builderDraftRestored: false,
+  pendingAiReview: null,
   reportTextDraft: '',
+  settingsPolicyModalOpen: false,
+  settingsAlertTestBusy: false,
+  settingsAlertTestResult: null,
   capabilities: {
     aiSummarize: false,
     provider: '',
@@ -254,6 +298,25 @@ function formatDateLabel(value) {
 function currentSeoulDateKey() {
   const parts = getSeoulDateParts(new Date());
   return parts?.dateKey || '';
+}
+
+function getDataFreshnessState(dateKey = state.date) {
+  const currentDateKey = currentSeoulDateKey();
+  const dataDateIndex = dateKeyToUtcDayIndex(dateKey);
+  const currentDateIndex = dateKeyToUtcDayIndex(currentDateKey);
+  const lagDays = Number.isFinite(dataDateIndex) && Number.isFinite(currentDateIndex)
+    ? Math.max(currentDateIndex - dataDateIndex, 0)
+    : 0;
+
+  return {
+    currentDateKey,
+    lagDays,
+    isLagging: lagDays > 0,
+    pillLabel: lagDays > 0 ? `${formatDateLabel(dateKey)} / ${formatNumber(lagDays)}일 지연` : formatDateLabel(dateKey),
+    runtimeLabel: lagDays > 0
+      ? `${formatDateLabel(currentDateKey)} 기준 최신 데이터가 아니어서 ${formatDateLabel(dateKey)} 데이터로 보고 있습니다.`
+      : `${formatDateLabel(dateKey)} 기준 최신 데이터를 보고 있습니다.`
+  };
 }
 
 function getSeoulDateParts(value) {
@@ -662,6 +725,14 @@ function buildLocalOperatorApiUrl(pathname) {
   return `../api${pathname}`;
 }
 
+function buildOperatorApiUrls(pathname) {
+  const candidateUrls = [];
+  if (isLocalUiRuntime()) {
+    candidateUrls.push(buildLocalOperatorApiUrl(pathname));
+  }
+  return [...new Set(candidateUrls)];
+}
+
 function buildAiApiUrl(pathname, config = state.config) {
   return `${getAiApiBase(config)}${pathname}`;
 }
@@ -875,6 +946,82 @@ async function requestAiDraftPolish(reportText) {
   }
 
   throw lastError || new Error('AI 정리에 실패했습니다.');
+}
+
+async function requestAlertTest(alertPolicy) {
+  const apiUrls = buildOperatorApiUrls('/alerts/test');
+  const buildFallbackPayload = (description = '서버 점검 경로에 연결하지 못해 브라우저에서 테스트 알림 payload를 검증했습니다.') => {
+    const enabled = Boolean(alertPolicy?.enabled);
+    const channel = String(alertPolicy?.channel || 'email').trim() || 'email';
+    const recipient = String(alertPolicy?.recipient || '').trim();
+    const consecutiveFailures = Number(alertPolicy?.consecutiveFailures || 0);
+
+    if (!enabled) {
+      throw new Error('장애 알림이 비활성 상태입니다.');
+    }
+    if (channel.toLowerCase() !== 'email') {
+      throw new Error('현재 테스트 알림 점검은 EMAIL 채널만 지원합니다.');
+    }
+    if (!recipient || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) {
+      throw new Error('유효한 장애 알림 이메일 주소가 필요합니다.');
+    }
+
+    return {
+      mode: 'preview',
+      recipient,
+      subject: `[DailyComm] 크롤링 장애 테스트 ${state.date || 'no-date'}`,
+      description,
+      body: [
+        '이 메시지는 DailyComm 운영 화면의 테스트 알림 점검입니다.',
+        `- 수신처: ${recipient}`,
+        `- 채널: ${channel.toUpperCase()}`,
+        `- 조건: ${formatNumber(consecutiveFailures)}회 연속 실패`,
+        state.date ? `- 데이터 기준일: ${state.date}` : '',
+        state.articleMeta?.generatedAt || state.report?.generatedAt
+          ? `- 마지막 생성 시각: ${state.articleMeta?.generatedAt || state.report?.generatedAt}`
+          : ''
+      ].filter(Boolean).join('\n')
+    };
+  };
+
+  if (!apiUrls.length) {
+    return buildFallbackPayload();
+  }
+
+  let lastError = null;
+  for (const apiUrl of apiUrls) {
+    try {
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: buildApiJsonHeaders(),
+        body: JSON.stringify({
+          alertPolicy: {
+            enabled: Boolean(alertPolicy?.enabled),
+            channel: String(alertPolicy?.channel || 'email').trim(),
+            consecutiveFailures: Number(alertPolicy?.consecutiveFailures || 0),
+            recipient: String(alertPolicy?.recipient || '').trim()
+          },
+          dataDate: state.date,
+          generatedAt: state.articleMeta?.generatedAt || state.report?.generatedAt || new Date().toISOString()
+        })
+      });
+
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(payload?.error || '테스트 알림 점검에 실패했습니다.');
+      }
+
+      return payload || {};
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error('테스트 알림 점검에 실패했습니다.');
+    }
+  }
+
+  if (lastError) {
+    return buildFallbackPayload();
+  }
+
+  throw new Error('테스트 알림 점검에 실패했습니다.');
 }
 
 function normalizeArticles(payload) {
@@ -1968,6 +2115,12 @@ async function submitBuilderImportedArticle() {
 
     state.builderImportUrl = '';
     state.builderImportOpen = false;
+    pushActivityLog({
+      title: '링크 기사 추가',
+      detail: `${sectionLabel(sectionName)}에 ${String(importedArticle?.title || '기사').trim()} 링크를 추가했습니다.`,
+      tone: 'reported',
+      page: 'builder'
+    });
     registerUndoAction(`링크 기사를 ${sectionLabel(sectionName)}에 추가했습니다.`, snapshot);
   } catch (error) {
     showToast(normalizeArticleImportError(error));
@@ -2007,6 +2160,12 @@ function assignSelectedArticlesToSection(sectionName) {
   showToast(
     `${summary.available.length}건을 ${sectionName === 'major' ? '주요 보도' : '업계 보도'}에 반영했습니다.${blockedSuffix}`
   );
+  pushActivityLog({
+    title: sectionName === 'major' ? '주요 보도 일괄 반영' : '업계 보도 일괄 반영',
+    detail: `${formatNumber(summary.available.length)}건을 리포트에 반영했습니다.`,
+    tone: 'reported',
+    page: 'inbox'
+  });
   registerUndoAction('방금 일괄 반영을 되돌릴 수 있습니다.', snapshot);
 }
 
@@ -2034,6 +2193,12 @@ function assignSelectedArticlesToInboxReport() {
   if (summary.industryCount) details.push(`업계 보도 ${formatNumber(summary.industryCount)}건`);
   const suffix = details.length ? ` (${details.join(', ')})` : '';
   showToast(`${formatNumber(summary.available.length)}건을 보도에 추가했습니다.${suffix}`);
+  pushActivityLog({
+    title: '기사 인박스 반영',
+    detail: `${formatNumber(summary.available.length)}건을 기본 경로로 추가했습니다.${suffix}`,
+    tone: 'reported',
+    page: 'inbox'
+  });
   registerUndoAction('추천 경로 반영을 되돌릴 수 있습니다.', snapshot);
 }
 
@@ -2048,6 +2213,7 @@ function updateDraftItem(key, updates) {
   };
 
   state.reportDraft[location.sectionName][location.index] = nextItem;
+  clearPendingAiReview();
   syncReportFromDraft();
   state.reportTextDraft = generateReportText();
   setBuilderFocus(draftEntryKey(location.sectionName, nextItem));
@@ -2781,25 +2947,128 @@ function buildAiSummaryUpdates(article, result) {
   };
 }
 
-async function applyAiSummaryToDraftItem(key) {
+function buildAiReviewProposal(key, article, updates) {
+  const sectionName = String(key || '').split('::')[0] === 'major' ? 'major' : 'industry';
+  const previousSummaryLead = articleSummaryLead(article);
+  const previousKeyPoint = articleKeyPoint(article);
+  const nextSummaryLead = String(updates?.summaryLead || previousSummaryLead).trim();
+  const nextKeyPoint = String(updates?.keyPoint || previousKeyPoint).trim();
+
+  return {
+    key,
+    sectionName,
+    articleTitle: String(article?.title || '').trim(),
+    media: mediaLabel(article),
+    before: {
+      summaryLead: previousSummaryLead,
+      keyPoint: previousKeyPoint
+    },
+    after: {
+      summaryLead: nextSummaryLead,
+      keyPoint: nextKeyPoint
+    },
+    changed: previousSummaryLead !== nextSummaryLead || previousKeyPoint !== nextKeyPoint
+  };
+}
+
+function renderAiReviewCard() {
+  const review = state.pendingAiReview;
+  if (!review?.proposals?.length) return '';
+
+  return `
+    <article class="card ai-review-card" id="builder-ai-review-card">
+      <div class="panel-heading">
+        <div>
+          <p class="panel-kicker">AI Review</p>
+          <h3>${escapeHtml(review.title || 'AI 제안 비교')}</h3>
+        </div>
+        <span class="panel-pill tone-neutral">${formatNumber(review.proposals.length)}건 검토</span>
+      </div>
+      <p class="panel-note">${escapeHtml(review.description || '적용 전에 기존 문구와 AI 제안 문구를 비교해 보세요.')}</p>
+      ${review.failedCount
+        ? `<p class="policy-note"><strong>안내</strong><span>일부 기사 ${formatNumber(review.failedCount)}건은 AI 응답이 실패해 이번 제안에서 제외했습니다.</span></p>`
+        : ''}
+      <div class="ai-review-list">
+        ${review.proposals.map((proposal) => `
+          <div class="ai-review-item ${proposal.changed ? 'is-changed' : 'is-same'}">
+            <div class="ai-review-head">
+              <div>
+                <strong>${escapeHtml(proposal.articleTitle || '기사')}</strong>
+                <span>${escapeHtml(sectionLabel(proposal.sectionName))} / ${escapeHtml(proposal.media || '-')}</span>
+              </div>
+              <span class="status-badge status-${proposal.changed ? 'warning' : 'reported'}">${proposal.changed ? '변경' : '유지'}</span>
+            </div>
+            <div class="ai-review-grid">
+              <div class="ai-review-column">
+                <span class="ai-review-label">기존</span>
+                <strong>${escapeHtml(proposal.before.summaryLead || '-')}</strong>
+                <p>${escapeHtml(proposal.before.keyPoint || '-')}</p>
+              </div>
+              <div class="ai-review-column">
+                <span class="ai-review-label">AI 제안</span>
+                <strong>${escapeHtml(proposal.after.summaryLead || '-')}</strong>
+                <p>${escapeHtml(proposal.after.keyPoint || '-')}</p>
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="inline-actions stack-mobile">
+        <button class="primary-btn" id="ai-review-apply">AI 제안 적용</button>
+        <button class="ghost-btn" id="ai-review-cancel">기존 문구 유지</button>
+      </div>
+    </article>
+  `;
+}
+
+function setPendingAiReview(review) {
+  state.pendingAiReview = review ? cloneValue(review) : null;
+}
+
+function clearPendingAiReview() {
+  state.pendingAiReview = null;
+}
+
+function applyPendingAiReview() {
+  const review = state.pendingAiReview;
+  if (!review?.proposals?.length) return false;
+
+  review.proposals.forEach((proposal) => {
+    if (!proposal.changed) return;
+    updateDraftItem(proposal.key, {
+      summaryLead: proposal.after.summaryLead,
+      keyPoint: proposal.after.keyPoint,
+      conclusion: proposal.after.summaryLead,
+      oneLine: proposal.after.keyPoint
+    });
+  });
+
+  state.reportTextDraft = generateReportText();
+  persistStoredBuilderDraft();
+  pushActivityLog({
+    title: review.mode === 'batch' ? 'AI 제안 일괄 적용' : 'AI 제안 적용',
+    detail: `${formatNumber(review.changedCount || 0)}건 문구를 반영했습니다.`,
+    tone: 'warning',
+    page: 'builder'
+  });
+  clearPendingAiReview();
+  return true;
+}
+
+async function buildAiSummaryProposalForDraftItem(key) {
   const location = findDraftLocation(key);
   if (!location) {
     return {
       updated: false,
-      changed: false
+      proposal: null
     };
   }
 
-  const previousSummaryLead = articleSummaryLead(location.item);
-  const previousKeyPoint = articleKeyPoint(location.item);
   const result = await requestAiSummary(location.item);
   const updates = buildAiSummaryUpdates(location.item, result);
-  const changed = previousSummaryLead !== updates.summaryLead || previousKeyPoint !== updates.keyPoint;
-
-  updateDraftItem(key, updates);
   return {
     updated: true,
-    changed
+    proposal: buildAiReviewProposal(key, location.item, updates)
   };
 }
 
@@ -2814,12 +3083,25 @@ async function summarizeDraftItemWithAi(key) {
   renderReportBuilder();
 
   try {
-    const outcome = await applyAiSummaryToDraftItem(key);
-    if (!outcome?.updated) {
+    const outcome = await buildAiSummaryProposalForDraftItem(key);
+    if (!outcome?.updated || !outcome?.proposal) {
       showToast('리포트에 반영된 기사만 AI 정리를 사용할 수 있습니다.');
       return;
     }
-    showToast('AI 정리로 요약을 채웠습니다.');
+    if (!outcome.proposal.changed) {
+      showToast('AI 제안이 현재 문구와 같아서 적용할 변경점이 없습니다.');
+      return;
+    }
+    setPendingAiReview({
+      mode: 'single',
+      title: 'AI 문구 비교',
+      description: '선택한 기사 1건의 기존 문구와 AI 제안을 먼저 비교할 수 있습니다.',
+      proposals: [outcome.proposal],
+      changedCount: 1,
+      failedCount: 0
+    });
+    showToast('AI 제안을 비교 화면에 준비했습니다.');
+    return;
   } catch (error) {
     showToast(error instanceof Error ? error.message : 'AI 정리에 실패했습니다.');
   } finally {
@@ -2849,11 +3131,21 @@ async function summarizeReportDraftWithAi() {
   let changedCount = 0;
   let failedCount = 0;
   let lastError = null;
+  const proposals = [];
 
   try {
     for (const key of entryKeys) {
       try {
-        const outcome = await applyAiSummaryToDraftItem(key);
+        const outcome = await buildAiSummaryProposalForDraftItem(key);
+        if (!outcome?.updated || !outcome?.proposal) {
+          continue;
+        }
+        successCount += 1;
+        proposals.push(outcome.proposal);
+        if (outcome.proposal.changed) {
+          changedCount += 1;
+        }
+        continue;
         if (!outcome?.updated) {
           continue;
         }
@@ -2871,20 +3163,25 @@ async function summarizeReportDraftWithAi() {
       throw lastError;
     }
 
-    state.reportTextDraft = generateReportText();
-    persistStoredBuilderDraft();
-
-    if (failedCount > 0) {
-      showToast(`AI가 기사 ${successCount}건을 정리했고 ${failedCount}건은 실패했습니다.`);
+    if (!changedCount) {
+      if (failedCount > 0) {
+        showToast(`AI가 기사 ${successCount}건을 확인했지만 변경 없이 ${failedCount}건은 실패했습니다.`);
+        return;
+      }
+      showToast(`AI가 기사 ${successCount}건을 검토했지만 적용할 변경점은 없었습니다.`);
       return;
     }
 
-    if (changedCount > 0) {
-      showToast(`AI가 기사 ${changedCount}건을 정리하고 보고서 초안을 갱신했습니다.`);
-      return;
-    }
-
-    showToast(`AI가 기사 ${successCount}건을 검토하고 보고서 초안을 다시 생성했습니다.`);
+    setPendingAiReview({
+      mode: 'batch',
+      title: 'AI 일괄 제안 비교',
+      description: `기사 ${formatNumber(changedCount)}건의 문구를 AI가 다시 정리했습니다. 적용 전에 변경 내용을 확인해 보세요.`,
+      proposals: proposals.filter((proposal) => proposal.changed),
+      changedCount,
+      failedCount
+    });
+    showToast(`AI 제안 ${changedCount}건을 비교 화면에 준비했습니다.`);
+    return;
   } catch (error) {
     showToast(error instanceof Error ? error.message : 'AI 정리에 실패했습니다.');
   } finally {
@@ -3137,6 +3434,223 @@ function getCurrentKakaoSegmentCount() {
   return buildKakaoPreviewSegments().length;
 }
 
+function summarizeDuplicateLabels(entries) {
+  return Object.entries(entries)
+    .filter(([, count]) => count > 1)
+    .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0], 'ko'))
+    .map(([label, count]) => `${label} ${formatNumber(count)}건`);
+}
+
+function buildPublishValidationState() {
+  const sections = getReportSections();
+  const articles = [...sections.major, ...sections.industry];
+  const segments = buildKakaoPreviewSegments();
+  const duplicateMedia = summarizeDuplicateLabels(articles.reduce((acc, article) => {
+    const key = mediaLabel(article);
+    if (key && key !== '-') {
+      acc[key] = (acc[key] || 0) + 1;
+    }
+    return acc;
+  }, {}));
+  const duplicateKeywords = summarizeDuplicateLabels(articles.reduce((acc, article) => {
+    const key = String(article?.keyword || '').trim();
+    if (key) {
+      acc[key] = (acc[key] || 0) + 1;
+    }
+    return acc;
+  }, {}));
+  const missingSummaryArticles = articles.filter((article) => !articleSummaryLead(article) || !articleKeyPoint(article));
+  const overLimitSegments = segments.filter((segment) => segment.chars > KAKAO_SEGMENT_CHAR_LIMIT || segment.bytes > KAKAO_SEGMENT_CHAR_LIMIT);
+
+  const items = [
+    {
+      status: sections.major.length ? 'pass' : 'blocked',
+      title: '주요 보도 최소 1건',
+      detail: sections.major.length
+        ? `현재 주요 보도 ${formatNumber(sections.major.length)}건이 포함되어 있습니다.`
+        : '주요 보도가 없으면 발송 메시지의 우선순위가 흐려질 수 있습니다.'
+    },
+    {
+      status: missingSummaryArticles.length ? 'blocked' : 'pass',
+      title: '빈 요약/핵심 포인트 없음',
+      detail: missingSummaryArticles.length
+        ? `${formatNumber(missingSummaryArticles.length)}건에서 보고용 문구가 비어 있습니다.`
+        : '모든 기사에 보고용 요약과 핵심 포인트가 채워져 있습니다.'
+    },
+    {
+      status: overLimitSegments.length ? 'blocked' : 'pass',
+      title: '세그먼트 길이 제한',
+      detail: overLimitSegments.length
+        ? `길이 제한을 넘는 세그먼트 ${formatNumber(overLimitSegments.length)}건이 있습니다.`
+        : `모든 세그먼트가 ${formatNumber(KAKAO_SEGMENT_CHAR_LIMIT)}자 이내입니다.`
+    },
+    {
+      status: duplicateMedia.length ? 'warning' : 'pass',
+      title: '중복 매체 점검',
+      detail: duplicateMedia.length
+        ? duplicateMedia.slice(0, 2).join(', ')
+        : '같은 매체 반복이 없어 메시지 균형이 안정적입니다.'
+    },
+    {
+      status: duplicateKeywords.length ? 'warning' : 'pass',
+      title: '중복 키워드 점검',
+      detail: duplicateKeywords.length
+        ? duplicateKeywords.slice(0, 2).join(', ')
+        : '같은 키워드 반복이 없어 주제 편중이 크지 않습니다.'
+    },
+    {
+      status: segments.length > 3 ? 'warning' : 'pass',
+      title: '카카오 분할 수',
+      detail: segments.length > 3
+        ? `현재 ${formatNumber(segments.length)}개로 많습니다. 3개 이내 권장을 넘었습니다.`
+        : `현재 ${formatNumber(segments.length || 0)}개로 검수 가능한 분량입니다.`
+    }
+  ];
+
+  return {
+    items,
+    segments,
+    blockingItems: items.filter((item) => item.status === 'blocked'),
+    warningItems: items.filter((item) => item.status === 'warning'),
+    allowCopy: articles.length > 0 && items.every((item) => item.status !== 'blocked')
+  };
+}
+
+function renderPublishValidationCard(validation = buildPublishValidationState()) {
+  return `
+    <article class="card publish-validation-card">
+      <div class="panel-heading">
+        <div>
+          <p class="panel-kicker">Send Gate</p>
+          <h3>발행 전 검수</h3>
+        </div>
+        <span class="panel-pill ${validation.allowCopy ? 'tone-main' : 'tone-locked'}">${validation.allowCopy ? '복사 가능' : '수정 필요'}</span>
+      </div>
+      <p class="panel-note">카카오 복사 전에 누락, 길이 초과, 반복 편중을 먼저 확인합니다.</p>
+      <div class="builder-readiness-list publish-validation-list">
+        ${validation.items.map((item) => `
+          <div class="builder-readiness-item is-${item.status === 'pass' ? 'complete' : item.status === 'warning' ? 'watch' : 'pending'}">
+            <span class="builder-readiness-state">${item.status === 'pass' ? 'OK' : item.status === 'warning' ? 'CHECK' : 'BLOCK'}</span>
+            <div class="builder-readiness-copy">
+              <strong>${escapeHtml(item.title)}</strong>
+              <p>${escapeHtml(item.detail)}</p>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      ${validation.allowCopy
+        ? '<p class="panel-note">검수 기준을 통과해 전체 복사와 현재 파트 복사를 계속 진행할 수 있습니다.</p>'
+        : '<p class="policy-note"><strong>중단</strong><span>차단 항목이 있어 지금은 복사를 막고 있습니다. 리포트 빌더에서 먼저 수정해 주세요.</span></p>'}
+      <div class="inline-actions compact stack-mobile">
+        <button class="ghost-btn" id="publish-validation-to-builder">리포트 빌더로 이동</button>
+      </div>
+    </article>
+  `;
+}
+
+function renderAlertTestCard(alertPolicy) {
+  const result = state.settingsAlertTestResult;
+  const deliveryLabel = formatAlertDeliveryLabel(alertPolicy);
+  return `
+    <article class="card settings-card settings-alert-card">
+      <div class="panel-heading">
+        <div>
+          <p class="panel-kicker">Alert Check</p>
+          <h3>장애 알림 점검</h3>
+        </div>
+        <span class="panel-pill tone-neutral">${escapeHtml(String(alertPolicy?.channel || 'email').toUpperCase())}</span>
+      </div>
+      <p class="small-copy">실패 알림 채널과 전달 방식을 지금 기준 설정으로 점검합니다. SMTP가 없는 개발 환경에서는 실제 발송 대신 전송 payload를 검증합니다.</p>
+      <div class="settings-list">
+        <div class="settings-row">
+          <strong>전달 방식</strong>
+          <span>${escapeHtml(deliveryLabel)}</span>
+        </div>
+        <div class="settings-row">
+          <strong>트리거 조건</strong>
+          <span>${formatNumber(alertPolicy?.consecutiveFailures || 0)}회 연속 실패</span>
+        </div>
+      </div>
+      <div class="inline-actions compact stack-mobile">
+        <button class="primary-btn" id="settings-alert-test" ${state.settingsAlertTestBusy ? 'disabled' : ''}>
+          ${state.settingsAlertTestBusy ? '점검 중...' : '테스트 알림 점검'}
+        </button>
+      </div>
+      ${result
+        ? `<div class="builder-import-status is-${escapeHtml(result.state || 'ready')}">
+            <strong>${escapeHtml(result.title || '점검 결과')}</strong>
+            <p>${escapeHtml(result.description || '')}</p>
+            ${result.meta ? `<p class="small-copy">${escapeHtml(result.meta)}</p>` : ''}
+          </div>`
+        : '<p class="panel-note">운영 화면에서 한 번 눌러두면 전달 방식, 제목, 메시지 구성이 현재 설정과 맞는지 바로 검토할 수 있습니다.</p>'}
+    </article>
+  `;
+}
+
+function formatAlertDeliveryLabel(alertPolicy) {
+  const enabled = Boolean(alertPolicy?.enabled);
+  const channel = String(alertPolicy?.channel || 'email').trim().toLowerCase();
+  const hasRecipient = Boolean(String(alertPolicy?.recipient || '').trim());
+
+  if (!enabled) return '비활성';
+  if (!hasRecipient) return '수신처 미지정';
+  if (channel === 'email') return 'email로 전달됩니다';
+  return `${String(alertPolicy?.channel || '알림').toUpperCase()} 채널로 전달됩니다`;
+}
+
+function renderSettingsPolicySummaryCard({ settingsPolicyRows, alertPolicy, deployment }) {
+  return `
+    <article class="card settings-card settings-policy-summary-card">
+      <div class="panel-heading">
+        <div>
+          <p class="panel-kicker">Operations Policy</p>
+          <h3>운영 정책 요약</h3>
+        </div>
+        <span class="panel-pill">${formatNumber(settingsPolicyRows.length)}개</span>
+      </div>
+      <p class="small-copy">크롤링 재시도, 장애 알림, 허용 도메인, 검증 기준, AI 연결 상태처럼 운영 안정성에 직접 영향을 주는 설정만 한 번에 확인합니다.</p>
+      <div class="settings-trust-banner">
+        <strong>장애 알림은 ${escapeHtml(formatAlertDeliveryLabel(alertPolicy))}.</strong>
+        <span>배포 공개 범위 ${escapeHtml(formatSettingsVisibility(deployment.visibility))} · 마지막 데이터 ${escapeHtml(formatDateTime(state.articleMeta?.generatedAt || state.report?.generatedAt))}</span>
+      </div>
+      <div class="settings-list">
+        ${settingsPolicyRows.map((row) => `
+          <div class="settings-row">
+            <strong>${escapeHtml(row.label)}</strong>
+            <div class="settings-row-copy">
+              <span>${escapeHtml(row.value)}</span>
+              ${row.impact ? `<small>${escapeHtml(row.impact)}</small>` : ''}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </article>
+  `;
+}
+
+function renderSettingsPolicyModal({ settingsPolicyRows, alertPolicy, deployment }) {
+  if (!state.settingsPolicyModalOpen) return '';
+
+  return `
+    <div class="settings-modal-backdrop" id="settings-policy-modal-backdrop" role="presentation">
+      <section class="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-policy-modal-title">
+        <div class="panel-heading settings-modal-head">
+          <div>
+            <p class="panel-kicker">Operations Policy</p>
+            <h3 id="settings-policy-modal-title">운영 정책 보기</h3>
+          </div>
+          <button class="ghost-btn" id="close-settings-policy-modal">닫기</button>
+        </div>
+        <p class="small-copy">운영 설정 요약과 장애 알림 점검 결과를 한 팝업에서 확인합니다.</p>
+        <div class="settings-modal-body">
+          ${renderSettingsPolicySummaryCard({ settingsPolicyRows, alertPolicy, deployment })}
+          ${renderAlertTestCard(alertPolicy)}
+        </div>
+      </section>
+    </div>
+  `;
+}
+
 function escapeRegExp(value) {
   return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -3228,9 +3742,12 @@ function isArticleAssigned(article) {
 
 function updateShellMeta() {
   const meta = pageMeta[state.activePage] || pageMeta.dashboard;
+  const freshness = getDataFreshnessState();
   chrome.kicker.textContent = meta.kicker;
   chrome.title.textContent = meta.title;
-  chrome.subtitle.textContent = meta.subtitle;
+  chrome.subtitle.textContent = freshness.isLagging
+    ? `${meta.subtitle} 현재 ${formatDateLabel(state.date)} 데이터 기준`
+    : meta.subtitle;
 
   const sections = getReportSections();
   const majorCount = sections.major.length;
@@ -3239,7 +3756,9 @@ function updateShellMeta() {
   const segmentCount = getCurrentKakaoSegmentCount();
   const coverageRatio = state.articles.length ? Math.round((reportCount / state.articles.length) * 100) : 0;
 
-  chrome.date.textContent = formatDateLabel(state.date);
+  chrome.date.textContent = freshness.pillLabel;
+  chrome.date.classList.toggle('is-warning', freshness.isLagging);
+  chrome.date.setAttribute('title', freshness.runtimeLabel);
   chrome.runtimeGenerated.textContent = formatDateTime(state.articleMeta?.generatedAt || state.report?.generatedAt);
   chrome.runtimeUsable.textContent = `${formatNumber(reportCount)}/${formatNumber(state.articles.length)} (${formatNumber(coverageRatio)}%)`;
   if (chrome.runtimeCompact) {
@@ -3254,6 +3773,9 @@ function updateShellMeta() {
   } else if (state.loadError) {
     chrome.runtimeStatus.hidden = false;
     chrome.runtimeStatus.textContent = '데이터 연결을 확인해 주세요.';
+  } else if (freshness.isLagging) {
+    chrome.runtimeStatus.hidden = false;
+    chrome.runtimeStatus.textContent = freshness.runtimeLabel;
   } else if (!state.articles.length) {
     chrome.runtimeStatus.hidden = false;
     chrome.runtimeStatus.textContent = '기사 데이터가 아직 없습니다.';
@@ -3261,6 +3783,7 @@ function updateShellMeta() {
     chrome.runtimeStatus.textContent = '';
     chrome.runtimeStatus.hidden = true;
   }
+  chrome.runtimeStatus.classList.toggle('is-warning', !state.loading && !state.loadError && freshness.isLagging);
 
   syncRuntimePanel();
   updateWorkspaceActions();
@@ -3468,6 +3991,21 @@ function renderDataEmpty(id, title, description) {
   `;
 }
 
+function renderFreshnessBanner() {
+  const freshness = getDataFreshnessState();
+  if (!freshness.isLagging) return '';
+
+  return `
+    <article class="card freshness-banner">
+      <div>
+        <p class="panel-kicker">Freshness Check</p>
+        <h3>오늘 최신 데이터가 아닙니다</h3>
+      </div>
+      <p>${escapeHtml(freshness.runtimeLabel)}</p>
+    </article>
+  `;
+}
+
 function buildTrendItems() {
   const keywords = keywordList().slice(0, 6);
   const source = state.articles;
@@ -3590,6 +4128,16 @@ function renderDashboard() {
               <h3>Recent Crawl Log</h3>
             </div>
             <button class="ghost-btn" id="go-inbox">인박스 보기</button>
+          </div>
+          <div class="dashboard-activity-block">
+            <div class="panel-heading">
+              <div>
+                <p class="panel-kicker">Recent Work</p>
+                <h3>최근 작업 로그</h3>
+              </div>
+              <span class="panel-pill tone-neutral">${formatNumber(state.activityLog.length)}건</span>
+            </div>
+            ${renderRecentActivityLog()}
           </div>
           <div class="run-log-list">
             ${runLogs.map((row) => `
@@ -4787,12 +5335,24 @@ function renderKakaoPreview() {
 
   document.getElementById('copy-all').addEventListener('click', async () => {
     await navigator.clipboard.writeText(fullText);
+    pushActivityLog({
+      title: '카카오 전체 복사',
+      detail: `전체 메시지 ${formatNumber(totalChars)}자를 복사했습니다.`,
+      tone: 'warning',
+      page: 'kakao'
+    });
     showToast('전체 메시지를 복사했습니다.');
   });
 
   document.getElementById('copy-current').addEventListener('click', async () => {
     if (!activeSegment) return;
     await navigator.clipboard.writeText(activeSegment.content);
+    pushActivityLog({
+      title: '카카오 파트 복사',
+      detail: `Part ${formatNumber(activeSegment.order)} ${formatNumber(activeSegmentChars)}자를 복사했습니다.`,
+      tone: 'warning',
+      page: 'kakao'
+    });
     showToast(`Part ${activeSegment.order} 복사 완료`);
   });
 }
@@ -5714,6 +6274,7 @@ renderReportBuilder = function renderReportBuilderOverride() {
         </div>
 
         <aside class="builder-side-stack">
+          ${renderAiReviewCard()}
           ${renderBuilderDraftPanel({
             reportText,
             reportItemCount,
@@ -5844,6 +6405,26 @@ renderReportBuilder = function renderReportBuilderOverride() {
       render('kakao');
     });
   }
+
+  document.getElementById('ai-review-apply')?.addEventListener('click', () => {
+    const snapshot = captureWorkspaceSnapshot();
+    if (applyPendingAiReview()) {
+      registerUndoAction('AI 제안 적용을 되돌릴 수 있습니다.', snapshot);
+      renderReportBuilder();
+    }
+  });
+
+  document.getElementById('ai-review-cancel')?.addEventListener('click', () => {
+    clearPendingAiReview();
+    pushActivityLog({
+      title: 'AI 제안 취소',
+      detail: '기존 문구를 유지했습니다.',
+      tone: 'reported',
+      page: 'builder'
+    });
+    showToast('AI 제안을 취소하고 기존 문구를 유지했습니다.');
+    renderReportBuilder();
+  });
 
   document.querySelectorAll('[data-builder-empty-nav]').forEach((button) => {
     button.addEventListener('click', () => {
@@ -6170,12 +6751,24 @@ renderKakaoPreview = function renderKakaoPreviewOverride() {
 
   document.getElementById('copy-all').addEventListener('click', async () => {
     await navigator.clipboard.writeText(fullText);
+    pushActivityLog({
+      title: '카카오 전체 복사',
+      detail: `전체 메시지 ${formatNumber(totalChars)}자를 복사했습니다.`,
+      tone: 'warning',
+      page: 'kakao'
+    });
     showToast('전체 메시지를 복사했습니다.');
   });
 
   document.getElementById('copy-current').addEventListener('click', async () => {
     if (!activeSegment) return;
     await navigator.clipboard.writeText(activeSegment.content);
+    pushActivityLog({
+      title: '카카오 파트 복사',
+      detail: `Part ${formatNumber(activeSegment.order)} ${formatNumber(activeSegmentChars)}자를 복사했습니다.`,
+      tone: 'warning',
+      page: 'kakao'
+    });
     showToast(`Part ${activeSegment.order} 복사 완료`);
   });
 };
@@ -6198,7 +6791,7 @@ renderSettings = function renderSettingsOverride() {
     ? config.validation
     : { strict: false, minValidUrlRatio: 0 };
   const deployment = deploymentConfig(config);
-  const alertRecipient = String(alertPolicy.recipient || '').trim();
+  const alertDeliveryLabel = formatAlertDeliveryLabel(alertPolicy);
   const settingsPolicyRows = [
     {
       label: '재시도 정책',
@@ -6212,7 +6805,7 @@ renderSettings = function renderSettingsOverride() {
     },
     {
       label: '알림 수신처',
-      value: alertRecipient || '미지정'
+      value: alertDeliveryLabel
     },
     {
       label: '허용 도메인',
@@ -6241,6 +6834,21 @@ renderSettings = function renderSettingsOverride() {
       value: formatDateTime(state.articleMeta?.generatedAt || state.report?.generatedAt)
     }
   ];
+  [
+    '재시도 횟수와 간격이 길어질수록 실제 장애 인지가 늦어질 수 있습니다.',
+    '알림 채널이 비활성이면 크롤링 실패를 운영자가 직접 발견해야 합니다.',
+    '수신처가 잘못되면 장애가 나도 담당자에게 도착하지 않습니다.',
+    '허용 도메인이 좁을수록 잘못된 링크 유입은 줄지만 기사 누락 가능성은 커질 수 있습니다.',
+    '검증 기준이 높을수록 링크 품질은 좋아지지만 usable 기사 수는 줄 수 있습니다.',
+    '배포 공개 범위는 노출 가능한 기능과 운영 카드 범위를 함께 바꿉니다.',
+    'AI API 경로가 바뀌면 요약과 기사 링크 추가 동선이 함께 영향을 받습니다.',
+    '외부 AI 연결 여부에 따라 공개 배포판에서 가능한 기능 범위가 달라집니다.',
+    '마지막 반영 시각이 오래되면 운영자가 오늘 데이터로 오인할 수 있습니다.'
+  ].forEach((impact, index) => {
+    if (settingsPolicyRows[index]) {
+      settingsPolicyRows[index].impact = impact;
+    }
+  });
   const showOpsPolicyCard = deployment.visibility !== 'public-readonly';
   const renderTagList = (items, emptyTitle, emptyBody) =>
     items.length
@@ -6289,33 +6897,26 @@ renderSettings = function renderSettingsOverride() {
         </article>
 
         ${showOpsPolicyCard
-          ? `<article class="card settings-card">
+          ? `<article class="card settings-card settings-policy-link-card">
               ${renderAnnotation('SCR-SET-DICT-001')}
               <div class="panel-heading">
                 <div>
                   <p class="panel-kicker">Operations Policy</p>
-                  <h3>운영 정책 요약</h3>
+                  <h3>운영 정책 보기</h3>
                 </div>
-                <span class="panel-pill">${formatNumber(settingsPolicyRows.length)}개</span>
+                <button class="ghost-btn" id="open-settings-policy-modal">팝업 열기</button>
               </div>
-              <p class="small-copy">크롤링 재시도, 장애 알림, 허용 도메인, 검증 기준, AI 연결 상태처럼 운영 안정성에 직접 영향을 주는 설정만 한 카드에서 빠르게 확인합니다.</p>
+              <p class="small-copy">운영 정책 요약과 장애 알림 점검 정보는 별도 팝업에서 확인합니다.</p>
               <div class="settings-trust-banner">
-                <strong>장애 알림은 ${alertPolicy.enabled ? String(alertPolicy.channel || 'email').toUpperCase() : '비활성'} 채널로 ${escapeHtml(alertRecipient || '수신처 미지정')}에 전달됩니다.</strong>
+                <strong>장애 알림은 ${escapeHtml(alertDeliveryLabel)}.</strong>
                 <span>배포 공개 범위 ${escapeHtml(formatSettingsVisibility(deployment.visibility))} · 마지막 데이터 ${escapeHtml(formatDateTime(state.articleMeta?.generatedAt || state.report?.generatedAt))}</span>
-              </div>
-              <div class="settings-list">
-                ${settingsPolicyRows.map((row) => `
-                    <div class="settings-row">
-                      <strong>${escapeHtml(row.label)}</strong>
-                      <span>${escapeHtml(row.value)}</span>
-                    </div>
-                  `).join('')}
               </div>
             </article>`
           : ''}
       </div>
 
       ${showOpsPolicyCard ? renderOperationalMicroPolicyCard('settings') : ''}
+      ${showOpsPolicyCard ? renderSettingsPolicyModal({ settingsPolicyRows, alertPolicy, deployment }) : ''}
 
       <article class="card toolbar-card settings-readonly-card">
         ${renderAnnotation('SCR-SET-ACTION-001')}
@@ -6329,6 +6930,55 @@ renderSettings = function renderSettingsOverride() {
 
   document.getElementById('settings-to-builder').addEventListener('click', () => {
     render('builder');
+  });
+  document.getElementById('open-settings-policy-modal')?.addEventListener('click', () => {
+    state.settingsPolicyModalOpen = true;
+    renderSettings();
+  });
+  document.getElementById('close-settings-policy-modal')?.addEventListener('click', () => {
+    state.settingsPolicyModalOpen = false;
+    renderSettings();
+  });
+  document.getElementById('settings-policy-modal-backdrop')?.addEventListener('click', (event) => {
+    if (event.target.id !== 'settings-policy-modal-backdrop') return;
+    state.settingsPolicyModalOpen = false;
+    renderSettings();
+  });
+  document.getElementById('settings-alert-test')?.addEventListener('click', async () => {
+    if (state.settingsAlertTestBusy) return;
+    state.settingsAlertTestBusy = true;
+    state.settingsAlertTestResult = null;
+    renderSettings();
+
+    try {
+      const payload = await requestAlertTest(alertPolicy);
+      state.settingsAlertTestResult = {
+        state: payload?.mode === 'sent' ? 'ready' : 'warning',
+        title: payload?.mode === 'sent' ? '테스트 알림을 발송했습니다.' : '테스트 알림 payload를 검증했습니다.',
+        description: payload?.description || '전달 방식과 메시지 구성을 점검했습니다.',
+        meta: payload?.subject
+          ? `${formatAlertDeliveryLabel(alertPolicy)} / ${payload.subject}`
+          : formatAlertDeliveryLabel(alertPolicy)
+      };
+      pushActivityLog({
+        title: '장애 알림 점검',
+        detail: state.settingsAlertTestResult.meta || '전달 방식과 payload를 점검했습니다.',
+        tone: payload?.mode === 'sent' ? 'warning' : 'reported',
+        page: 'settings'
+      });
+      showToast(state.settingsAlertTestResult.title);
+    } catch (error) {
+      state.settingsAlertTestResult = {
+        state: 'invalid',
+        title: '테스트 알림 점검에 실패했습니다.',
+        description: error instanceof Error ? error.message : '알림 설정을 다시 확인해 주세요.',
+        meta: ''
+      };
+      showToast(state.settingsAlertTestResult.description);
+    } finally {
+      state.settingsAlertTestBusy = false;
+      renderSettings();
+    }
   });
 };
 
@@ -6567,6 +7217,28 @@ buildRunLogs = function buildRunLogsOverride() {
   ];
 };
 
+function renderRecentActivityLog(limit = 6) {
+  const items = state.activityLog.slice(0, limit);
+  if (!items.length) {
+    return renderDataEmpty('activity-log-empty', '최근 작업 로그가 없습니다', '기사 반영, AI 적용, 카카오 복사 같은 운영 작업이 이곳에 누적됩니다.');
+  }
+
+  return `
+    <div class="run-log-list activity-log-list">
+      ${items.map((item) => `
+        <div class="run-log-row">
+          <div class="run-log-main">
+            <strong>${escapeHtml(item.title)}</strong>
+            <span class="run-log-time">${escapeHtml(formatDateTime(item.createdAt))}</span>
+          </div>
+          <span class="status-badge status-${escapeHtml(item.tone || 'reported')}">${escapeHtml(item.page || '작업')}</span>
+          <p class="run-log-detail">${escapeHtml(item.detail || '운영 작업 기록')}</p>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
 renderDashboard = function renderDashboardOverride() {
   const stats = getStats();
   const sections = getReportSections();
@@ -6584,6 +7256,7 @@ renderDashboard = function renderDashboardOverride() {
 
   app.innerHTML = `
     <section class="page" id="dashboard-page">
+      ${renderFreshnessBanner()}
       ${renderDashboardFlowCard(flow)}
       ${renderDashboardPriorityStrip({ total, pending, reported, failed, coverageRatio })}
       <div class="kpi-grid">
@@ -6667,8 +7340,6 @@ renderDashboard = function renderDashboardOverride() {
           <p class="panel-note">전체 수집 기사 기준 상위 매체 비중입니다. 막대 길이는 전체 기사에서 차지하는 실제 비율을 뜻합니다.</p>
         </article>
 
-        ${renderOperationalMicroPolicyCard('dashboard')}
-
         <article class="card panel-card dashboard-card dashboard-card-logs">
           <div id="dashboard-log-panel"></div>
           ${renderAnnotation('SCR-DASH-LOG-001')}
@@ -6707,7 +7378,6 @@ renderDashboard = function renderDashboardOverride() {
   `;
 
   document.getElementById('go-inbox').addEventListener('click', () => render('inbox'));
-  document.getElementById('dashboard-open-settings')?.addEventListener('click', () => render('settings'));
   document.getElementById('dashboard-flow-primary')?.addEventListener('click', (event) => {
     const page = event.currentTarget.dataset.dashboardPage || 'dashboard';
     if (event.currentTarget.dataset.dashboardBuilderFocus === 'draft') {
