@@ -3,11 +3,6 @@
     "김범수",
     "정신아",
     "카카오",
-    "카카오페이",
-    "카카오뱅크",
-    "카카오모빌리티",
-    "데이터센터",
-    "노란봉투법",
     "메타",
     "OpenAI",
     "Anthropic",
@@ -42,15 +37,7 @@
     "YTN",
     "JTBC"
   ],
-  "classificationDictionary": {
-    "김범수": "major",
-    "정신아": "major",
-    "카카오페이": "major",
-    "카카오뱅크": "major",
-    "카카오모빌리티": "major",
-    "데이터센터": "industry",
-    "노란봉투법": "industry"
-  },
+  "classificationDictionary": {},
   "deployment": {
     "visibility": "public-readonly",
     "aiApiBase": "https://dailycomm-ai.duckdns.org/api"

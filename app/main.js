@@ -7,10 +7,6 @@ const chrome = {
   subtitle: document.getElementById('workspace-subtitle'),
   kicker: document.getElementById('workspace-kicker'),
   date: document.getElementById('header-date'),
-  runtimeCard: document.getElementById('runtime-card'),
-  runtimeToggle: document.getElementById('runtime-toggle'),
-  runtimeDetails: document.getElementById('runtime-details'),
-  runtimeCompact: document.getElementById('runtime-compact'),
   runtimeGenerated: document.getElementById('runtime-generated'),
   runtimeUsable: document.getElementById('runtime-usable'),
   runtimeReport: document.getElementById('runtime-report'),
@@ -21,96 +17,6 @@ const chrome = {
 };
 
 const SEOUL_TIME_ZONE = 'Asia/Seoul';
-const INBOX_PRESET_STORAGE_KEY = 'dailycomm.inboxPresets.v1';
-const INBOX_RECENT_SEARCHES_STORAGE_KEY = 'dailycomm.inboxRecentSearches.v1';
-const BUILDER_DRAFT_STORAGE_PREFIX = 'dailycomm.builderDraft.v1';
-const ACTIVITY_LOG_STORAGE_KEY = 'dailycomm.activityLog.v1';
-const UNDO_TOAST_DURATION = 4200;
-const MAX_ACTIVITY_LOG_ITEMS = 12;
-
-function readJsonStorage(key, fallback) {
-  try {
-    const raw = window.localStorage.getItem(key);
-    if (!raw) return fallback;
-    return JSON.parse(raw);
-  } catch {
-    return fallback;
-  }
-}
-
-function writeJsonStorage(key, value) {
-  try {
-    window.localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-  }
-}
-
-function removeStorageItem(key) {
-  try {
-    window.localStorage.removeItem(key);
-  } catch {
-  }
-}
-
-function loadStoredInboxPresets() {
-  return readJsonStorage(INBOX_PRESET_STORAGE_KEY, [])
-    .map((preset) => ({
-      id: String(preset?.id || ''),
-      label: String(preset?.label || '').trim(),
-      sectionFilter: String(preset?.sectionFilter || 'all'),
-      statusFilter: String(preset?.statusFilter || 'all'),
-      searchQuery: String(preset?.searchQuery || '').trim(),
-      keywordFilter: Array.isArray(preset?.keywordFilter)
-        ? preset.keywordFilter.map((token) => String(token || '').trim()).filter(Boolean)
-        : []
-    }))
-    .filter((preset) => preset.id && preset.label)
-    .slice(0, 4);
-}
-
-function loadStoredInboxRecentSearches() {
-  return readJsonStorage(INBOX_RECENT_SEARCHES_STORAGE_KEY, [])
-    .map((value) => String(value || '').trim())
-    .filter(Boolean)
-    .slice(0, 6);
-}
-
-function loadStoredActivityLog() {
-  return readJsonStorage(ACTIVITY_LOG_STORAGE_KEY, [])
-    .map((item) => ({
-      id: String(item?.id || ''),
-      title: String(item?.title || '').trim(),
-      detail: String(item?.detail || '').trim(),
-      tone: String(item?.tone || 'reported').trim() || 'reported',
-      page: String(item?.page || '').trim(),
-      createdAt: String(item?.createdAt || '').trim()
-    }))
-    .filter((item) => item.id && item.title)
-    .slice(0, MAX_ACTIVITY_LOG_ITEMS);
-}
-
-function persistStoredActivityLog() {
-  writeJsonStorage(ACTIVITY_LOG_STORAGE_KEY, state.activityLog.slice(0, MAX_ACTIVITY_LOG_ITEMS));
-}
-
-function pushActivityLog({ title, detail = '', tone = 'reported', page = state.activePage } = {}) {
-  const normalizedTitle = String(title || '').trim();
-  if (!normalizedTitle) return;
-
-  state.activityLog = [
-    {
-      id: `activity-${Date.now()}`,
-      title: normalizedTitle,
-      detail: String(detail || '').trim(),
-      tone: String(tone || 'reported').trim() || 'reported',
-      page: String(page || '').trim(),
-      createdAt: new Date().toISOString()
-    },
-    ...state.activityLog
-  ].slice(0, MAX_ACTIVITY_LOG_ITEMS);
-
-  persistStoredActivityLog();
-}
 
 const pageMeta = {
   dashboard: {
@@ -140,34 +46,9 @@ const pageMeta = {
   }
 };
 
-const LOADING_STEPS = [
-  {
-    id: 'source',
-    label: '원본 확인',
-    description: '기사와 리포트 파일을 읽고 오늘 기준 데이터를 확인합니다.'
-  },
-  {
-    id: 'config',
-    label: '운영 설정',
-    description: '키워드와 분류 기준, 배포 설정을 동기화합니다.'
-  },
-  {
-    id: 'capabilities',
-    label: 'AI 준비',
-    description: '요약 기능 사용 가능 여부와 연결 상태를 점검합니다.'
-  },
-  {
-    id: 'ready',
-    label: '화면 구성',
-    description: '기사 인박스와 보고서 초안 화면을 정리합니다.'
-  }
-];
-
 let state = {
   date: currentSeoulDateKey(),
   loading: true,
-  loadingPhase: 'source',
-  loadingMessage: '오늘 기사와 보고서 파일을 확인하고 있습니다.',
   loadError: '',
   articleMeta: null,
   articles: [],
@@ -181,49 +62,33 @@ let state = {
   previewMode: 'summary',
   config: null,
   activePage: 'dashboard',
-  runtimePanelOpen: false,
   kakaoView: 'full',
   selectedSegmentOrder: 1,
   inboxSectionFilter: 'all',
-  inboxStatusFilter: 'all',
   inboxKeywordFilter: [],
-  inboxSearchQuery: '',
   inboxSortKey: 'time',
   inboxSortDirection: 'desc',
   inboxFiltersOpen: false,
-  inboxPreviewOpen: false,
-  inboxSavedPresets: loadStoredInboxPresets(),
-  inboxRecentSearches: loadStoredInboxRecentSearches(),
-  activityLog: loadStoredActivityLog(),
   builderSideView: 'detail',
   builderFocusKey: '',
   builderImportOpen: false,
   builderImportUrl: '',
   builderImportSection: 'major',
   builderImportBusy: false,
-  builderDraftStatus: 'idle',
-  builderDraftSavedAt: '',
-  builderDraftRestored: false,
-  pendingAiReview: null,
   reportTextDraft: '',
-  settingsPolicyModalOpen: false,
-  settingsAlertTestBusy: false,
-  settingsAlertTestResult: null,
   capabilities: {
     aiSummarize: false,
     provider: '',
     model: '',
     requiresToken: false
   },
-  aiBusyKey: '',
-  pageScrollPositions: {}
+  aiBusyKey: ''
 };
 
 let toastId = 0;
 const AI_TOKEN_STORAGE_KEY = 'input_ai_token';
 const AI_TOKEN_LEGACY_STORAGE_KEY = 'dailycomm.aiToken';
 const KAKAO_SEGMENT_CHAR_LIMIT = 500;
-let inboxSearchCompositionActive = false;
 
 if (skipLink) {
   skipLink.addEventListener('click', () => {
@@ -242,13 +107,7 @@ function escapeHtml(value) {
     .replace(/'/g, '&#039;');
 }
 
-function showToast(message, options = {}) {
-  const {
-    actionLabel = '',
-    onAction = null,
-    duration = 2200,
-    replace = false
-  } = options;
+function showToast(message) {
   let wrap = document.querySelector('.toast-wrap');
   if (!wrap) {
     wrap = document.createElement('div');
@@ -259,35 +118,15 @@ function showToast(message, options = {}) {
     document.body.append(wrap);
   }
 
-  if (replace) {
-    wrap.replaceChildren();
-  }
-
   const node = document.createElement('div');
   node.className = 'toast';
-  const messageNode = document.createElement('span');
-  messageNode.className = 'toast-message';
-  messageNode.textContent = message;
-  node.append(messageNode);
-
-  if (actionLabel && typeof onAction === 'function') {
-    const actionButton = document.createElement('button');
-    actionButton.type = 'button';
-    actionButton.className = 'toast-action';
-    actionButton.textContent = actionLabel;
-    actionButton.addEventListener('click', () => {
-      node.remove();
-      onAction();
-    });
-    node.append(actionButton);
-  }
-
+  node.textContent = message;
   const currentId = ++toastId;
   wrap.append(node);
 
   setTimeout(() => {
     if (currentId <= toastId) node.remove();
-  }, duration);
+  }, 2200);
 }
 
 function formatDateLabel(value) {
@@ -298,25 +137,6 @@ function formatDateLabel(value) {
 function currentSeoulDateKey() {
   const parts = getSeoulDateParts(new Date());
   return parts?.dateKey || '';
-}
-
-function getDataFreshnessState(dateKey = state.date) {
-  const currentDateKey = currentSeoulDateKey();
-  const dataDateIndex = dateKeyToUtcDayIndex(dateKey);
-  const currentDateIndex = dateKeyToUtcDayIndex(currentDateKey);
-  const lagDays = Number.isFinite(dataDateIndex) && Number.isFinite(currentDateIndex)
-    ? Math.max(currentDateIndex - dataDateIndex, 0)
-    : 0;
-
-  return {
-    currentDateKey,
-    lagDays,
-    isLagging: lagDays > 0,
-    pillLabel: lagDays > 0 ? `${formatDateLabel(dateKey)} / ${formatNumber(lagDays)}일 지연` : formatDateLabel(dateKey),
-    runtimeLabel: lagDays > 0
-      ? `${formatDateLabel(currentDateKey)} 기준 최신 데이터가 아니어서 ${formatDateLabel(dateKey)} 데이터로 보고 있습니다.`
-      : `${formatDateLabel(dateKey)} 기준 최신 데이터를 보고 있습니다.`
-  };
 }
 
 function getSeoulDateParts(value) {
@@ -372,15 +192,6 @@ function formatDateTime(value) {
   const parts = getSeoulDateParts(value);
   if (!parts) return value;
   return `${parts.year}.${parts.month}.${parts.day} ${parts.hour}:${parts.minute}`;
-}
-
-function formatSavedTime(value) {
-  if (!value) return '';
-  const parts = getSeoulDateParts(value);
-  if (!parts) return '';
-  return state.date === parts.dateKey
-    ? `${parts.hour}:${parts.minute}`
-    : `${parts.month}.${parts.day} ${parts.hour}:${parts.minute}`;
 }
 
 function resolveArticlePublishedDate(article) {
@@ -641,17 +452,6 @@ function formatSettingsVisibility(value) {
   return normalized || '기본';
 }
 
-function formatApiHostLabel(value) {
-  const raw = String(value || '').trim();
-  if (!raw) return '기본 경로';
-  try {
-    const parsed = new URL(raw);
-    return parsed.host || raw;
-  } catch (error) {
-    return raw.replace(/^https?:\/\//u, '').replace(/\/+$/u, '');
-  }
-}
-
 function fetchJson(url, fallback, options = {}) {
   const finalUrl = options.cacheBust
     ? `${url}${url.includes('?') ? '&' : '?'}ts=${Date.now()}`
@@ -723,14 +523,6 @@ function buildLocalAiApiUrl(pathname) {
 
 function buildLocalOperatorApiUrl(pathname) {
   return `../api${pathname}`;
-}
-
-function buildOperatorApiUrls(pathname) {
-  const candidateUrls = [];
-  if (isLocalUiRuntime()) {
-    candidateUrls.push(buildLocalOperatorApiUrl(pathname));
-  }
-  return [...new Set(candidateUrls)];
 }
 
 function buildAiApiUrl(pathname, config = state.config) {
@@ -948,82 +740,6 @@ async function requestAiDraftPolish(reportText) {
   throw lastError || new Error('AI 정리에 실패했습니다.');
 }
 
-async function requestAlertTest(alertPolicy) {
-  const apiUrls = buildOperatorApiUrls('/alerts/test');
-  const buildFallbackPayload = (description = '서버 점검 경로에 연결하지 못해 브라우저에서 테스트 알림 payload를 검증했습니다.') => {
-    const enabled = Boolean(alertPolicy?.enabled);
-    const channel = String(alertPolicy?.channel || 'email').trim() || 'email';
-    const recipient = String(alertPolicy?.recipient || '').trim();
-    const consecutiveFailures = Number(alertPolicy?.consecutiveFailures || 0);
-
-    if (!enabled) {
-      throw new Error('장애 알림이 비활성 상태입니다.');
-    }
-    if (channel.toLowerCase() !== 'email') {
-      throw new Error('현재 테스트 알림 점검은 EMAIL 채널만 지원합니다.');
-    }
-    if (!recipient || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) {
-      throw new Error('유효한 장애 알림 이메일 주소가 필요합니다.');
-    }
-
-    return {
-      mode: 'preview',
-      recipient,
-      subject: `[DailyComm] 크롤링 장애 테스트 ${state.date || 'no-date'}`,
-      description,
-      body: [
-        '이 메시지는 DailyComm 운영 화면의 테스트 알림 점검입니다.',
-        `- 수신처: ${recipient}`,
-        `- 채널: ${channel.toUpperCase()}`,
-        `- 조건: ${formatNumber(consecutiveFailures)}회 연속 실패`,
-        state.date ? `- 데이터 기준일: ${state.date}` : '',
-        state.articleMeta?.generatedAt || state.report?.generatedAt
-          ? `- 마지막 생성 시각: ${state.articleMeta?.generatedAt || state.report?.generatedAt}`
-          : ''
-      ].filter(Boolean).join('\n')
-    };
-  };
-
-  if (!apiUrls.length) {
-    return buildFallbackPayload();
-  }
-
-  let lastError = null;
-  for (const apiUrl of apiUrls) {
-    try {
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: buildApiJsonHeaders(),
-        body: JSON.stringify({
-          alertPolicy: {
-            enabled: Boolean(alertPolicy?.enabled),
-            channel: String(alertPolicy?.channel || 'email').trim(),
-            consecutiveFailures: Number(alertPolicy?.consecutiveFailures || 0),
-            recipient: String(alertPolicy?.recipient || '').trim()
-          },
-          dataDate: state.date,
-          generatedAt: state.articleMeta?.generatedAt || state.report?.generatedAt || new Date().toISOString()
-        })
-      });
-
-      const payload = await response.json().catch(() => null);
-      if (!response.ok) {
-        throw new Error(payload?.error || '테스트 알림 점검에 실패했습니다.');
-      }
-
-      return payload || {};
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error('테스트 알림 점검에 실패했습니다.');
-    }
-  }
-
-  if (lastError) {
-    return buildFallbackPayload();
-  }
-
-  throw new Error('테스트 알림 점검에 실패했습니다.');
-}
-
 function normalizeArticles(payload) {
   const items = Array.isArray(payload)
     ? payload
@@ -1042,38 +758,6 @@ function getReportSections() {
   return {
     major: Array.isArray(sections.major) ? sections.major : [],
     industry: Array.isArray(sections.industry) ? sections.industry : []
-  };
-}
-
-function builderDraftStorageKey(dateKey = state.date) {
-  const normalizedDate = String(dateKey || currentSeoulDateKey()).trim() || currentSeoulDateKey();
-  return `${BUILDER_DRAFT_STORAGE_PREFIX}.${normalizedDate}`;
-}
-
-function loadStoredBuilderDraft(dateKey = state.date) {
-  const payload = readJsonStorage(builderDraftStorageKey(dateKey), null);
-  if (!payload || typeof payload !== 'object') return null;
-
-  const major = Array.isArray(payload?.reportDraft?.major)
-    ? payload.reportDraft.major.map((item) => createDraftItem(item, 'major'))
-    : [];
-  const industry = Array.isArray(payload?.reportDraft?.industry)
-    ? payload.reportDraft.industry.map((item) => createDraftItem(item, 'industry'))
-    : [];
-  const reportTextDraft = String(payload?.reportTextDraft || '');
-  const hasItems = major.length > 0 || industry.length > 0;
-  const hasText = Boolean(reportTextDraft.trim());
-
-  if (!hasItems && !hasText) return null;
-
-  return {
-    reportDraft: {
-      major,
-      industry
-    },
-    reportTextDraft,
-    builderFocusKey: String(payload?.builderFocusKey || ''),
-    savedAt: String(payload?.savedAt || '')
   };
 }
 
@@ -1167,101 +851,12 @@ function articleKey(article) {
   return `${article.keyword || ''}:${article.title || ''}:${mediaLabel(article)}`;
 }
 
-function normalizeArticleMatchValue(value) {
-  return String(value || '')
-    .toLowerCase()
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function articleComparisonSignature(article) {
-  const title = normalizeArticleMatchValue(article?.title);
-  const media = normalizeArticleMatchValue(mediaLabel(article));
-  if (!title || !media) return '';
-  return `${title}::${media}`;
-}
-
-function articlesMatch(left, right) {
-  if (!left || !right) return false;
-  const leftUrl = String(left.url || '').trim();
-  const rightUrl = String(right.url || '').trim();
-  if (leftUrl && rightUrl && leftUrl === rightUrl) return true;
-  const leftSignature = articleComparisonSignature(left);
-  return Boolean(leftSignature) && leftSignature === articleComparisonSignature(right);
-}
-
 function draftEntryKey(sectionName, article) {
   return `${sectionName}::${articleKey(article)}`;
 }
 
 function cloneArticle(article) {
   return article ? JSON.parse(JSON.stringify(article)) : null;
-}
-
-function cloneValue(value) {
-  return value === undefined ? undefined : JSON.parse(JSON.stringify(value));
-}
-
-function captureWorkspaceSnapshot() {
-  return {
-    activePage: state.activePage,
-    report: cloneValue(state.report),
-    reportDraft: cloneValue(state.reportDraft),
-    reportTextDraft: String(state.reportTextDraft || ''),
-    builderFocusKey: String(state.builderFocusKey || ''),
-    builderSideView: String(state.builderSideView || 'draft'),
-    selectedArticle: cloneArticle(state.selectedArticle),
-    selectedArticleUrls: [...state.selectedArticleUrls],
-    selectedPage: state.selectedPage,
-    inboxPreviewOpen: Boolean(state.inboxPreviewOpen),
-    inboxSectionFilter: String(state.inboxSectionFilter || 'all'),
-    inboxStatusFilter: String(state.inboxStatusFilter || 'all'),
-    inboxKeywordFilter: [...inboxKeywordFilterTokens()],
-    inboxSearchQuery: String(state.inboxSearchQuery || ''),
-    inboxSortKey: String(state.inboxSortKey || 'time'),
-    inboxSortDirection: String(state.inboxSortDirection || 'desc'),
-    builderImportOpen: Boolean(state.builderImportOpen),
-    builderImportUrl: String(state.builderImportUrl || ''),
-    builderImportSection: String(state.builderImportSection || 'major')
-  };
-}
-
-function restoreWorkspaceSnapshot(snapshot) {
-  if (!snapshot || typeof snapshot !== 'object') return;
-
-  state.report = cloneValue(snapshot.report) || state.report;
-  state.reportDraft = cloneValue(snapshot.reportDraft) || { major: [], industry: [] };
-  state.reportTextDraft = String(snapshot.reportTextDraft || '');
-  state.builderFocusKey = String(snapshot.builderFocusKey || '');
-  state.builderSideView = String(snapshot.builderSideView || 'draft');
-  state.selectedArticle = cloneArticle(snapshot.selectedArticle);
-  state.selectedArticleUrls = Array.isArray(snapshot.selectedArticleUrls) ? [...snapshot.selectedArticleUrls] : [];
-  state.selectedPage = Number(snapshot.selectedPage || 1);
-  state.inboxPreviewOpen = Boolean(snapshot.inboxPreviewOpen);
-  state.inboxSectionFilter = String(snapshot.inboxSectionFilter || 'all');
-  state.inboxStatusFilter = String(snapshot.inboxStatusFilter || 'all');
-  state.inboxKeywordFilter = Array.isArray(snapshot.inboxKeywordFilter) ? [...snapshot.inboxKeywordFilter] : [];
-  state.inboxSearchQuery = String(snapshot.inboxSearchQuery || '');
-  state.inboxSortKey = String(snapshot.inboxSortKey || 'time');
-  state.inboxSortDirection = String(snapshot.inboxSortDirection || 'desc');
-  state.builderImportOpen = Boolean(snapshot.builderImportOpen);
-  state.builderImportUrl = String(snapshot.builderImportUrl || '');
-  state.builderImportSection = String(snapshot.builderImportSection || 'major');
-  persistStoredBuilderDraft();
-  render(snapshot.activePage || state.activePage || 'dashboard');
-}
-
-function registerUndoAction(message, snapshot) {
-  if (!snapshot) return;
-  showToast(message, {
-    actionLabel: '실행 취소',
-    duration: UNDO_TOAST_DURATION,
-    replace: true,
-    onAction: () => {
-      restoreWorkspaceSnapshot(snapshot);
-      showToast('방금 작업을 되돌렸습니다.');
-    }
-  });
 }
 
 function findArticleRecord(seed) {
@@ -1274,59 +869,6 @@ function findArticleRecord(seed) {
     getReportSections().industry.find((article) => articleKey(article) === key || article.url === key) ||
     null
   );
-}
-
-function findExistingArticleLocation(article) {
-  const sections = getReportSections();
-  for (const sectionName of ['major', 'industry']) {
-    const existing = sections[sectionName].find((item) => articlesMatch(item, article));
-    if (existing) {
-      return {
-        scope: 'report',
-        page: 'builder',
-        sectionName,
-        article: existing,
-        key: draftEntryKey(sectionName, existing)
-      };
-    }
-  }
-
-  const inboxArticle = state.articles.find((item) => articlesMatch(item, article));
-  if (inboxArticle) {
-    return {
-      scope: 'inbox',
-      page: 'inbox',
-      article: inboxArticle,
-      key: articleKey(inboxArticle)
-    };
-  }
-
-  return null;
-}
-
-function focusExistingArticleLocation(location) {
-  if (!location) return;
-
-  if (location.page === 'builder') {
-    state.builderSideView = 'draft';
-    setBuilderFocus(location.key || '');
-    render('builder');
-    requestAnimationFrame(() => {
-      const target = app.querySelector(`[data-builder-focus="${CSS.escape(location.key || '')}"]`);
-      target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    });
-    return;
-  }
-
-  if (location.page === 'inbox') {
-    state.selectedArticle = findArticleRecord(location.key || '') || location.article || null;
-    state.inboxPreviewOpen = false;
-    render('inbox');
-    requestAnimationFrame(() => {
-      const selector = `.table-row[data-article-key="${CSS.escape(location.key || '')}"]`;
-      app.querySelector(selector)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    });
-  }
 }
 
 function createDraftItem(article, fallbackSection = 'industry') {
@@ -1509,11 +1051,10 @@ function renderInboxActionIcon(actionName) {
   return icons[actionName] || '';
 }
 
-function renderInboxActionButton({ actionName, dataAttribute, index, disabled = false, label, tooltip, buttonText = '', extraClass = '' }) {
+function renderInboxActionButton({ actionName, dataAttribute, index, disabled = false, label, tooltip, extraClass = '' }) {
   const disabledAttr = disabled ? 'disabled' : '';
   const safeLabel = escapeHtml(label);
   const safeTooltip = escapeHtml(tooltip || label);
-  const safeButtonText = escapeHtml(buttonText || tooltip || label);
   const classes = ['icon-action-btn', extraClass].filter(Boolean).join(' ');
   return `
     <button
@@ -1525,8 +1066,7 @@ function renderInboxActionButton({ actionName, dataAttribute, index, disabled = 
       data-tooltip="${safeTooltip}"
       type="button"
     >
-      <span class="icon-action-icon">${renderInboxActionIcon(actionName)}</span>
-      <span class="icon-action-label" aria-hidden="true">${safeButtonText}</span>
+      ${renderInboxActionIcon(actionName)}
       <span class="sr-only">${safeLabel}</span>
     </button>
   `;
@@ -1589,61 +1129,6 @@ function normalizeInboxKeywordFilter() {
   setInboxKeywordFilterTokens(inboxKeywordFilterTokens().filter((token) => allowed.has(token)));
 }
 
-function normalizedInboxSearchQuery() {
-  return String(state.inboxSearchQuery || '').trim().toLowerCase();
-}
-
-function articleMatchesInboxSearch(article, query = normalizedInboxSearchQuery()) {
-  const normalizedQuery = String(query || '').trim().toLowerCase();
-  if (!normalizedQuery) return true;
-
-  const haystack = [
-    article?.title,
-    article?.summary,
-    mediaLabel(article),
-    article?.keyword,
-    article?.publisher,
-    article?.source
-  ]
-    .map((value) => String(value || '').trim().toLowerCase())
-    .filter(Boolean)
-    .join(' ');
-
-  return haystack.includes(normalizedQuery);
-}
-
-function setInboxSearchQuery(nextQuery) {
-  const normalized = String(nextQuery || '').trim();
-  if (state.inboxSearchQuery === normalized) {
-    return false;
-  }
-
-  state.inboxSearchQuery = normalized;
-  clearSelectedArticles();
-  state.selectedPage = 1;
-  state.inboxPreviewOpen = false;
-  syncSelectedArticleToVisibleArticles();
-  return true;
-}
-
-function restoreInboxSearchField(selection = null, { focus = true } = {}) {
-  const input = document.getElementById('inbox-search');
-  if (!input) return;
-
-  if (focus) {
-    input.focus({ preventScroll: true });
-  }
-
-  if (!selection || typeof input.setSelectionRange !== 'function') {
-    return;
-  }
-
-  const valueLength = input.value.length;
-  const start = Math.max(0, Math.min(selection.start ?? valueLength, valueLength));
-  const end = Math.max(start, Math.min(selection.end ?? valueLength, valueLength));
-  input.setSelectionRange(start, end);
-}
-
 function syncSelectedArticleToVisibleArticles() {
   const visibleArticles = filteredArticles();
   const hasVisibleSelection = visibleArticles.some((article) => articleKey(article) === articleKey(state.selectedArticle));
@@ -1659,20 +1144,10 @@ function syncSelectedArticleToVisibleArticles() {
 }
 
 function handleInboxFilterChange(mutate) {
-  const before = [
-    state.inboxSectionFilter,
-    state.inboxStatusFilter,
-    normalizedInboxSearchQuery(),
-    inboxKeywordFilterTokens().join('|')
-  ].join('::');
+  const before = `${state.inboxSectionFilter}::${inboxKeywordFilterTokens().join('|')}`;
   mutate();
   normalizeInboxKeywordFilter();
-  const after = [
-    state.inboxSectionFilter,
-    state.inboxStatusFilter,
-    normalizedInboxSearchQuery(),
-    inboxKeywordFilterTokens().join('|')
-  ].join('::');
+  const after = `${state.inboxSectionFilter}::${inboxKeywordFilterTokens().join('|')}`;
 
   if (before === after) {
     return false;
@@ -1681,7 +1156,6 @@ function handleInboxFilterChange(mutate) {
   const hadSelection = selectedArticleCount() > 0;
   clearSelectedArticles();
   state.selectedPage = 1;
-  state.inboxPreviewOpen = false;
   syncSelectedArticleToVisibleArticles();
 
   if (hadSelection) {
@@ -1689,140 +1163,6 @@ function handleInboxFilterChange(mutate) {
   }
 
   return true;
-}
-
-function activeInboxFilterCount() {
-  let count = 0;
-  if (state.inboxSectionFilter !== 'all') count += 1;
-  if (state.inboxStatusFilter !== 'all') count += 1;
-  if (normalizedInboxSearchQuery()) count += 1;
-  count += inboxKeywordFilterTokens().length;
-  return count;
-}
-
-function snapshotCurrentInboxPreset() {
-  return {
-    sectionFilter: state.inboxSectionFilter,
-    statusFilter: state.inboxStatusFilter,
-    searchQuery: normalizedInboxSearchQuery(),
-    keywordFilter: [...inboxKeywordFilterTokens()]
-  };
-}
-
-function buildInboxPresetLabel(preset = snapshotCurrentInboxPreset()) {
-  const parts = [];
-  if (preset.sectionFilter === 'major') parts.push('주요 보도');
-  if (preset.sectionFilter === 'industry') parts.push('업계 보도');
-  if (preset.statusFilter === 'unreported') parts.push('미반영만');
-  if (preset.statusFilter === 'reported') parts.push('리포트 반영');
-  if (Array.isArray(preset.keywordFilter) && preset.keywordFilter.length) {
-    const keywordPart = preset.keywordFilter
-      .map((token) => parseInboxKeywordToken(token).keyword)
-      .filter(Boolean)
-      .slice(0, 2)
-      .join(', ');
-    if (keywordPart) parts.push(keywordPart);
-  }
-  if (preset.searchQuery) parts.push(preset.searchQuery);
-  return parts.slice(0, 3).join(' · ') || '현재 필터';
-}
-
-function persistInboxPreferences() {
-  writeJsonStorage(INBOX_PRESET_STORAGE_KEY, state.inboxSavedPresets);
-  writeJsonStorage(INBOX_RECENT_SEARCHES_STORAGE_KEY, state.inboxRecentSearches);
-}
-
-function persistStoredBuilderDraft() {
-  const sections = getReportSections();
-  const baselineText = buildKakaoPreviewText();
-  const nextText = String(state.reportTextDraft || '');
-  const hasItems = sections.major.length > 0 || sections.industry.length > 0;
-  const hasCustomText = hasReportDraftChanged(baselineText, nextText);
-
-  if (!hasItems && !hasCustomText) {
-    removeStorageItem(builderDraftStorageKey());
-    state.builderDraftStatus = 'idle';
-    state.builderDraftSavedAt = '';
-    state.builderDraftRestored = false;
-    return;
-  }
-
-  const savedAt = new Date().toISOString();
-  writeJsonStorage(builderDraftStorageKey(), {
-    date: state.date,
-    savedAt,
-    reportDraft: {
-      major: sections.major.map((article) => cloneArticle(article)),
-      industry: sections.industry.map((article) => cloneArticle(article))
-    },
-    reportTextDraft: nextText,
-    builderFocusKey: String(state.builderFocusKey || '')
-  });
-  state.builderDraftStatus = 'saved';
-  state.builderDraftSavedAt = savedAt;
-}
-
-function saveCurrentInboxPreset() {
-  if (!activeInboxFilterCount()) {
-    showToast('저장할 활성 필터가 없습니다.');
-    return;
-  }
-
-  const snapshot = snapshotCurrentInboxPreset();
-  const duplicate = state.inboxSavedPresets.find((preset) =>
-    preset.sectionFilter === snapshot.sectionFilter
-    && preset.statusFilter === snapshot.statusFilter
-    && preset.searchQuery === snapshot.searchQuery
-    && JSON.stringify(preset.keywordFilter) === JSON.stringify(snapshot.keywordFilter)
-  );
-
-  if (duplicate) {
-    showToast('같은 필터 프리셋이 이미 저장되어 있습니다.', {
-      actionLabel: '적용',
-      onAction: () => applyInboxPreset(duplicate.id),
-      duration: UNDO_TOAST_DURATION
-    });
-    return;
-  }
-
-  state.inboxSavedPresets = [
-    {
-      id: `preset-${Date.now()}`,
-      label: buildInboxPresetLabel(snapshot),
-      ...snapshot
-    },
-    ...state.inboxSavedPresets
-  ].slice(0, 4);
-  persistInboxPreferences();
-  showToast('현재 필터를 저장했습니다.');
-}
-
-function removeInboxPreset(presetId) {
-  state.inboxSavedPresets = state.inboxSavedPresets.filter((preset) => preset.id !== presetId);
-  persistInboxPreferences();
-}
-
-function applyInboxPreset(presetId) {
-  const preset = state.inboxSavedPresets.find((item) => item.id === presetId);
-  if (!preset) return;
-  const changed = handleInboxFilterChange(() => {
-    state.inboxSectionFilter = preset.sectionFilter || 'all';
-    state.inboxStatusFilter = preset.statusFilter || 'all';
-    state.inboxSearchQuery = preset.searchQuery || '';
-    setInboxKeywordFilterTokens(Array.isArray(preset.keywordFilter) ? preset.keywordFilter : []);
-  });
-  if (!changed) return;
-  renderInbox();
-}
-
-function commitInboxRecentSearch(query) {
-  const normalized = String(query || '').trim();
-  if (normalized.length < 2) return;
-  state.inboxRecentSearches = [
-    normalized,
-    ...state.inboxRecentSearches.filter((item) => item !== normalized)
-  ].slice(0, 6);
-  persistInboxPreferences();
 }
 
 function summarizeAssignableArticles(sectionName, articles) {
@@ -1859,36 +1199,11 @@ function syncReportFromDraft() {
 }
 
 function initializeReportDraft() {
-  const restoredDraft = loadStoredBuilderDraft(state.date);
-  if (restoredDraft) {
-    const hasRestoredItems = restoredDraft.reportDraft.major.length > 0 || restoredDraft.reportDraft.industry.length > 0;
-    const emptyDraftText = `${formatDateLabel(state.date)} Daily Comm Report\n\n리포트 빌더 결과가 아직 없습니다.`;
-    if (!hasRestoredItems && !hasReportDraftChanged(emptyDraftText, restoredDraft.reportTextDraft || '')) {
-      removeStorageItem(builderDraftStorageKey(state.date));
-    } else {
-    state.reportDraft = {
-      major: restoredDraft.reportDraft.major,
-      industry: restoredDraft.reportDraft.industry
-    };
-    syncReportFromDraft();
-    state.reportTextDraft = restoredDraft.reportTextDraft || generateReportText();
-    state.builderFocusKey = restoredDraft.builderFocusKey || '';
-    state.builderDraftStatus = 'saved';
-    state.builderDraftSavedAt = restoredDraft.savedAt || '';
-    state.builderDraftRestored = true;
-    return true;
-    }
-  }
-
   state.reportDraft = {
     major: [],
     industry: []
   };
   syncReportFromDraft();
-  state.builderDraftStatus = 'idle';
-  state.builderDraftSavedAt = '';
-  state.builderDraftRestored = false;
-  return false;
 }
 
 function selectedArticleCount() {
@@ -1924,6 +1239,9 @@ function findDraftLocation(entryKey) {
 
 function setBuilderFocus(key) {
   state.builderFocusKey = key || '';
+  if (key) {
+    state.builderSideView = 'detail';
+  }
 }
 
 function ensureBuilderFocus() {
@@ -1997,8 +1315,6 @@ function removeDraftItem(key) {
   syncReportFromDraft();
   state.reportTextDraft = generateReportText();
   ensureBuilderFocus();
-  state.builderDraftRestored = false;
-  persistStoredBuilderDraft();
 }
 
 function addArticleToReportSection(sectionName, article) {
@@ -2023,8 +1339,6 @@ function addArticleToReportSection(sectionName, article) {
   syncReportFromDraft();
   state.reportTextDraft = generateReportText();
   setBuilderFocus(draftEntryKey(sectionName, item));
-  state.builderDraftRestored = false;
-  persistStoredBuilderDraft();
   return { added: true, reason: 'added' };
 }
 
@@ -2058,8 +1372,6 @@ function moveDraftItemToSection(key, targetSection) {
   syncReportFromDraft();
   state.reportTextDraft = generateReportText();
   setBuilderFocus(draftEntryKey(targetSection, movedItem));
-  state.builderDraftRestored = false;
-  persistStoredBuilderDraft();
   return { moved: true, reason: 'moved' };
 }
 
@@ -2079,23 +1391,7 @@ async function submitBuilderImportedArticle() {
   renderReportBuilder();
 
   try {
-    const snapshot = captureWorkspaceSnapshot();
     const importedArticle = await importBuilderArticleByUrl(normalizedUrl);
-    const existingLocation = findExistingArticleLocation(importedArticle);
-    if (existingLocation) {
-      showToast(
-        existingLocation.scope === 'report'
-          ? '이미 리포트 빌더에 있는 기사입니다.'
-          : '기사 인박스에 이미 있는 기사입니다.',
-        {
-          actionLabel: existingLocation.scope === 'report' ? '기존 카드 보기' : '인박스에서 보기',
-          onAction: () => focusExistingArticleLocation(existingLocation),
-          duration: UNDO_TOAST_DURATION
-        }
-      );
-      return;
-    }
-
     const sectionName = state.builderImportSection === 'industry' ? 'industry' : 'major';
     const result = addArticleToReportSection(sectionName, {
       ...importedArticle,
@@ -2115,13 +1411,7 @@ async function submitBuilderImportedArticle() {
 
     state.builderImportUrl = '';
     state.builderImportOpen = false;
-    pushActivityLog({
-      title: '링크 기사 추가',
-      detail: `${sectionLabel(sectionName)}에 ${String(importedArticle?.title || '기사').trim()} 링크를 추가했습니다.`,
-      tone: 'reported',
-      page: 'builder'
-    });
-    registerUndoAction(`링크 기사를 ${sectionLabel(sectionName)}에 추가했습니다.`, snapshot);
+    showToast(`링크 기사를 ${sectionLabel(sectionName)}에 추가했습니다.`);
   } catch (error) {
     showToast(normalizeArticleImportError(error));
   } finally {
@@ -2147,7 +1437,6 @@ function assignSelectedArticlesToSection(sectionName) {
     return;
   }
 
-  const snapshot = captureWorkspaceSnapshot();
   summary.available.forEach((article) => {
     addArticleToReportSection(sectionName, article);
   });
@@ -2160,13 +1449,6 @@ function assignSelectedArticlesToSection(sectionName) {
   showToast(
     `${summary.available.length}건을 ${sectionName === 'major' ? '주요 보도' : '업계 보도'}에 반영했습니다.${blockedSuffix}`
   );
-  pushActivityLog({
-    title: sectionName === 'major' ? '주요 보도 일괄 반영' : '업계 보도 일괄 반영',
-    detail: `${formatNumber(summary.available.length)}건을 리포트에 반영했습니다.`,
-    tone: 'reported',
-    page: 'inbox'
-  });
-  registerUndoAction('방금 일괄 반영을 되돌릴 수 있습니다.', snapshot);
 }
 
 function assignSelectedArticlesToInboxReport() {
@@ -2182,7 +1464,6 @@ function assignSelectedArticlesToInboxReport() {
     return;
   }
 
-  const snapshot = captureWorkspaceSnapshot();
   summary.available.forEach((article) => {
     addArticleToReportSection(inboxTargetSection(article), article);
   });
@@ -2193,13 +1474,6 @@ function assignSelectedArticlesToInboxReport() {
   if (summary.industryCount) details.push(`업계 보도 ${formatNumber(summary.industryCount)}건`);
   const suffix = details.length ? ` (${details.join(', ')})` : '';
   showToast(`${formatNumber(summary.available.length)}건을 보도에 추가했습니다.${suffix}`);
-  pushActivityLog({
-    title: '기사 인박스 반영',
-    detail: `${formatNumber(summary.available.length)}건을 기본 경로로 추가했습니다.${suffix}`,
-    tone: 'reported',
-    page: 'inbox'
-  });
-  registerUndoAction('추천 경로 반영을 되돌릴 수 있습니다.', snapshot);
 }
 
 function updateDraftItem(key, updates) {
@@ -2213,24 +1487,17 @@ function updateDraftItem(key, updates) {
   };
 
   state.reportDraft[location.sectionName][location.index] = nextItem;
-  clearPendingAiReview();
   syncReportFromDraft();
   state.reportTextDraft = generateReportText();
   setBuilderFocus(draftEntryKey(location.sectionName, nextItem));
-  state.builderDraftRestored = false;
-  persistStoredBuilderDraft();
 }
 
 function syncBuilderReportTextArea() {
   const reportText = document.getElementById('report-text');
-  const nextText = state.reportTextDraft || generateReportText();
   if (reportText) {
+    const nextText = state.reportTextDraft || generateReportText();
     reportText.value = nextText;
     reportText.textContent = nextText;
-  }
-  const charCount = document.getElementById('builder-draft-char-count');
-  if (charCount) {
-    charCount.textContent = formatNumber(characterLength(nextText));
   }
 }
 
@@ -2251,637 +1518,6 @@ function syncBuilderCardPreview(key) {
       oneLineValue.textContent = nextOneLine;
     }
   });
-}
-
-function getBuilderImportFeedback(rawUrl, sectionName) {
-  const normalized = String(rawUrl || '').trim();
-  if (!normalized) {
-    return {
-      state: 'idle',
-      title: '기사 링크를 붙여 넣어 주세요.',
-      description: '입력하는 순간 중복 여부와 추가 위치를 바로 확인합니다.'
-    };
-  }
-
-  try {
-    const parsed = new URL(normalized);
-    if (!['http:', 'https:'].includes(parsed.protocol)) {
-      throw new Error('invalid_protocol');
-    }
-    const host = String(parsed.host || '').replace(/^www\./i, '');
-    return {
-      state: 'ready',
-      title: `${host || '기사'} 링크를 확인했습니다.`,
-      description: `${sectionLabel(sectionName === 'industry' ? 'industry' : 'major')}에 추가할 준비가 됐습니다.`
-    };
-  } catch {
-    return {
-      state: 'invalid',
-      title: '올바른 기사 URL 형식이 아닙니다.',
-      description: 'https://로 시작하는 기사 링크를 입력해 주세요.'
-    };
-  }
-}
-
-function syncBuilderImportInlineFeedback() {
-  const feedback = getBuilderImportFeedback(state.builderImportUrl, state.builderImportSection);
-  const existingLocation = state.builderImportUrl
-    ? findExistingArticleLocation({ url: state.builderImportUrl, title: '', publisher: '' })
-    : null;
-  const statusCard = document.querySelector('.builder-import-status');
-  if (statusCard) {
-    statusCard.className = `builder-import-status is-${feedback.state}`;
-    const title = statusCard.querySelector('strong');
-    const description = statusCard.querySelector('p');
-    if (title) title.textContent = feedback.title;
-    if (description) description.textContent = feedback.description;
-  }
-
-  const submitButton = document.getElementById('builder-import-submit');
-  if (submitButton) {
-    submitButton.disabled = Boolean(
-      state.builderImportBusy
-      || existingLocation
-      || feedback.state === 'invalid'
-      || feedback.state === 'idle'
-    );
-  }
-}
-
-function buildDashboardFlowState({ total, reported }) {
-  const steps = [
-    {
-      title: '기사 인박스',
-      detail: total
-        ? `수집 기사 ${formatNumber(total)}건 중 리포트 후보를 고릅니다.`
-        : '오늘 수집된 기사가 아직 없습니다.',
-      status: reported === 0 ? 'current' : 'done'
-    },
-    {
-      title: '리포트 빌더',
-      detail: reported
-        ? `반영된 기사 ${formatNumber(reported)}건으로 초안을 다듬습니다.`
-        : '기사 선택 후 초안 편집이 열립니다.',
-      status: reported > 0 ? 'current' : 'upcoming'
-    },
-    {
-      title: '카카오 프리뷰',
-      detail: reported
-        ? '최종 메시지와 분할 파트를 복사 전 점검합니다.'
-        : '초안이 만들어지면 마지막 점검 단계가 열립니다.',
-      status: reported > 0 ? 'upcoming' : 'upcoming'
-    }
-  ];
-
-  if (!total) {
-    return {
-      eyebrow: '오늘 작업 시작',
-      title: '먼저 수집 결과를 확인해 주세요',
-      description: '기사 인박스에서 오늘 데이터가 들어왔는지 확인한 뒤, 리포트에 넣을 기사부터 고르면 됩니다.',
-      primary: { label: '기사 인박스 열기', page: 'inbox' },
-      secondary: { label: '설정 확인', page: 'settings' },
-      steps
-    };
-  }
-
-  if (!reported) {
-    return {
-      eyebrow: '다음 행동',
-      title: '기사 선택부터 시작하면 됩니다',
-      description: `오늘 수집 기사 ${formatNumber(total)}건이 준비되어 있습니다. 기사 인박스에서 필요한 기사만 체크하고 리포트에 바로 추가하세요.`,
-      primary: { label: '기사 인박스에서 고르기', page: 'inbox' },
-      secondary: { label: '최근 실행 기록 보기', scrollTarget: 'dashboard-log-panel' },
-      steps
-    };
-  }
-
-  return {
-    eyebrow: '다음 행동',
-    title: '초안을 다듬고 카카오 전송 전 점검만 남았습니다',
-    description: `리포트에 ${formatNumber(reported)}건이 반영되어 있습니다. 초안 문구를 정리한 뒤 카카오 프리뷰에서 최종 메시지를 확인하세요.`,
-    primary: { label: '보고서 초안 열기', page: 'builder', builderFocus: 'draft' },
-    secondary: { label: '카카오 프리뷰 보기', page: 'kakao' },
-    steps
-  };
-}
-
-function renderDashboardFlowCard(flow) {
-  return `
-    <article class="card dashboard-flow-card">
-      <div class="dashboard-flow-grid">
-        <div class="dashboard-flow-copy">
-          <p class="panel-kicker">${escapeHtml(flow.eyebrow)}</p>
-          <h3>${escapeHtml(flow.title)}</h3>
-          <p class="small-copy">${escapeHtml(flow.description)}</p>
-          <div class="inline-actions compact dashboard-flow-actions">
-            <button
-              class="primary-btn"
-              id="dashboard-flow-primary"
-              data-dashboard-page="${escapeHtml(flow.primary.page)}"
-              ${flow.primary.builderFocus ? `data-dashboard-builder-focus="${escapeHtml(flow.primary.builderFocus)}"` : ''}
-            >
-              ${escapeHtml(flow.primary.label)}
-            </button>
-            <button
-              class="ghost-btn"
-              id="dashboard-flow-secondary"
-              ${flow.secondary.page ? `data-dashboard-page="${escapeHtml(flow.secondary.page)}"` : ''}
-              ${flow.secondary.scrollTarget ? `data-dashboard-scroll="${escapeHtml(flow.secondary.scrollTarget)}"` : ''}
-            >
-              ${escapeHtml(flow.secondary.label)}
-            </button>
-          </div>
-        </div>
-        <div class="dashboard-step-list" aria-label="operator-flow">
-          ${flow.steps.map((step, index) => `
-            <div class="dashboard-step is-${escapeHtml(step.status)}">
-              <span class="dashboard-step-index">${index + 1}</span>
-              <div class="dashboard-step-copy">
-                <strong>${escapeHtml(step.title)}</strong>
-                <p>${escapeHtml(step.detail)}</p>
-              </div>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    </article>
-  `;
-}
-
-function renderDashboardPriorityStrip({ total, pending, reported, failed, coverageRatio }) {
-  const items = [
-    {
-      kicker: '지금 할 일',
-      title: pending ? `미반영 기사 ${formatNumber(pending)}건 정리` : '초안 반영이 완료되었습니다',
-      detail: pending
-        ? `기사 인박스에서 필요한 후보를 먼저 고르면 오늘 수집 ${formatNumber(total)}건 중 우선 정리할 수 있습니다.`
-        : '기사 인박스 선별이 끝났습니다. 리포트 빌더에서 문구를 다듬고 카카오 검수로 넘어가면 됩니다.',
-      actionLabel: pending ? '기사 인박스 열기' : '리포트 빌더 열기',
-      actionPage: pending ? 'inbox' : 'builder'
-    },
-    {
-      kicker: '운영 리스크',
-      title: failed ? `제외/실패 ${formatNumber(failed)}건 점검 필요` : '검증 이슈가 없습니다',
-      detail: failed
-        ? '최근 실행 기록과 설정 정책에서 링크 검증, 허용 도메인, 장애 알림 조건을 같이 확인해 보세요.'
-        : '현재 기준으로는 크롤링과 링크 검증 흐름에서 큰 경고가 보이지 않습니다.',
-      actionLabel: failed ? '설정 보기' : '최근 실행 기록 보기',
-      actionPage: failed ? 'settings' : '',
-      actionScroll: failed ? '' : 'dashboard-log-panel'
-    },
-    {
-      kicker: '전달 준비',
-      title: reported ? `카카오 검수 준비 ${formatNumber(reported)}건` : `리포트 반영률 ${formatNumber(coverageRatio)}%`,
-      detail: reported
-        ? '기사 카드에서 문구를 다듬었다면 카카오 프리뷰에서 전체 메시지와 파트 길이를 최종 점검하세요.'
-        : '반영된 기사가 아직 적습니다. 주요 보도와 업계 보도를 먼저 나누면 뒤쪽 단계가 훨씬 빨라집니다.',
-      actionLabel: reported ? '카카오 프리뷰 열기' : '리포트 빌더 열기',
-      actionPage: reported ? 'kakao' : 'builder'
-    }
-  ];
-
-  return `
-    <div class="dashboard-priority-strip">
-      ${items.map((item, index) => `
-        <article class="card dashboard-priority-card">
-          <p class="panel-kicker">${escapeHtml(item.kicker)}</p>
-          <strong>${escapeHtml(item.title)}</strong>
-          <p>${escapeHtml(item.detail)}</p>
-          <button
-            class="ghost-btn"
-            type="button"
-            data-dashboard-priority-page="${escapeHtml(item.actionPage || '')}"
-            ${item.actionScroll ? `data-dashboard-priority-scroll="${escapeHtml(item.actionScroll)}"` : ''}
-            data-dashboard-priority-index="${index}"
-          >
-            ${escapeHtml(item.actionLabel)}
-          </button>
-        </article>
-      `).join('')}
-    </div>
-  `;
-}
-
-function buildWorkflowProgressItems(currentPage = state.activePage) {
-  const sections = getReportSections();
-  const reported = sections.major.length + sections.industry.length;
-  const total = state.articles.length;
-  const pending = Math.max(total - reported, 0);
-  const segmentCount = buildKakaoPreviewSegments().length;
-
-  return [
-    {
-      page: 'inbox',
-      title: '기사 인박스',
-      caption: pending ? `미반영 ${formatNumber(pending)}건` : '후보 확인 완료',
-      state: currentPage === 'inbox' ? 'active' : (reported || !pending ? 'complete' : 'pending')
-    },
-    {
-      page: 'builder',
-      title: '리포트 빌더',
-      caption: reported ? `반영 ${formatNumber(reported)}건` : '초안 시작 전',
-      state: currentPage === 'builder' ? 'active' : (reported ? 'complete' : 'pending')
-    },
-    {
-      page: 'kakao',
-      title: '카카오 프리뷰',
-      caption: segmentCount ? `메시지 ${formatNumber(segmentCount)}개` : '검수 전',
-      state: currentPage === 'kakao' ? 'active' : (segmentCount ? 'complete' : 'pending')
-    }
-  ];
-}
-
-function renderWorkflowProgress(currentPage = state.activePage) {
-  const items = buildWorkflowProgressItems(currentPage);
-  return `
-    <article class="card workflow-progress-card">
-      <div class="workflow-progress-head">
-        <div>
-          <p class="panel-kicker">Workflow</p>
-          <h3>현재 진행 상태</h3>
-        </div>
-        <span class="panel-pill tone-neutral">${items.filter((item) => item.state === 'complete').length}단계 완료</span>
-      </div>
-      <div class="workflow-progress-list">
-        ${items.map((item, index) => `
-          <button
-            class="workflow-progress-step is-${escapeHtml(item.state)}"
-            type="button"
-            data-progress-page="${escapeHtml(item.page)}"
-            aria-current="${currentPage === item.page ? 'step' : 'false'}"
-          >
-            <span class="workflow-progress-index">${index + 1}</span>
-            <span class="workflow-progress-copy">
-              <strong>${escapeHtml(item.title)}</strong>
-              <small>${escapeHtml(item.caption)}</small>
-            </span>
-          </button>
-        `).join('')}
-      </div>
-    </article>
-  `;
-}
-
-function bindWorkflowProgressActions(root = app) {
-  root.querySelectorAll('[data-progress-page]').forEach((button) => {
-    button.addEventListener('click', () => {
-      const page = button.dataset.progressPage || '';
-      if (page && page !== state.activePage) {
-        render(page);
-      }
-    });
-  });
-}
-
-function renderInboxPreviewContent(article, { prefix = 'preview', compact = false } = {}) {
-  const selected = isArticleSelected(article);
-  const membership = reportMembership(article);
-  const assigned = membership.isMainReport || membership.isIndustryReport;
-  const targetSection = inboxTargetSection(article);
-  const canAdd = canAddInboxReport(article);
-  const addLabel = canAdd ? `${sectionLabel(targetSection)} 추가` : '리포트에 이미 반영됨';
-  const summary = String(article.summary || article.title || '').trim();
-
-  return `
-      <div class="panel-heading">
-        <div>
-          <p class="panel-kicker">${compact ? 'Quick Preview' : 'Selected Article'}</p>
-          <h3>현재 기사</h3>
-        </div>
-        <span class="panel-pill tone-neutral">${selected ? '체크됨' : '단건 액션'}</span>
-      </div>
-      <div class="preview-title-block">
-        <div class="builder-chip-row preview-pill-row">
-          ${renderReportPills(article)}
-          <span class="panel-pill tone-neutral">${escapeHtml(formatArticlePublishedTime(article))}</span>
-        </div>
-        <strong class="preview-inline-title">${escapeHtml(article.title || '')}</strong>
-        <p class="preview-summary">${escapeHtml(summary)}</p>
-      </div>
-      <dl class="meta-list preview-meta-list">
-        <div>
-          <dt>매체</dt>
-          <dd>${escapeHtml(mediaLabel(article))}</dd>
-        </div>
-        <div>
-          <dt>키워드</dt>
-          <dd>${escapeHtml(article.keyword || '-')}</dd>
-        </div>
-        <div>
-          <dt>상태</dt>
-          <dd>${assigned ? '리포트 반영' : '대기'}</dd>
-        </div>
-        <div>
-          <dt>추천 섹션</dt>
-          <dd>${escapeHtml(sectionLabel(targetSection))}</dd>
-        </div>
-      </dl>
-      <p class="policy-note"><strong>안내</strong><span>${compact ? '현재 보고 있는 기사 1건만 여기서 바로 처리합니다.' : '체크한 기사는 상단 일괄 처리에서 한 번에 추가하고, 이 패널은 현재 보고 있는 기사 1건만 바로 처리합니다.'}</span></p>
-      <div class="inline-actions compact stack-mobile preview-actions">
-        <button class="ghost-btn" type="button" id="${escapeHtml(prefix)}-open-article" ${article.url ? '' : 'disabled'}>기사 열기</button>
-        ${canAdd
-          ? `<button class="primary-btn" type="button" id="${escapeHtml(prefix)}-add-report">${escapeHtml(addLabel)}</button>`
-          : `<button class="primary-btn" type="button" id="${escapeHtml(prefix)}-open-builder">리포트 빌더 보기</button>`}
-      </div>
-  `;
-}
-
-function renderInboxPreviewPanel(article) {
-  if (!article) {
-    return `
-      <article class="card preview-panel">
-        <div class="panel-heading">
-          <div>
-            <p class="panel-kicker">Selected Article</p>
-            <h3>현재 기사</h3>
-          </div>
-        </div>
-        ${renderDataEmpty('inbox-preview-empty', '기사를 선택하세요', '목록에서 한 건을 누르면 이 영역에 현재 기사 요약과 단건 액션이 고정됩니다.')}
-      </article>
-    `;
-  }
-
-  return `
-    <article class="card preview-panel inbox-preview-card" id="article-preview">
-      ${renderInboxPreviewContent(article)}
-    </article>
-  `;
-}
-
-function renderMobilePreviewDock(article, { selectedCount = 0 } = {}) {
-  if (!article || selectedCount > 0) return '';
-
-  const open = Boolean(state.inboxPreviewOpen);
-  const summary = String(article.summary || article.title || '').trim();
-
-  return `
-    <div class="mobile-preview-region ${open ? 'is-open' : ''}">
-      <button class="mobile-preview-bar" id="mobile-preview-toggle" type="button" aria-expanded="${open}" aria-controls="mobile-preview-sheet">
-        <div class="mobile-preview-bar-copy">
-          <span class="mobile-preview-bar-kicker">현재 기사</span>
-          <strong>${escapeHtml(article.title || '')}</strong>
-          <span>${escapeHtml(mediaLabel(article))} · ${escapeHtml(article.keyword || '-')} · ${escapeHtml(formatArticlePublishedTime(article))}</span>
-        </div>
-        <span class="panel-pill tone-neutral">${summary ? `${formatNumber(characterLength(summary))}자` : '바로 보기'}</span>
-      </button>
-      <button class="mobile-preview-backdrop ${open ? 'is-open' : ''}" id="mobile-preview-close" type="button" aria-label="현재 기사 미리보기 닫기"></button>
-      <div class="mobile-preview-sheet ${open ? 'is-open' : ''}" id="mobile-preview-sheet" role="dialog" aria-modal="false" aria-label="현재 기사 미리보기">
-        <div class="mobile-preview-sheet-head">
-          <div>
-            <p class="panel-kicker">Quick Preview</p>
-            <strong>현재 기사 빠른 확인</strong>
-          </div>
-          <button class="ghost-btn" id="mobile-preview-dismiss" type="button">닫기</button>
-        </div>
-        <article class="card preview-panel mobile-preview-panel">
-          ${renderInboxPreviewContent(article, { prefix: 'mobile-preview', compact: true })}
-        </article>
-      </div>
-    </div>
-  `;
-}
-
-function renderInboxPaginationControls({ maxPage, mode = 'bottom' }) {
-  const isTop = mode === 'top';
-  const prevId = isTop ? 'prev-page-top' : 'prev-page';
-  const nextId = isTop ? 'next-page-top' : 'next-page';
-  const pageSizeMarkup = isTop
-    ? ''
-    : `
-      <label class="page-size-control" for="page-size">
-        <span>페이지 크기</span>
-        <select id="page-size">
-          ${[10, 20, 50, 100, 200].map((size) => `
-            <option value="${size}" ${state.pageSize === size ? 'selected' : ''}>${size}</option>
-          `).join('')}
-        </select>
-      </label>
-    `;
-
-  return `
-    <div class="pagination-row ${isTop ? 'pagination-row-top' : 'pagination-row-bottom'}">
-      <div class="pagination-meta">
-        <span>${state.selectedPage} / ${maxPage} 페이지</span>
-        ${pageSizeMarkup}
-      </div>
-      <div class="inline-actions compact">
-        <button class="ghost-btn" id="${prevId}" ${state.selectedPage <= 1 ? 'disabled' : ''}>이전</button>
-        <button class="ghost-btn" id="${nextId}" ${state.selectedPage >= maxPage ? 'disabled' : ''}>다음</button>
-      </div>
-    </div>
-  `;
-}
-
-function renderBuilderInlineEditor(sectionName, article, entryKey) {
-  return `
-    <div class="builder-inline-editor" data-builder-inline-editor="${escapeHtml(entryKey)}">
-      <div class="detail-guide">
-        <strong>이 카드 안에서 바로 편집</strong>
-        <p>여기서 다듬은 문구는 오른쪽 보고서 초안과 카카오 프리뷰에 바로 반영됩니다.</p>
-      </div>
-      <div class="builder-inline-fields">
-        <label class="detail-field">
-          <span>기사 요약 및 결론 (30자 내외)</span>
-          <input
-            type="text"
-            data-builder-summary-input="${escapeHtml(entryKey)}"
-            value="${escapeHtml(articleSummaryLead(article))}"
-          />
-        </label>
-        <label class="detail-field">
-          <span>주요 내용 한줄 요약 (40자 내외)</span>
-          <input
-            type="text"
-            data-builder-keypoint-input="${escapeHtml(entryKey)}"
-            value="${escapeHtml(articleKeyPoint(article))}"
-          />
-        </label>
-      </div>
-      ${renderBuilderAiActionButton(entryKey, { mode: 'detail', extraClass: 'detail-ai-actions' })}
-      <div class="inline-actions compact builder-inline-actions">
-        <button class="ghost-btn" type="button" data-builder-open="${escapeHtml(article.url || '')}">기사 열기</button>
-        ${sectionName === 'major'
-          ? `<button class="ghost-btn" type="button" data-builder-move-industry="${escapeHtml(entryKey)}">업계 보도로 이동</button>`
-          : ''}
-        <button class="ghost-btn" type="button" data-builder-remove="${escapeHtml(entryKey)}">제거</button>
-      </div>
-    </div>
-  `;
-}
-
-function renderBuilderDraftPanel({ reportText, reportItemCount, totalDraftChars, sections, canImportArticles }) {
-  const savedLabel = state.builderDraftSavedAt ? `자동 저장 ${formatSavedTime(state.builderDraftSavedAt)}` : '브라우저 자동 저장';
-  const savedDescription = state.builderDraftRestored
-    ? '이 브라우저에 저장된 초안을 복구했습니다.'
-    : '카드 편집과 보고서 초안은 이 브라우저에 자동 저장됩니다.';
-  const segmentCount = reportItemCount ? buildKakaoPreviewSegments().length : 0;
-  const draftEdited = reportItemCount ? hasReportDraftChanged(buildKakaoPreviewText(), reportText) : false;
-  const readinessItems = reportItemCount
-    ? [
-        {
-          state: sections.major.length ? 'complete' : 'pending',
-          title: '주요 보도 확보',
-          detail: sections.major.length
-            ? `주요 보도 ${formatNumber(sections.major.length)}건이 포함되어 있습니다.`
-            : '최소 1건은 넣어야 메시지 중심이 또렷해집니다.'
-        },
-        {
-          state: sections.industry.length ? 'complete' : 'pending',
-          title: '업계 보도 균형',
-          detail: sections.industry.length
-            ? `업계 보도 ${formatNumber(sections.industry.length)}건이 포함되어 있습니다.`
-            : '업계 보도 1건 이상이 있으면 리포트 균형이 좋아집니다.'
-        },
-        {
-          state: reportItemCount >= 2 ? 'complete' : 'pending',
-          title: '전송 분량',
-          detail: reportItemCount >= 2
-            ? `기사 ${formatNumber(reportItemCount)}건, 초안 ${formatNumber(totalDraftChars)}자입니다.`
-            : '기사 2건 이상이면 카카오 메시지 뼈대가 더 안정적입니다.'
-        },
-        {
-          state: segmentCount > 0 ? (segmentCount <= 3 ? 'complete' : 'watch') : 'pending',
-          title: '카카오 파트 수',
-          detail: segmentCount
-            ? `현재 ${formatNumber(segmentCount)}개 파트로 나뉩니다.`
-            : '초안을 만들면 예상 파트 수를 바로 계산합니다.'
-        },
-        {
-          state: draftEdited ? 'complete' : 'watch',
-          title: '최종 문구 다듬기',
-          detail: draftEdited
-            ? '자동 생성 문구에서 한 번 더 다듬은 상태입니다.'
-            : '카드 문구나 보고서 초안을 한 번 더 다듬으면 전달력이 좋아집니다.'
-        }
-      ]
-    : [];
-
-  if (!reportItemCount) {
-    return `
-      <article class="card draft-panel builder-draft-panel" id="builder-draft-panel">
-        ${renderAnnotation('SCR-BUILD-DRAFT-001')}
-        <div class="panel-heading">
-          <div>
-            <p class="panel-kicker">리포트 초안</p>
-            <h3>보고서 초안</h3>
-          </div>
-          <span class="panel-pill tone-neutral">0건 반영</span>
-        </div>
-        <div class="builder-draft-status ${state.builderDraftRestored ? 'is-restored' : ''}">
-          <strong>${escapeHtml(savedLabel)}</strong>
-          <p>${escapeHtml(savedDescription)}</p>
-        </div>
-        <div class="builder-empty-metrics">
-          <span class="panel-pill tone-neutral">오늘 수집 ${formatNumber(state.articles.length)}건</span>
-          <span class="panel-pill tone-neutral">주요 ${formatNumber(state.articles.filter((article) => article.section === 'major').length)}건</span>
-          <span class="panel-pill tone-neutral">업계 ${formatNumber(state.articles.filter((article) => article.section === 'industry').length)}건</span>
-        </div>
-        ${renderDataEmpty('builder-draft-empty', '초안이 아직 비어 있습니다', canImportArticles ? '기사 인박스에서 먼저 고르거나, 왼쪽 상단 기사 추가로 링크를 바로 넣어 시작해 보세요.' : '기사 인박스에서 기사를 추가해 초안을 시작해 보세요.')}
-        <div class="builder-empty-guide">
-          ${[
-            ['1', '기사 후보 먼저 고르기', `기사 인박스에서 오늘 수집 ${formatNumber(state.articles.length)}건 중 필요한 기사만 체크해 바로 반영합니다.`],
-            ['2', canImportArticles ? '링크 기사도 바로 추가' : '카드를 반영해 초안 시작', canImportArticles ? '왼쪽 상단 기사 추가 버튼으로 보고형 URL을 직접 넣어 초안을 채울 수 있습니다.' : '기사 인박스에서 반영한 카드가 이 초안 영역에 바로 쌓입니다.'],
-            ['3', '문구 편집 후 카카오 검수', '카드를 선택해 요약을 다듬으면 오른쪽 초안과 카카오 프리뷰에 바로 반영됩니다.']
-          ].map(([step, title, body]) => `
-            <div class="builder-empty-guide-card">
-              <span class="builder-empty-step">${escapeHtml(step)}</span>
-              <div class="builder-empty-guide-copy">
-                <strong>${escapeHtml(title)}</strong>
-                <p>${escapeHtml(body)}</p>
-              </div>
-            </div>
-          `).join('')}
-        </div>
-        <div class="inline-actions compact stack-mobile builder-empty-actions">
-          <button class="primary-btn" type="button" data-builder-empty-nav="inbox">기사 인박스 보기</button>
-          ${canImportArticles ? '<button class="ghost-btn" type="button" id="builder-empty-import">기사 추가 열기</button>' : ''}
-        </div>
-        ${canImportArticles ? '<p class="panel-note builder-empty-note">링크 기사는 왼쪽 상단 기사 추가에서 바로 넣을 수 있습니다.</p>' : ''}
-      </article>
-    `;
-  }
-
-  return `
-    <article class="card draft-panel builder-draft-panel" id="builder-draft-panel">
-      ${renderAnnotation('SCR-BUILD-DRAFT-001')}
-      <div class="panel-heading">
-        <div>
-          <p class="panel-kicker">리포트 초안</p>
-          <h3>보고서 초안</h3>
-        </div>
-        <span class="panel-pill tone-neutral">${formatNumber(reportItemCount)}건 반영</span>
-      </div>
-      <div class="builder-draft-status ${state.builderDraftRestored ? 'is-restored' : ''}">
-        <strong>${escapeHtml(savedLabel)}</strong>
-        <p>${escapeHtml(savedDescription)}</p>
-      </div>
-      <div class="builder-readiness-card">
-        <div class="builder-readiness-head">
-          <div>
-            <p class="panel-kicker">Publish Check</p>
-            <h3>전송 전 체크</h3>
-          </div>
-          <span class="panel-pill tone-neutral">${formatNumber(readinessItems.filter((item) => item.state === 'complete').length)}개 준비</span>
-        </div>
-        <div class="builder-readiness-list">
-          ${readinessItems.map((item) => `
-            <div class="builder-readiness-item is-${escapeHtml(item.state)}">
-              <span class="builder-readiness-state">${item.state === 'complete' ? 'OK' : item.state === 'watch' ? 'CHECK' : 'TODO'}</span>
-              <div class="builder-readiness-copy">
-                <strong>${escapeHtml(item.title)}</strong>
-                <p>${escapeHtml(item.detail)}</p>
-              </div>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-      <textarea id="report-text">${escapeHtml(reportText)}</textarea>
-      <div class="draft-summary">
-        <div>
-          <span>전체 글자 수</span>
-          <strong id="builder-draft-char-count">${formatNumber(totalDraftChars)}</strong>
-        </div>
-        <div>
-          <span>주요 보도</span>
-          <strong>${formatNumber(sections.major.length)}</strong>
-        </div>
-        <div>
-          <span>업계 보도</span>
-          <strong>${formatNumber(sections.industry.length)}</strong>
-        </div>
-        <div>
-          <span>리포트 기사</span>
-          <strong>${formatNumber(reportItemCount)}</strong>
-        </div>
-      </div>
-      ${renderBuilderAiActionButton('report-draft', {
-        mode: 'draft',
-        id: 'builder-draft-ai',
-        extraClass: 'draft-ai-actions'
-      })}
-      <div class="inline-actions stack-mobile draft-primary-actions">
-        <button class="primary-btn" id="draft-to-kakao">카카오 프리뷰 보기</button>
-      </div>
-    </article>
-  `;
-}
-
-function renderMobileSelectionBar({ selectedCount, inboxAssignment, canOpenSelected }) {
-  if (!selectedCount) return '';
-
-  return `
-    <div class="mobile-selection-bar" role="region" aria-label="선택 기사 일괄 처리">
-      <div class="mobile-selection-head">
-        <strong>선택 기사 ${formatNumber(selectedCount)}건</strong>
-        <span>체크한 기사만 한 번에 처리합니다.</span>
-      </div>
-      <div class="mobile-selection-actions">
-        <button class="primary-btn" id="mobile-add-selected" ${inboxAssignment.available.length ? '' : 'disabled'}>추천 경로 추가</button>
-        <button class="ghost-btn" id="mobile-open-selected" ${canOpenSelected ? '' : 'disabled'}>기사 열기</button>
-        <button class="ghost-btn" id="mobile-clear-selection" ${selectedCount ? '' : 'disabled'}>선택 해제</button>
-      </div>
-    </div>
-  `;
 }
 
 function openArticleUrls(urls) {
@@ -2947,128 +1583,25 @@ function buildAiSummaryUpdates(article, result) {
   };
 }
 
-function buildAiReviewProposal(key, article, updates) {
-  const sectionName = String(key || '').split('::')[0] === 'major' ? 'major' : 'industry';
-  const previousSummaryLead = articleSummaryLead(article);
-  const previousKeyPoint = articleKeyPoint(article);
-  const nextSummaryLead = String(updates?.summaryLead || previousSummaryLead).trim();
-  const nextKeyPoint = String(updates?.keyPoint || previousKeyPoint).trim();
-
-  return {
-    key,
-    sectionName,
-    articleTitle: String(article?.title || '').trim(),
-    media: mediaLabel(article),
-    before: {
-      summaryLead: previousSummaryLead,
-      keyPoint: previousKeyPoint
-    },
-    after: {
-      summaryLead: nextSummaryLead,
-      keyPoint: nextKeyPoint
-    },
-    changed: previousSummaryLead !== nextSummaryLead || previousKeyPoint !== nextKeyPoint
-  };
-}
-
-function renderAiReviewCard() {
-  const review = state.pendingAiReview;
-  if (!review?.proposals?.length) return '';
-
-  return `
-    <article class="card ai-review-card" id="builder-ai-review-card">
-      <div class="panel-heading">
-        <div>
-          <p class="panel-kicker">AI Review</p>
-          <h3>${escapeHtml(review.title || 'AI 제안 비교')}</h3>
-        </div>
-        <span class="panel-pill tone-neutral">${formatNumber(review.proposals.length)}건 검토</span>
-      </div>
-      <p class="panel-note">${escapeHtml(review.description || '적용 전에 기존 문구와 AI 제안 문구를 비교해 보세요.')}</p>
-      ${review.failedCount
-        ? `<p class="policy-note"><strong>안내</strong><span>일부 기사 ${formatNumber(review.failedCount)}건은 AI 응답이 실패해 이번 제안에서 제외했습니다.</span></p>`
-        : ''}
-      <div class="ai-review-list">
-        ${review.proposals.map((proposal) => `
-          <div class="ai-review-item ${proposal.changed ? 'is-changed' : 'is-same'}">
-            <div class="ai-review-head">
-              <div>
-                <strong>${escapeHtml(proposal.articleTitle || '기사')}</strong>
-                <span>${escapeHtml(sectionLabel(proposal.sectionName))} / ${escapeHtml(proposal.media || '-')}</span>
-              </div>
-              <span class="status-badge status-${proposal.changed ? 'warning' : 'reported'}">${proposal.changed ? '변경' : '유지'}</span>
-            </div>
-            <div class="ai-review-grid">
-              <div class="ai-review-column">
-                <span class="ai-review-label">기존</span>
-                <strong>${escapeHtml(proposal.before.summaryLead || '-')}</strong>
-                <p>${escapeHtml(proposal.before.keyPoint || '-')}</p>
-              </div>
-              <div class="ai-review-column">
-                <span class="ai-review-label">AI 제안</span>
-                <strong>${escapeHtml(proposal.after.summaryLead || '-')}</strong>
-                <p>${escapeHtml(proposal.after.keyPoint || '-')}</p>
-              </div>
-            </div>
-          </div>
-        `).join('')}
-      </div>
-      <div class="inline-actions stack-mobile">
-        <button class="primary-btn" id="ai-review-apply">AI 제안 적용</button>
-        <button class="ghost-btn" id="ai-review-cancel">기존 문구 유지</button>
-      </div>
-    </article>
-  `;
-}
-
-function setPendingAiReview(review) {
-  state.pendingAiReview = review ? cloneValue(review) : null;
-}
-
-function clearPendingAiReview() {
-  state.pendingAiReview = null;
-}
-
-function applyPendingAiReview() {
-  const review = state.pendingAiReview;
-  if (!review?.proposals?.length) return false;
-
-  review.proposals.forEach((proposal) => {
-    if (!proposal.changed) return;
-    updateDraftItem(proposal.key, {
-      summaryLead: proposal.after.summaryLead,
-      keyPoint: proposal.after.keyPoint,
-      conclusion: proposal.after.summaryLead,
-      oneLine: proposal.after.keyPoint
-    });
-  });
-
-  state.reportTextDraft = generateReportText();
-  persistStoredBuilderDraft();
-  pushActivityLog({
-    title: review.mode === 'batch' ? 'AI 제안 일괄 적용' : 'AI 제안 적용',
-    detail: `${formatNumber(review.changedCount || 0)}건 문구를 반영했습니다.`,
-    tone: 'warning',
-    page: 'builder'
-  });
-  clearPendingAiReview();
-  return true;
-}
-
-async function buildAiSummaryProposalForDraftItem(key) {
+async function applyAiSummaryToDraftItem(key) {
   const location = findDraftLocation(key);
   if (!location) {
     return {
       updated: false,
-      proposal: null
+      changed: false
     };
   }
 
+  const previousSummaryLead = articleSummaryLead(location.item);
+  const previousKeyPoint = articleKeyPoint(location.item);
   const result = await requestAiSummary(location.item);
   const updates = buildAiSummaryUpdates(location.item, result);
+  const changed = previousSummaryLead !== updates.summaryLead || previousKeyPoint !== updates.keyPoint;
+
+  updateDraftItem(key, updates);
   return {
     updated: true,
-    proposal: buildAiReviewProposal(key, location.item, updates)
+    changed
   };
 }
 
@@ -3083,25 +1616,12 @@ async function summarizeDraftItemWithAi(key) {
   renderReportBuilder();
 
   try {
-    const outcome = await buildAiSummaryProposalForDraftItem(key);
-    if (!outcome?.updated || !outcome?.proposal) {
+    const outcome = await applyAiSummaryToDraftItem(key);
+    if (!outcome?.updated) {
       showToast('리포트에 반영된 기사만 AI 정리를 사용할 수 있습니다.');
       return;
     }
-    if (!outcome.proposal.changed) {
-      showToast('AI 제안이 현재 문구와 같아서 적용할 변경점이 없습니다.');
-      return;
-    }
-    setPendingAiReview({
-      mode: 'single',
-      title: 'AI 문구 비교',
-      description: '선택한 기사 1건의 기존 문구와 AI 제안을 먼저 비교할 수 있습니다.',
-      proposals: [outcome.proposal],
-      changedCount: 1,
-      failedCount: 0
-    });
-    showToast('AI 제안을 비교 화면에 준비했습니다.');
-    return;
+    showToast('AI 정리로 요약을 채웠습니다.');
   } catch (error) {
     showToast(error instanceof Error ? error.message : 'AI 정리에 실패했습니다.');
   } finally {
@@ -3131,21 +1651,11 @@ async function summarizeReportDraftWithAi() {
   let changedCount = 0;
   let failedCount = 0;
   let lastError = null;
-  const proposals = [];
 
   try {
     for (const key of entryKeys) {
       try {
-        const outcome = await buildAiSummaryProposalForDraftItem(key);
-        if (!outcome?.updated || !outcome?.proposal) {
-          continue;
-        }
-        successCount += 1;
-        proposals.push(outcome.proposal);
-        if (outcome.proposal.changed) {
-          changedCount += 1;
-        }
-        continue;
+        const outcome = await applyAiSummaryToDraftItem(key);
         if (!outcome?.updated) {
           continue;
         }
@@ -3163,25 +1673,19 @@ async function summarizeReportDraftWithAi() {
       throw lastError;
     }
 
-    if (!changedCount) {
-      if (failedCount > 0) {
-        showToast(`AI가 기사 ${successCount}건을 확인했지만 변경 없이 ${failedCount}건은 실패했습니다.`);
-        return;
-      }
-      showToast(`AI가 기사 ${successCount}건을 검토했지만 적용할 변경점은 없었습니다.`);
+    state.reportTextDraft = generateReportText();
+
+    if (failedCount > 0) {
+      showToast(`AI가 기사 ${successCount}건을 정리했고 ${failedCount}건은 실패했습니다.`);
       return;
     }
 
-    setPendingAiReview({
-      mode: 'batch',
-      title: 'AI 일괄 제안 비교',
-      description: `기사 ${formatNumber(changedCount)}건의 문구를 AI가 다시 정리했습니다. 적용 전에 변경 내용을 확인해 보세요.`,
-      proposals: proposals.filter((proposal) => proposal.changed),
-      changedCount,
-      failedCount
-    });
-    showToast(`AI 제안 ${changedCount}건을 비교 화면에 준비했습니다.`);
-    return;
+    if (changedCount > 0) {
+      showToast(`AI가 기사 ${changedCount}건을 정리하고 보고서 초안을 갱신했습니다.`);
+      return;
+    }
+
+    showToast(`AI가 기사 ${successCount}건을 검토하고 보고서 초안을 다시 생성했습니다.`);
   } catch (error) {
     showToast(error instanceof Error ? error.message : 'AI 정리에 실패했습니다.');
   } finally {
@@ -3434,223 +1938,6 @@ function getCurrentKakaoSegmentCount() {
   return buildKakaoPreviewSegments().length;
 }
 
-function summarizeDuplicateLabels(entries) {
-  return Object.entries(entries)
-    .filter(([, count]) => count > 1)
-    .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0], 'ko'))
-    .map(([label, count]) => `${label} ${formatNumber(count)}건`);
-}
-
-function buildPublishValidationState() {
-  const sections = getReportSections();
-  const articles = [...sections.major, ...sections.industry];
-  const segments = buildKakaoPreviewSegments();
-  const duplicateMedia = summarizeDuplicateLabels(articles.reduce((acc, article) => {
-    const key = mediaLabel(article);
-    if (key && key !== '-') {
-      acc[key] = (acc[key] || 0) + 1;
-    }
-    return acc;
-  }, {}));
-  const duplicateKeywords = summarizeDuplicateLabels(articles.reduce((acc, article) => {
-    const key = String(article?.keyword || '').trim();
-    if (key) {
-      acc[key] = (acc[key] || 0) + 1;
-    }
-    return acc;
-  }, {}));
-  const missingSummaryArticles = articles.filter((article) => !articleSummaryLead(article) || !articleKeyPoint(article));
-  const overLimitSegments = segments.filter((segment) => segment.chars > KAKAO_SEGMENT_CHAR_LIMIT || segment.bytes > KAKAO_SEGMENT_CHAR_LIMIT);
-
-  const items = [
-    {
-      status: sections.major.length ? 'pass' : 'blocked',
-      title: '주요 보도 최소 1건',
-      detail: sections.major.length
-        ? `현재 주요 보도 ${formatNumber(sections.major.length)}건이 포함되어 있습니다.`
-        : '주요 보도가 없으면 발송 메시지의 우선순위가 흐려질 수 있습니다.'
-    },
-    {
-      status: missingSummaryArticles.length ? 'blocked' : 'pass',
-      title: '빈 요약/핵심 포인트 없음',
-      detail: missingSummaryArticles.length
-        ? `${formatNumber(missingSummaryArticles.length)}건에서 보고용 문구가 비어 있습니다.`
-        : '모든 기사에 보고용 요약과 핵심 포인트가 채워져 있습니다.'
-    },
-    {
-      status: overLimitSegments.length ? 'blocked' : 'pass',
-      title: '세그먼트 길이 제한',
-      detail: overLimitSegments.length
-        ? `길이 제한을 넘는 세그먼트 ${formatNumber(overLimitSegments.length)}건이 있습니다.`
-        : `모든 세그먼트가 ${formatNumber(KAKAO_SEGMENT_CHAR_LIMIT)}자 이내입니다.`
-    },
-    {
-      status: duplicateMedia.length ? 'warning' : 'pass',
-      title: '중복 매체 점검',
-      detail: duplicateMedia.length
-        ? duplicateMedia.slice(0, 2).join(', ')
-        : '같은 매체 반복이 없어 메시지 균형이 안정적입니다.'
-    },
-    {
-      status: duplicateKeywords.length ? 'warning' : 'pass',
-      title: '중복 키워드 점검',
-      detail: duplicateKeywords.length
-        ? duplicateKeywords.slice(0, 2).join(', ')
-        : '같은 키워드 반복이 없어 주제 편중이 크지 않습니다.'
-    },
-    {
-      status: segments.length > 3 ? 'warning' : 'pass',
-      title: '카카오 분할 수',
-      detail: segments.length > 3
-        ? `현재 ${formatNumber(segments.length)}개로 많습니다. 3개 이내 권장을 넘었습니다.`
-        : `현재 ${formatNumber(segments.length || 0)}개로 검수 가능한 분량입니다.`
-    }
-  ];
-
-  return {
-    items,
-    segments,
-    blockingItems: items.filter((item) => item.status === 'blocked'),
-    warningItems: items.filter((item) => item.status === 'warning'),
-    allowCopy: articles.length > 0 && items.every((item) => item.status !== 'blocked')
-  };
-}
-
-function renderPublishValidationCard(validation = buildPublishValidationState()) {
-  return `
-    <article class="card publish-validation-card">
-      <div class="panel-heading">
-        <div>
-          <p class="panel-kicker">Send Gate</p>
-          <h3>발행 전 검수</h3>
-        </div>
-        <span class="panel-pill ${validation.allowCopy ? 'tone-main' : 'tone-locked'}">${validation.allowCopy ? '복사 가능' : '수정 필요'}</span>
-      </div>
-      <p class="panel-note">카카오 복사 전에 누락, 길이 초과, 반복 편중을 먼저 확인합니다.</p>
-      <div class="builder-readiness-list publish-validation-list">
-        ${validation.items.map((item) => `
-          <div class="builder-readiness-item is-${item.status === 'pass' ? 'complete' : item.status === 'warning' ? 'watch' : 'pending'}">
-            <span class="builder-readiness-state">${item.status === 'pass' ? 'OK' : item.status === 'warning' ? 'CHECK' : 'BLOCK'}</span>
-            <div class="builder-readiness-copy">
-              <strong>${escapeHtml(item.title)}</strong>
-              <p>${escapeHtml(item.detail)}</p>
-            </div>
-          </div>
-        `).join('')}
-      </div>
-      ${validation.allowCopy
-        ? '<p class="panel-note">검수 기준을 통과해 전체 복사와 현재 파트 복사를 계속 진행할 수 있습니다.</p>'
-        : '<p class="policy-note"><strong>중단</strong><span>차단 항목이 있어 지금은 복사를 막고 있습니다. 리포트 빌더에서 먼저 수정해 주세요.</span></p>'}
-      <div class="inline-actions compact stack-mobile">
-        <button class="ghost-btn" id="publish-validation-to-builder">리포트 빌더로 이동</button>
-      </div>
-    </article>
-  `;
-}
-
-function renderAlertTestCard(alertPolicy) {
-  const result = state.settingsAlertTestResult;
-  const deliveryLabel = formatAlertDeliveryLabel(alertPolicy);
-  return `
-    <article class="card settings-card settings-alert-card">
-      <div class="panel-heading">
-        <div>
-          <p class="panel-kicker">Alert Check</p>
-          <h3>장애 알림 점검</h3>
-        </div>
-        <span class="panel-pill tone-neutral">${escapeHtml(String(alertPolicy?.channel || 'email').toUpperCase())}</span>
-      </div>
-      <p class="small-copy">실패 알림 채널과 전달 방식을 지금 기준 설정으로 점검합니다. SMTP가 없는 개발 환경에서는 실제 발송 대신 전송 payload를 검증합니다.</p>
-      <div class="settings-list">
-        <div class="settings-row">
-          <strong>전달 방식</strong>
-          <span>${escapeHtml(deliveryLabel)}</span>
-        </div>
-        <div class="settings-row">
-          <strong>트리거 조건</strong>
-          <span>${formatNumber(alertPolicy?.consecutiveFailures || 0)}회 연속 실패</span>
-        </div>
-      </div>
-      <div class="inline-actions compact stack-mobile">
-        <button class="primary-btn" id="settings-alert-test" ${state.settingsAlertTestBusy ? 'disabled' : ''}>
-          ${state.settingsAlertTestBusy ? '점검 중...' : '테스트 알림 점검'}
-        </button>
-      </div>
-      ${result
-        ? `<div class="builder-import-status is-${escapeHtml(result.state || 'ready')}">
-            <strong>${escapeHtml(result.title || '점검 결과')}</strong>
-            <p>${escapeHtml(result.description || '')}</p>
-            ${result.meta ? `<p class="small-copy">${escapeHtml(result.meta)}</p>` : ''}
-          </div>`
-        : '<p class="panel-note">운영 화면에서 한 번 눌러두면 전달 방식, 제목, 메시지 구성이 현재 설정과 맞는지 바로 검토할 수 있습니다.</p>'}
-    </article>
-  `;
-}
-
-function formatAlertDeliveryLabel(alertPolicy) {
-  const enabled = Boolean(alertPolicy?.enabled);
-  const channel = String(alertPolicy?.channel || 'email').trim().toLowerCase();
-  const hasRecipient = Boolean(String(alertPolicy?.recipient || '').trim());
-
-  if (!enabled) return '비활성';
-  if (!hasRecipient) return '수신처 미지정';
-  if (channel === 'email') return 'email로 전달됩니다';
-  return `${String(alertPolicy?.channel || '알림').toUpperCase()} 채널로 전달됩니다`;
-}
-
-function renderSettingsPolicySummaryCard({ settingsPolicyRows, alertPolicy, deployment }) {
-  return `
-    <article class="card settings-card settings-policy-summary-card">
-      <div class="panel-heading">
-        <div>
-          <p class="panel-kicker">Operations Policy</p>
-          <h3>운영 정책 요약</h3>
-        </div>
-        <span class="panel-pill">${formatNumber(settingsPolicyRows.length)}개</span>
-      </div>
-      <p class="small-copy">크롤링 재시도, 장애 알림, 허용 도메인, 검증 기준, AI 연결 상태처럼 운영 안정성에 직접 영향을 주는 설정만 한 번에 확인합니다.</p>
-      <div class="settings-trust-banner">
-        <strong>장애 알림은 ${escapeHtml(formatAlertDeliveryLabel(alertPolicy))}.</strong>
-        <span>배포 공개 범위 ${escapeHtml(formatSettingsVisibility(deployment.visibility))} · 마지막 데이터 ${escapeHtml(formatDateTime(state.articleMeta?.generatedAt || state.report?.generatedAt))}</span>
-      </div>
-      <div class="settings-list">
-        ${settingsPolicyRows.map((row) => `
-          <div class="settings-row">
-            <strong>${escapeHtml(row.label)}</strong>
-            <div class="settings-row-copy">
-              <span>${escapeHtml(row.value)}</span>
-              ${row.impact ? `<small>${escapeHtml(row.impact)}</small>` : ''}
-            </div>
-          </div>
-        `).join('')}
-      </div>
-    </article>
-  `;
-}
-
-function renderSettingsPolicyModal({ settingsPolicyRows, alertPolicy, deployment }) {
-  if (!state.settingsPolicyModalOpen) return '';
-
-  return `
-    <div class="settings-modal-backdrop" id="settings-policy-modal-backdrop" role="presentation">
-      <section class="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-policy-modal-title">
-        <div class="panel-heading settings-modal-head">
-          <div>
-            <p class="panel-kicker">Operations Policy</p>
-            <h3 id="settings-policy-modal-title">운영 정책 보기</h3>
-          </div>
-          <button class="ghost-btn" id="close-settings-policy-modal">닫기</button>
-        </div>
-        <p class="small-copy">운영 설정 요약과 장애 알림 점검 결과를 한 팝업에서 확인합니다.</p>
-        <div class="settings-modal-body">
-          ${renderSettingsPolicySummaryCard({ settingsPolicyRows, alertPolicy, deployment })}
-          ${renderAlertTestCard(alertPolicy)}
-        </div>
-      </section>
-    </div>
-  `;
-}
-
 function escapeRegExp(value) {
   return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -3742,12 +2029,9 @@ function isArticleAssigned(article) {
 
 function updateShellMeta() {
   const meta = pageMeta[state.activePage] || pageMeta.dashboard;
-  const freshness = getDataFreshnessState();
   chrome.kicker.textContent = meta.kicker;
   chrome.title.textContent = meta.title;
-  chrome.subtitle.textContent = freshness.isLagging
-    ? `${meta.subtitle} 현재 ${formatDateLabel(state.date)} 데이터 기준`
-    : meta.subtitle;
+  chrome.subtitle.textContent = meta.subtitle;
 
   const sections = getReportSections();
   const majorCount = sections.major.length;
@@ -3756,26 +2040,18 @@ function updateShellMeta() {
   const segmentCount = getCurrentKakaoSegmentCount();
   const coverageRatio = state.articles.length ? Math.round((reportCount / state.articles.length) * 100) : 0;
 
-  chrome.date.textContent = freshness.pillLabel;
-  chrome.date.classList.toggle('is-warning', freshness.isLagging);
-  chrome.date.setAttribute('title', freshness.runtimeLabel);
+  chrome.date.textContent = formatDateLabel(state.date);
   chrome.runtimeGenerated.textContent = formatDateTime(state.articleMeta?.generatedAt || state.report?.generatedAt);
   chrome.runtimeUsable.textContent = `${formatNumber(reportCount)}/${formatNumber(state.articles.length)} (${formatNumber(coverageRatio)}%)`;
-  if (chrome.runtimeCompact) {
-    chrome.runtimeCompact.textContent = `${formatNumber(reportCount)}/${formatNumber(state.articles.length)} (${formatNumber(coverageRatio)}%)`;
-  }
   chrome.runtimeReport.textContent = `${formatNumber(majorCount)}/${formatNumber(industryCount)}`;
   chrome.runtimeSegments.textContent = `${formatNumber(segmentCount)}개`;
 
   if (state.loading) {
     chrome.runtimeStatus.hidden = false;
-    chrome.runtimeStatus.textContent = state.loadingMessage || '데이터를 불러오는 중입니다.';
+    chrome.runtimeStatus.textContent = '데이터를 불러오는 중입니다.';
   } else if (state.loadError) {
     chrome.runtimeStatus.hidden = false;
     chrome.runtimeStatus.textContent = '데이터 연결을 확인해 주세요.';
-  } else if (freshness.isLagging) {
-    chrome.runtimeStatus.hidden = false;
-    chrome.runtimeStatus.textContent = freshness.runtimeLabel;
   } else if (!state.articles.length) {
     chrome.runtimeStatus.hidden = false;
     chrome.runtimeStatus.textContent = '기사 데이터가 아직 없습니다.';
@@ -3783,40 +2059,9 @@ function updateShellMeta() {
     chrome.runtimeStatus.textContent = '';
     chrome.runtimeStatus.hidden = true;
   }
-  chrome.runtimeStatus.classList.toggle('is-warning', !state.loading && !state.loadError && freshness.isLagging);
 
-  syncRuntimePanel();
   updateWorkspaceActions();
 }
-
-function syncRuntimePanel() {
-  const runtimeCard = chrome.runtimeCard;
-  const runtimeToggle = chrome.runtimeToggle;
-  const runtimeDetails = chrome.runtimeDetails;
-  if (!runtimeCard || !runtimeToggle || !runtimeDetails) return;
-
-  const collapsible = window.matchMedia('(max-width: 640px)').matches;
-  const forceExpanded = state.loading || Boolean(state.loadError);
-  const expanded = !collapsible || forceExpanded || state.runtimePanelOpen;
-
-  runtimeCard.classList.toggle('is-collapsible', collapsible);
-  runtimeCard.classList.toggle('is-open', expanded);
-  runtimeToggle.hidden = !collapsible;
-  runtimeToggle.disabled = forceExpanded;
-  runtimeToggle.setAttribute('aria-expanded', String(expanded));
-  runtimeToggle.textContent = expanded ? '접기' : '펼치기';
-  runtimeDetails.hidden = collapsible && !expanded;
-}
-
-chrome.runtimeToggle?.addEventListener('click', () => {
-  if (state.loading || state.loadError) return;
-  state.runtimePanelOpen = !state.runtimePanelOpen;
-  syncRuntimePanel();
-});
-
-window.addEventListener('resize', () => {
-  syncRuntimePanel();
-});
 
 function updateWorkspaceActions() {
   if (chrome.runCrawl) {
@@ -3864,100 +2109,13 @@ function renderAnnotation(id) {
   return `<span class="annotation">${escapeHtml(id)}</span>`;
 }
 
-function currentLoadingStepIndex() {
-  const index = LOADING_STEPS.findIndex((step) => step.id === state.loadingPhase);
-  return index === -1 ? 0 : index;
-}
-
 function renderLoading() {
-  const currentStepIndex = currentLoadingStepIndex();
-  const currentStepCount = Math.min(currentStepIndex + 1, LOADING_STEPS.length);
-  const loadingMessage = state.loadingMessage || '기사, 리포트, 설정 파일을 순서대로 읽고 있습니다.';
-  const loadingStageMarkup = LOADING_STEPS.map((step, index) => {
-    const status = index < currentStepIndex ? 'done' : index === currentStepIndex ? 'current' : 'pending';
-    const statusLabel = status === 'done' ? '완료' : status === 'current' ? '진행 중' : '대기';
-
-    return `
-      <li class="loading-stage" data-state="${status}">
-        <div class="loading-stage-head">
-          <span class="loading-stage-dot" aria-hidden="true"></span>
-          <span class="loading-stage-status">${statusLabel}</span>
-        </div>
-        <strong>${escapeHtml(step.label)}</strong>
-        <small>${escapeHtml(step.description)}</small>
-      </li>
-    `;
-  }).join('');
-
   app.innerHTML = `
-    <section class="page page-state loading-page">
-      <article class="card state-card loading-card" role="status" aria-live="polite" aria-busy="true">
-        <div class="loading-ambient" aria-hidden="true">
-          <span class="loading-orb loading-orb-a"></span>
-          <span class="loading-orb loading-orb-b"></span>
-          <span class="loading-orb loading-orb-c"></span>
-        </div>
+    <section class="page page-state">
+      <article class="card state-card">
         ${renderAnnotation('SCR-STATE-LOADING')}
-        <div class="loading-intro">
-          <div class="loading-copy">
-            <span class="panel-kicker">Workspace Sync</span>
-            <div class="loading-title-row">
-              <h3>데이터를 불러오는 중입니다</h3>
-              <span class="status-badge loading-progress">${currentStepCount} / ${LOADING_STEPS.length} 단계</span>
-            </div>
-            <p>${escapeHtml(loadingMessage)}</p>
-          </div>
-          <div class="loading-radar" aria-hidden="true">
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
-        </div>
-        <ol class="loading-stage-list" aria-label="로딩 단계">
-          ${loadingStageMarkup}
-        </ol>
-        <div class="loading-skeleton-grid" aria-hidden="true">
-          <div class="loading-skeleton-main">
-            <section class="loading-skeleton-panel loading-skeleton-hero">
-              <span class="loading-skeleton-line loading-skeleton-kicker"></span>
-              <span class="loading-skeleton-line loading-skeleton-title"></span>
-              <span class="loading-skeleton-line loading-skeleton-copy"></span>
-              <div class="loading-skeleton-chip-row">
-                <span class="loading-skeleton-chip"></span>
-                <span class="loading-skeleton-chip"></span>
-                <span class="loading-skeleton-chip"></span>
-              </div>
-            </section>
-            <section class="loading-skeleton-panel loading-skeleton-list">
-              <span class="loading-skeleton-line loading-skeleton-section-title"></span>
-              <div class="loading-skeleton-list-item">
-                <span class="loading-skeleton-avatar"></span>
-                <div class="loading-skeleton-stack">
-                  <span class="loading-skeleton-line"></span>
-                  <span class="loading-skeleton-line loading-skeleton-copy"></span>
-                </div>
-              </div>
-              <div class="loading-skeleton-list-item">
-                <span class="loading-skeleton-avatar"></span>
-                <div class="loading-skeleton-stack">
-                  <span class="loading-skeleton-line"></span>
-                  <span class="loading-skeleton-line loading-skeleton-copy"></span>
-                </div>
-              </div>
-            </section>
-          </div>
-          <aside class="loading-skeleton-panel loading-skeleton-side">
-            <span class="loading-skeleton-line loading-skeleton-section-title"></span>
-            <span class="loading-skeleton-line loading-skeleton-copy"></span>
-            <span class="loading-skeleton-line loading-skeleton-copy"></span>
-            <div class="loading-skeleton-stat-grid">
-              <span class="loading-skeleton-stat"></span>
-              <span class="loading-skeleton-stat"></span>
-              <span class="loading-skeleton-stat"></span>
-              <span class="loading-skeleton-stat"></span>
-            </div>
-          </aside>
-        </div>
+        <h3>데이터를 불러오는 중입니다</h3>
+        <p>기사, 리포트, 설정 파일을 순서대로 읽고 있습니다.</p>
       </article>
     </section>
   `;
@@ -3988,21 +2146,6 @@ function renderDataEmpty(id, title, description) {
       <strong>${escapeHtml(title)}</strong>
       <p>${escapeHtml(description)}</p>
     </div>
-  `;
-}
-
-function renderFreshnessBanner() {
-  const freshness = getDataFreshnessState();
-  if (!freshness.isLagging) return '';
-
-  return `
-    <article class="card freshness-banner">
-      <div>
-        <p class="panel-kicker">Freshness Check</p>
-        <h3>오늘 최신 데이터가 아닙니다</h3>
-      </div>
-      <p>${escapeHtml(freshness.runtimeLabel)}</p>
-    </article>
   `;
 }
 
@@ -4129,16 +2272,6 @@ function renderDashboard() {
             </div>
             <button class="ghost-btn" id="go-inbox">인박스 보기</button>
           </div>
-          <div class="dashboard-activity-block">
-            <div class="panel-heading">
-              <div>
-                <p class="panel-kicker">Recent Work</p>
-                <h3>최근 작업 로그</h3>
-              </div>
-              <span class="panel-pill tone-neutral">${formatNumber(state.activityLog.length)}건</span>
-            </div>
-            ${renderRecentActivityLog()}
-          </div>
           <div class="run-log-list">
             ${runLogs.map((row) => `
               <div class="run-log-row">
@@ -4260,36 +2393,18 @@ function renderDashboard() {
   });
 }
 
-function filterInboxArticles({ ignoreStatusFilter = false, ignoreSearchQuery = false } = {}) {
+function filteredArticles() {
   const sectionFiltered =
     state.inboxSectionFilter === 'all'
       ? state.articles
       : state.articles.filter((article) => article.section === state.inboxSectionFilter);
+
   const activeKeywordTokens = inboxKeywordFilterTokens();
   const keywordFiltered = activeKeywordTokens.length
     ? sectionFiltered.filter((article) => activeKeywordTokens.includes(articleKeywordFilterToken(article)))
     : sectionFiltered;
 
-  const searchQuery = ignoreSearchQuery ? '' : normalizedInboxSearchQuery();
-  const searchFiltered = searchQuery
-    ? keywordFiltered.filter((article) => articleMatchesInboxSearch(article, searchQuery))
-    : keywordFiltered;
-
-  if (ignoreStatusFilter || state.inboxStatusFilter === 'all') {
-    return searchFiltered;
-  }
-
-  if (state.inboxStatusFilter === 'reported') {
-    return searchFiltered.filter((article) => isArticleAssigned(article));
-  }
-
-  return searchFiltered.filter((article) => !isArticleAssigned(article));
-}
-
-function filteredArticles() {
-  const filtered = filterInboxArticles();
-
-  return [...filtered].sort((a, b) => {
+  return [...keywordFiltered].sort((a, b) => {
     const primaryLeft = getInboxSortValue(a, state.inboxSortKey);
     const primaryRight = getInboxSortValue(b, state.inboxSortKey);
     const primaryCompare = compareArticleValues(primaryLeft, primaryRight);
@@ -5335,24 +3450,12 @@ function renderKakaoPreview() {
 
   document.getElementById('copy-all').addEventListener('click', async () => {
     await navigator.clipboard.writeText(fullText);
-    pushActivityLog({
-      title: '카카오 전체 복사',
-      detail: `전체 메시지 ${formatNumber(totalChars)}자를 복사했습니다.`,
-      tone: 'warning',
-      page: 'kakao'
-    });
     showToast('전체 메시지를 복사했습니다.');
   });
 
   document.getElementById('copy-current').addEventListener('click', async () => {
     if (!activeSegment) return;
     await navigator.clipboard.writeText(activeSegment.content);
-    pushActivityLog({
-      title: '카카오 파트 복사',
-      detail: `Part ${formatNumber(activeSegment.order)} ${formatNumber(activeSegmentChars)}자를 복사했습니다.`,
-      tone: 'warning',
-      page: 'kakao'
-    });
     showToast(`Part ${activeSegment.order} 복사 완료`);
   });
 }
@@ -5472,26 +3575,18 @@ function renderSettings() {
 }
 
 renderInbox = function renderInboxOverride() {
-  updateShellMeta();
   normalizeInboxKeywordFilter();
+  updateShellMeta();
   const data = filteredArticles();
-  const filterScope = filterInboxArticles({ ignoreStatusFilter: true });
   if (!data.some((article) => articleKey(article) === articleKey(state.selectedArticle))) {
     state.selectedArticle = data[0] || null;
-    state.inboxPreviewOpen = false;
   }
-
   const sections = getReportSections();
   const keywordGroups = inboxKeywordGroups();
   const statusCounts = {
     all: state.articles.length,
     major: state.articles.filter((article) => article.section === 'major').length,
     industry: state.articles.filter((article) => article.section === 'industry').length
-  };
-  const statusFilterCounts = {
-    all: filterScope.length,
-    unreported: filterScope.filter((article) => !isArticleAssigned(article)).length,
-    reported: filterScope.filter((article) => isArticleAssigned(article)).length
   };
   const maxPage = Math.max(1, Math.ceil(data.length / state.pageSize));
   state.selectedPage = Math.min(state.selectedPage, maxPage);
@@ -5500,8 +3595,8 @@ renderInbox = function renderInboxOverride() {
   if (!visible.some((article) => articleKey(article) === articleKey(state.selectedArticle))) {
     state.selectedArticle = visible[0] || null;
   }
-
   const selectableVisible = visible.filter((article) => !isArticleAssigned(article));
+  const reviewReady = visible.filter((article) => articleStatus(article) !== 'failed').length;
   const selectedCount = selectedArticleCount();
   const visibleSelectedCount = selectableVisible.filter((article) => isArticleSelected(article)).length;
   const allVisibleSelected = selectableVisible.length > 0 && visibleSelectedCount === selectableVisible.length;
@@ -5510,321 +3605,240 @@ renderInbox = function renderInboxOverride() {
   const industryAssignment = summarizeAssignableArticles('industry', selectedArticles);
   const inboxAssignment = summarizeInboxAssignableArticles(selectedArticles);
   const assignedCount = sections.major.length + sections.industry.length;
-  const previewArticle = state.selectedArticle;
-  const canOpenSelected = selectedArticles.some((article) => Boolean(article?.url));
-  const searchQuery = String(state.inboxSearchQuery || '').trim();
-  const activeFilterCount = activeInboxFilterCount();
-  const bulkHelpText = majorAssignment.blocked.length
-    ? `체크한 기사는 여기서 한 번에 추가하고, 현재 기사 1건은 행 버튼과 오른쪽 패널에서 처리합니다. 업계 보도 기사 ${formatNumber(majorAssignment.blocked.length)}건은 주요 보도만으로는 옮길 수 없습니다.`
-    : selectedCount
-      ? '체크한 기사는 여기서 한 번에 추가하고, 현재 기사 1건은 행 버튼과 오른쪽 패널에서 바로 처리합니다.'
-      : '먼저 기사에 체크하면 추천 경로 추가와 일괄 열기가 활성화됩니다. 현재 기사 1건은 오른쪽 패널 또는 모바일 하단 미리보기에서 바로 처리할 수 있습니다.';
-
-  document.body.classList.toggle('has-mobile-selection-bar', selectedCount > 0);
-  document.body.classList.toggle('has-mobile-preview-bar', Boolean(previewArticle) && !selectedCount);
-  document.body.classList.toggle('has-mobile-preview-sheet', Boolean(previewArticle) && !selectedCount && state.inboxPreviewOpen);
+  const showMajorActions = state.inboxSectionFilter !== 'industry';
 
   app.innerHTML = `
-    <section class="page ${selectedCount ? 'has-mobile-selection-bar' : ''}" id="article-inbox-page">
-      ${renderWorkflowProgress('inbox')}
-      <div class="inbox-layout">
-        <div class="content-stack inbox-stack">
-          <article class="card table-card inbox-table-card">
-            ${renderAnnotation('SCR-INBOX-TABLE-001')}
-            <div class="toolbar-topline">
-              <div>
-                <p class="panel-kicker">Inbox Controls</p>
-                <h3>기사 목록</h3>
-              </div>
-              <div class="toolbar-meta">
-                <span class="panel-pill tone-neutral">${searchQuery ? `검색 결과 ${formatNumber(data.length)}건` : `${formatNumber(data.length)}건 표시`}</span>
-              </div>
+    <section class="page" id="article-inbox-page">
+      <div class="content-stack inbox-stack">
+        <article class="card table-card inbox-table-card">
+          ${renderAnnotation('SCR-INBOX-TABLE-001')}
+          <div class="toolbar-topline">
+            <div>
+              <p class="panel-kicker">Inbox Controls</p>
+              <h3>기사 목록</h3>
             </div>
-
-            <div class="table-control-stack">
-              <div class="table-control-bar">
-                <div class="chip-group chip-group-inline">
-                  ${[
-                    ['all', '전체', statusCounts.all],
-                    ['major', '주요 보도', statusCounts.major],
-                    ['industry', '업계 보도', statusCounts.industry]
-                  ].map(([value, label, count]) => `
-                    <button class="filter-chip ${state.inboxSectionFilter === value ? 'active' : ''}" data-filter="${value}" aria-pressed="${state.inboxSectionFilter === value}">
-                      <strong>${escapeHtml(label)}</strong>
-                      <span>${formatNumber(count)}</span>
-                    </button>
-                  `).join('')}
-                </div>
-              </div>
-
-              <div class="inbox-search-row">
-                <label class="search-field inbox-search-field" for="inbox-search">
-                  <span class="search-field-kicker">검색</span>
-                  <input
-                    id="inbox-search"
-                    type="search"
-                    inputmode="search"
-                    aria-label="기사 검색"
-                    placeholder="제목 · 요약 · 매체 · 키워드 검색"
-                    value="${escapeHtml(searchQuery)}"
-                  />
-                  ${searchQuery ? '<button class="ghost-btn search-clear-btn" id="inbox-search-clear" type="button">지우기</button>' : ''}
-                </label>
-                <div class="chip-group chip-group-inline inbox-status-group">
-                  ${[
-                    ['all', '전체 상태', statusFilterCounts.all],
-                    ['unreported', '미반영만', statusFilterCounts.unreported],
-                    ['reported', '리포트 반영', statusFilterCounts.reported]
-                  ].map(([value, label, count]) => `
-                    <button class="filter-chip keyword-chip ${state.inboxStatusFilter === value ? 'active' : ''}" data-status-filter="${value}" aria-pressed="${state.inboxStatusFilter === value}">
-                      <strong>${escapeHtml(label)}</strong>
-                      <span>${formatNumber(count)}</span>
-                    </button>
-                  `).join('')}
-                </div>
-              </div>
-
-              <div class="inbox-utility-row">
-                <div class="toolbar-stats inbox-results-pills">
-                  <span class="panel-pill tone-neutral">현재 범위 ${formatNumber(filterScope.length)}건</span>
-                  <span class="panel-pill tone-neutral">미반영 ${formatNumber(statusFilterCounts.unreported)}건</span>
-                  <span class="panel-pill tone-neutral">리포트 반영 ${formatNumber(assignedCount)}건</span>
-                  ${activeFilterCount ? `<span class="panel-pill tone-neutral">활성 필터 ${formatNumber(activeFilterCount)}개</span>` : ''}
-                  ${searchQuery ? `<span class="panel-pill tone-neutral">검색어 "${escapeHtml(searchQuery)}"</span>` : ''}
-                </div>
-                <div class="inline-actions compact inbox-jump-actions">
-                  ${activeFilterCount ? '<button class="ghost-btn" id="inbox-clear-filters">필터 초기화</button>' : ''}
-                  <button class="ghost-btn" id="jump-current-article" ${previewArticle ? '' : 'disabled'}>현재 기사로</button>
-                  <button class="ghost-btn" id="scroll-top-inbox">맨 위로</button>
-                </div>
-              </div>
+            <div class="toolbar-meta">
+              <span class="panel-pill tone-neutral">${formatNumber(data.length)}건 표시</span>
             </div>
+          </div>
 
-            ${(state.inboxSavedPresets.length || state.inboxRecentSearches.length || activeFilterCount)
-              ? `<div class="inbox-memory-stack">
-                  <div class="inbox-memory-row">
-                    <div class="inbox-memory-copy">
-                      <strong>반복 조건 재사용</strong>
-                      <p>자주 보는 필터를 저장하고 최근 검색을 한 번에 다시 불러옵니다.</p>
-                    </div>
-                    ${activeFilterCount ? '<button class="ghost-btn" id="inbox-save-preset" type="button">현재 필터 저장</button>' : ''}
-                  </div>
-                  ${state.inboxSavedPresets.length
-                    ? `<div class="inbox-memory-group">
-                        <span class="keyword-band-title">저장 프리셋</span>
-                        <div class="inbox-memory-chip-list">
-                          ${state.inboxSavedPresets.map((preset) => `
-                            <div class="inbox-memory-chip">
-                              <button class="filter-chip keyword-chip" type="button" data-apply-preset="${escapeHtml(preset.id)}">
-                                <strong>${escapeHtml(preset.label)}</strong>
-                                <span>적용</span>
-                              </button>
-                              <button class="ghost-btn inbox-memory-remove" type="button" data-remove-preset="${escapeHtml(preset.id)}" aria-label="${escapeHtml(`${preset.label} 프리셋 삭제`)}">삭제</button>
-                            </div>
-                          `).join('')}
-                        </div>
-                      </div>`
-                    : ''}
-                  ${state.inboxRecentSearches.length
-                    ? `<div class="inbox-memory-group">
-                        <span class="keyword-band-title">최근 검색</span>
-                        <div class="chip-group chip-group-inline">
-                          ${state.inboxRecentSearches.map((query) => `
-                            <button class="filter-chip keyword-chip" type="button" data-apply-recent-search="${escapeHtml(query)}">
-                              <strong>${escapeHtml(query)}</strong>
-                            </button>
-                          `).join('')}
-                        </div>
-                      </div>`
-                    : ''}
-                </div>`
-              : ''}
+          <div class="table-control-bar">
+            <div class="chip-group chip-group-inline">
+              ${[
+                ['all', '전체', statusCounts.all],
+                ['major', '주요 보도', statusCounts.major],
+                ['industry', '업계 보도', statusCounts.industry]
+              ].map(([value, label, count]) => `
+                <button class="filter-chip ${state.inboxSectionFilter === value ? 'active' : ''}" data-filter="${value}" aria-pressed="${state.inboxSectionFilter === value}">
+                  <strong>${escapeHtml(label)}</strong>
+                  <span>${formatNumber(count)}</span>
+                </button>
+              `).join('')}
+            </div>
+          </div>
 
-            ${state.inboxSectionFilter !== 'all' && keywordGroups.length
-              ? `<div class="keyword-band-list">
-                  ${keywordGroups.map((group) => `
-                    <div class="keyword-filter-band">
-                      <strong class="keyword-band-title">${escapeHtml(group.label)}</strong>
-                      <div class="chip-group chip-group-inline">
-                        <button class="filter-chip keyword-chip ${inboxKeywordFiltersForSection(group.key).length === 0 ? 'active' : ''}" data-clear-keyword-group="${escapeHtml(group.key)}" aria-pressed="${inboxKeywordFiltersForSection(group.key).length === 0}">
-                          <strong>전체</strong>
+          ${state.inboxSectionFilter !== 'all' && keywordGroups.length
+            ? `<div class="keyword-band-list">
+                ${keywordGroups.map((group) => `
+                  <div class="keyword-filter-band">
+                    <strong class="keyword-band-title">${escapeHtml(group.label)}</strong>
+                    <div class="chip-group chip-group-inline">
+                      <button class="filter-chip keyword-chip ${inboxKeywordFiltersForSection(group.key).length === 0 ? 'active' : ''}" data-clear-keyword-group="${escapeHtml(group.key)}" aria-pressed="${inboxKeywordFiltersForSection(group.key).length === 0}">
+                        <strong>전체</strong>
+                      </button>
+                      ${group.options.map((keyword) => `
+                        <button class="filter-chip keyword-chip ${hasInboxKeywordFilter(group.key, keyword) ? 'active' : ''}" data-keyword-section="${escapeHtml(group.key)}" data-keyword-filter="${escapeHtml(keyword)}" aria-pressed="${hasInboxKeywordFilter(group.key, keyword)}">
+                          <strong>${escapeHtml(keyword)}</strong>
                         </button>
-                        ${group.options.map((keyword) => `
-                          <button class="filter-chip keyword-chip ${hasInboxKeywordFilter(group.key, keyword) ? 'active' : ''}" data-keyword-section="${escapeHtml(group.key)}" data-keyword-filter="${escapeHtml(keyword)}" aria-pressed="${hasInboxKeywordFilter(group.key, keyword)}">
-                            <strong>${escapeHtml(keyword)}</strong>
-                          </button>
-                        `).join('')}
+                      `).join('')}
+                    </div>
+                  </div>
+                `).join('')}
+              </div>`
+            : ''}
+
+          <div class="selection-toolbar">
+            <div class="selection-toolbar-summary">
+              <label class="table-select-all">
+                <input type="checkbox" id="select-all-visible" ${allVisibleSelected ? 'checked' : ''} ${selectableVisible.length ? '' : 'disabled'} />
+                <span>전체 선택</span>
+              </label>
+              <div class="selection-badge" aria-live="polite" aria-atomic="true">
+                <span>선택 기사</span>
+                <strong>${formatNumber(selectedCount)}</strong>
+              </div>
+            </div>
+            <div class="toolbar-actions">
+              <div class="action-cluster">
+                <button class="ghost-btn" id="clear-selection" ${selectedCount ? '' : 'disabled'}>선택 해제</button>
+              </div>
+              <div class="action-cluster action-cluster-primary">
+                ${showMajorActions ? `<button class="primary-btn" id="assign-major" ${majorAssignment.available.length ? '' : 'disabled'}>주요 보도 추가</button>` : ''}
+                <button class="primary-btn secondary-tone" id="assign-industry" ${industryAssignment.available.length ? '' : 'disabled'}>업계 보도 추가</button>
+              </div>
+              <div class="action-cluster">
+                <button class="ghost-btn" id="open-selected" aria-label="Open selected articles" ${selectedCount ? '' : 'disabled'}>선택 기사 열기</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="toolbar-stats">
+            <span class="panel-pill tone-neutral">검토 가능 ${formatNumber(reviewReady)}건</span>
+            <span class="panel-pill tone-neutral">리포트 반영 ${formatNumber(assignedCount)}건</span>
+            <span class="panel-pill tone-neutral">현재 페이지 ${formatNumber(visibleSelectedCount)}건 선택</span>
+          </div>
+
+          ${(selectedCount || majorAssignment.blocked.length)
+            ? `<div class="toolbar-note ${majorAssignment.blocked.length ? 'has-lock' : ''}">
+                ${majorAssignment.blocked.length
+                  ? '<strong>잠금</strong><span>업계 보도에 들어간 기사는 주요 보도로 올릴 수 없습니다.</span>'
+                  : '<strong>안내</strong><span>선택 기사 열기는 체크한 기사 링크 전체를 새 탭으로 엽니다. 브라우저 팝업 차단이 켜져 있으면 일부 탭이 막힐 수 있습니다.</span>'}
+              </div>`
+            : ''}
+
+          <div class="table table-articles">
+            <div class="table-head">
+              <span class="table-head-label table-head-label-center">선택</span>
+              <span class="table-head-label table-head-label-center">상태</span>
+              ${renderInboxSortHeader('media', '매체')}
+              ${renderInboxSortHeader('title', '기사')}
+              ${renderInboxSortHeader('keyword', '키워드')}
+              ${renderInboxSortHeader('time', '발행')}
+              <span class="table-head-label table-head-label-center">액션</span>
+            </div>
+            ${visible.length
+              ? visible.map((article, index) => {
+                const globalIndex = start + index;
+                const status = articleStatus(article);
+                const focused = articleKey(state.selectedArticle) === articleKey(article);
+                const picked = isArticleSelected(article);
+                const locked = isArticleAssigned(article);
+                const membership = reportMembership(article);
+                const targetSection = inboxTargetSection(article);
+                const addEnabled = canAddInboxReport(article);
+                const rowAddLabel = addEnabled
+                  ? `${article.title || '기사'} ${sectionLabel(targetSection)}에 보도 추가`
+                  : `${article.title || '기사'} 보도 반영 완료`;
+                const sourcePill = renderArticleSourcePill(article);
+                return `
+                  <div class="table-row-wrap ${focused ? 'is-expanded' : ''}">
+                    <div
+                      class="table-row ${focused ? 'selected' : ''} ${picked ? 'picked' : ''} ${locked ? 'locked' : ''}"
+                      data-index="${globalIndex}"
+                      role="button"
+                      tabindex="0"
+                      aria-label="${escapeHtml(`${article.title || '기사'} 상세 보기`)}"
+                    >
+                      <div class="selection-cell">
+                        <input type="checkbox" data-select-article="${globalIndex}" ${picked ? 'checked' : ''} ${locked ? 'disabled' : ''} aria-label="select article ${globalIndex + 1}" />
+                      </div>
+                      <div class="table-cell table-cell-status" data-label="상태"><span class="status-badge status-${escapeHtml(status)}">${escapeHtml(statusLabel(status))}</span></div>
+                      <div class="table-cell table-cell-media" data-label="매체">${escapeHtml(mediaLabel(article))}</div>
+                      <div class="table-cell table-cell-title title-wrap">
+                        ${sourcePill ? `<div class="title-meta-strip">${sourcePill}</div>` : ''}
+                        <strong>${highlightTitleKeywords(article.title, article)}</strong>
+                        <p>${highlightSummaryKeywords(article.summary, article)}</p>
+                      </div>
+                      <div class="table-cell table-cell-keyword" data-label="키워드">${escapeHtml(article.keyword || '-')}</div>
+                      <div class="table-cell table-cell-time" data-label="발행">${escapeHtml(formatArticlePublishedTime(article))}</div>
+                      <div class="table-cell table-cell-actions">
+                        ${renderInboxActionButton({
+                          actionName: 'open',
+                          dataAttribute: 'data-open-article',
+                          index: globalIndex,
+                          disabled: !article.url,
+                          label: `${article.title || '기사'} 기사 열기`,
+                          tooltip: '기사 열기',
+                          extraClass: 'row-action-btn'
+                        })}
+                        ${renderInboxActionButton({
+                          actionName: 'add',
+                          dataAttribute: 'data-add-report-article',
+                          index: globalIndex,
+                          disabled: !addEnabled,
+                          label: rowAddLabel,
+                          tooltip: addEnabled ? '보도 추가' : '보도 반영 완료',
+                          extraClass: `row-action-btn ${addEnabled ? 'is-primary' : 'is-complete'}`
+                        })}
                       </div>
                     </div>
+                  </div>
+                `;
+              }).join('')
+              : renderDataEmpty('inbox-empty', '조건에 맞는 기사가 없습니다', '필터를 바꾸거나 페이지 크기를 조정해 다시 확인해보세요.')}
+          </div>
+
+          <div class="pagination-row">
+            <div class="pagination-meta">
+              <span>${state.selectedPage} / ${maxPage} 페이지</span>
+              <label class="page-size-control" for="page-size">
+                <span>페이지 크기</span>
+                <select id="page-size">
+                  ${[10, 20, 50, 100, 200].map((size) => `
+                    <option value="${size}" ${state.pageSize === size ? 'selected' : ''}>${size}</option>
                   `).join('')}
-                </div>`
-              : ''}
-
-            <div class="selection-toolbar ${selectedCount ? '' : 'is-idle'}">
-              <div class="selection-toolbar-summary">
-                <label class="table-select-all">
-                  <input type="checkbox" id="select-all-visible" ${allVisibleSelected ? 'checked' : ''} ${selectableVisible.length ? '' : 'disabled'} />
-                  <span>현재 페이지 전체 선택</span>
-                </label>
-                <div class="selection-badge" aria-live="polite" aria-atomic="true">
-                  <span>선택 기사</span>
-                  <strong>${formatNumber(selectedCount)}</strong>
-                </div>
-                <span class="selection-meta">체크한 기사 일괄 처리</span>
-              </div>
-              ${selectedCount
-                ? `
-                  <div class="selection-insight">
-                    <strong>이번 일괄 처리 예상</strong>
-                    <p>추천 반영 ${formatNumber(inboxAssignment.available.length)}건, 주요 보도 가능 ${formatNumber(majorAssignment.available.length)}건, 업계 보도 가능 ${formatNumber(industryAssignment.available.length)}건${majorAssignment.blocked.length ? `, 제외 ${formatNumber(majorAssignment.blocked.length)}건` : ''}</p>
-                  </div>
-                  <div class="toolbar-actions">
-                    <div class="action-cluster action-cluster-primary">
-                      <button class="primary-btn" id="add-selected-to-report" ${inboxAssignment.available.length ? '' : 'disabled'}>추천 경로 추가</button>
-                    </div>
-                    <div class="action-cluster">
-                      <button class="ghost-btn" id="assign-major" ${majorAssignment.available.length ? '' : 'disabled'}>주요 보도만</button>
-                      <button class="ghost-btn" id="assign-industry" ${industryAssignment.available.length ? '' : 'disabled'}>업계 보도만</button>
-                    </div>
-                    <div class="action-cluster">
-                      <button class="ghost-btn" id="open-selected" aria-label="Open selected articles" ${canOpenSelected ? '' : 'disabled'}>선택 기사 열기</button>
-                      <button class="ghost-btn" id="clear-selection" ${selectedCount ? '' : 'disabled'}>선택 해제</button>
-                    </div>
-                  </div>
-                `
-                : '<p class="selection-toolbar-hint">체크한 기사만 추천 경로 추가, 주요 보도만, 업계 보도만, 기사 열기를 한 번에 처리할 수 있습니다.</p>'}
+                </select>
+              </label>
             </div>
-
-            <div class="toolbar-note ${majorAssignment.blocked.length ? 'has-lock' : ''}">
-              <strong>${majorAssignment.blocked.length ? '잠금' : '안내'}</strong>
-              <span>${bulkHelpText}</span>
+            <div class="inline-actions compact">
+              <button class="ghost-btn" id="prev-page" ${state.selectedPage <= 1 ? 'disabled' : ''}>이전</button>
+              <button class="ghost-btn" id="next-page" ${state.selectedPage >= maxPage ? 'disabled' : ''}>다음</button>
             </div>
-
-            ${renderInboxPaginationControls({ maxPage, mode: 'top' })}
-
-            <div class="table table-articles">
-              <div class="table-head">
-                <span class="table-head-label table-head-label-center">선택</span>
-                <span class="table-head-label table-head-label-center">상태</span>
-                ${renderInboxSortHeader('media', '매체')}
-                ${renderInboxSortHeader('title', '기사')}
-                ${renderInboxSortHeader('keyword', '키워드')}
-                ${renderInboxSortHeader('time', '발행')}
-                <span class="table-head-label table-head-label-center">액션</span>
-              </div>
-              ${visible.length
-                ? visible.map((article, index) => {
-                  const globalIndex = start + index;
-                  const status = articleStatus(article);
-                  const focused = articleKey(state.selectedArticle) === articleKey(article);
-                  const picked = isArticleSelected(article);
-                  const locked = isArticleAssigned(article);
-                  const targetSection = inboxTargetSection(article);
-                  const addEnabled = canAddInboxReport(article);
-                  const rowAddLabel = addEnabled
-                    ? `${article.title || '기사'} ${sectionLabel(targetSection)}에 보도 추가`
-                    : `${article.title || '기사'} 보도 반영 완료`;
-                  const sourcePill = renderArticleSourcePill(article);
-                  return `
-                    <div class="table-row-wrap ${focused ? 'is-expanded' : ''}">
-                      <div
-                        class="table-row ${focused ? 'selected' : ''} ${picked ? 'picked' : ''} ${locked ? 'locked' : ''}"
-                        data-index="${globalIndex}"
-                        data-article-key="${escapeHtml(articleKey(article))}"
-                        role="button"
-                        tabindex="0"
-                        aria-label="${escapeHtml(`${article.title || '기사'} 상세 보기`)}"
-                      >
-                        <div class="selection-cell">
-                          <input type="checkbox" data-select-article="${globalIndex}" ${picked ? 'checked' : ''} ${locked ? 'disabled' : ''} aria-label="select article ${globalIndex + 1}" />
-                        </div>
-                        <div class="table-cell table-cell-status" data-label="상태"><span class="status-badge status-${escapeHtml(status)}">${escapeHtml(statusLabel(status))}</span></div>
-                        <div class="table-cell table-cell-media" data-label="매체">${escapeHtml(mediaLabel(article))}</div>
-                        <div class="table-cell table-cell-title title-wrap">
-                          ${sourcePill ? `<div class="title-meta-strip">${sourcePill}</div>` : ''}
-                          <strong>${highlightTitleKeywords(article.title, article)}</strong>
-                          <p>${highlightSummaryKeywords(article.summary, article)}</p>
-                        </div>
-                        <div class="table-cell table-cell-keyword" data-label="키워드">${escapeHtml(article.keyword || '-')}</div>
-                        <div class="table-cell table-cell-time" data-label="발행">${escapeHtml(formatArticlePublishedTime(article))}</div>
-                        <div class="table-cell table-cell-actions">
-                          ${renderInboxActionButton({
-                            actionName: 'open',
-                            dataAttribute: 'data-open-article',
-                            index: globalIndex,
-                            disabled: !article.url,
-                            label: `${article.title || '기사'} 기사 열기`,
-                            tooltip: '기사 열기',
-                            buttonText: '기사 열기',
-                            extraClass: 'row-action-btn'
-                          })}
-                          ${renderInboxActionButton({
-                            actionName: 'add',
-                            dataAttribute: 'data-add-report-article',
-                            index: globalIndex,
-                            disabled: !addEnabled,
-                            label: rowAddLabel,
-                            tooltip: addEnabled ? `${sectionLabel(targetSection)} 추가` : '반영 완료',
-                            buttonText: addEnabled ? (targetSection === 'major' ? '주요 보도' : '업계 보도') : '반영 완료',
-                            extraClass: `row-action-btn ${addEnabled ? 'is-primary' : 'is-complete'}`
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  `;
-                }).join('')
-                : renderDataEmpty('inbox-empty', '조건에 맞는 기사가 없습니다', activeFilterCount ? '상단 필터 초기화로 전체 목록으로 돌아가거나, 검색어와 상태 조건을 바꿔 다시 확인해보세요.' : searchQuery ? '검색어 또는 상태 필터를 바꿔 다시 확인해보세요.' : '필터를 바꾸거나 페이지 크기를 조정해 다시 확인해보세요.')}
-            </div>
-
-            ${renderInboxPaginationControls({ maxPage, mode: 'bottom' })}
-          </article>
-        </div>
-
-        <aside class="inbox-preview-rail">
-          ${renderInboxPreviewPanel(previewArticle)}
-        </aside>
+          </div>
+        </article>
       </div>
-      ${renderMobileSelectionBar({
-        selectedCount,
-        inboxAssignment,
-        canOpenSelected
-      })}
-      ${renderMobilePreviewDock(previewArticle, { selectedCount })}
     </section>
   `;
 
-  bindWorkflowProgressActions();
-
-  const addSelectedToReportButton = document.getElementById('add-selected-to-report');
-  if (addSelectedToReportButton) {
-    addSelectedToReportButton.classList.add('toolbar-btn');
-    addSelectedToReportButton.disabled = !inboxAssignment.available.length;
-    addSelectedToReportButton.setAttribute('aria-label', 'Add selected articles to their recommended report section');
+  const clearSelectionButton = document.getElementById('clear-selection');
+  if (clearSelectionButton) {
+    clearSelectionButton.classList.add('toolbar-btn');
+    clearSelectionButton.textContent = '선택 해제';
   }
 
-  document.getElementById('open-selected')?.classList.add('toolbar-btn');
-  document.getElementById('clear-selection')?.classList.add('toolbar-btn');
-  document.getElementById('assign-major')?.classList.add('toolbar-btn');
-  document.getElementById('assign-industry')?.classList.add('toolbar-btn');
+  const openSelectedButton = document.getElementById('open-selected');
+  if (openSelectedButton) {
+    openSelectedButton.classList.add('toolbar-btn');
+    openSelectedButton.textContent = '선택 기사 열기';
+  }
+
+  const bulkAddButtons = [document.getElementById('assign-major'), document.getElementById('assign-industry')].filter(Boolean);
+  const bulkAddButton = bulkAddButtons[0] || null;
+  if (bulkAddButton) {
+    bulkAddButton.id = 'add-selected-to-report';
+    bulkAddButton.classList.add('toolbar-btn');
+    bulkAddButton.classList.remove('secondary-tone');
+    bulkAddButton.disabled = !inboxAssignment.available.length;
+    bulkAddButton.textContent = '보도 추가';
+    bulkAddButton.setAttribute('aria-label', 'Add selected articles to report');
+  }
+  bulkAddButtons.slice(1).forEach((button) => button.remove());
+
+  const toolbarStats = app.querySelector('.toolbar-stats');
+  if (toolbarStats) {
+    const pills = toolbarStats.querySelectorAll('.panel-pill');
+    if (pills[2]) {
+      pills[2].textContent = `현재 페이지 선택 가능 ${formatNumber(selectableVisible.length)}건`;
+    }
+  }
+
+  const toolbarNote = app.querySelector('.toolbar-note');
+  if (toolbarNote) {
+    toolbarNote.classList.remove('has-lock');
+    toolbarNote.innerHTML = '<strong>안내</strong><span>기사 인박스에서는 기본 분류대로만 보도에 추가하고, 주요 보도와 업계 보도 간 변경은 리포트 빌더에서만 지원합니다.</span>';
+  }
 
   document.querySelectorAll('[data-filter]').forEach((button) => {
     button.addEventListener('click', () => {
       const changed = handleInboxFilterChange(() => {
-        state.inboxSectionFilter = button.dataset.filter || 'all';
+        state.inboxSectionFilter = button.dataset.filter;
         if (button.dataset.filter === 'all') {
           setInboxKeywordFilterTokens([]);
         }
       });
-      if (changed) renderInbox();
-    });
-  });
-
-  document.querySelectorAll('[data-status-filter]').forEach((button) => {
-    button.addEventListener('click', () => {
-      const changed = handleInboxFilterChange(() => {
-        state.inboxStatusFilter = button.dataset.statusFilter || 'all';
-      });
-      if (changed) renderInbox();
+      if (changed) {
+        renderInbox();
+      }
     });
   });
 
@@ -5833,7 +3847,9 @@ renderInbox = function renderInboxOverride() {
       const changed = handleInboxFilterChange(() => {
         clearInboxKeywordFiltersForSection(button.dataset.clearKeywordGroup || '');
       });
-      if (changed) renderInbox();
+      if (changed) {
+        renderInbox();
+      }
     });
   });
 
@@ -5842,7 +3858,9 @@ renderInbox = function renderInboxOverride() {
       const changed = handleInboxFilterChange(() => {
         toggleInboxKeywordFilter(button.dataset.keywordSection || '', button.dataset.keywordFilter || '');
       });
-      if (changed) renderInbox();
+      if (changed) {
+        renderInbox();
+      }
     });
   });
 
@@ -5854,134 +3872,20 @@ renderInbox = function renderInboxOverride() {
     });
   });
 
-  const inboxSearchInput = document.getElementById('inbox-search');
-  if (inboxSearchInput) {
-    inboxSearchInput.addEventListener('compositionstart', () => {
-      inboxSearchCompositionActive = true;
-    });
-
-    inboxSearchInput.addEventListener('compositionend', (event) => {
-      inboxSearchCompositionActive = false;
-      const target = event.currentTarget;
-      const selection = {
-        start: target.selectionStart ?? target.value.length,
-        end: target.selectionEnd ?? target.value.length
-      };
-
-      if (setInboxSearchQuery(target.value)) {
-        renderInbox();
-        requestAnimationFrame(() => {
-          restoreInboxSearchField(selection);
-        });
-      }
-    });
-
-    inboxSearchInput.addEventListener('input', (event) => {
-      if (inboxSearchCompositionActive || event.isComposing) {
-        return;
-      }
-
-      const target = event.currentTarget;
-      const selection = {
-        start: target.selectionStart ?? target.value.length,
-        end: target.selectionEnd ?? target.value.length
-      };
-
-      if (setInboxSearchQuery(target.value)) {
-        renderInbox();
-        requestAnimationFrame(() => {
-          restoreInboxSearchField(selection);
-        });
-      }
-    });
-  }
-
-  document.getElementById('inbox-search-clear')?.addEventListener('click', () => {
-    if (setInboxSearchQuery('')) {
-      renderInbox();
-      requestAnimationFrame(() => {
-        restoreInboxSearchField({ start: 0, end: 0 });
-      });
-    }
-  });
-
-  inboxSearchInput?.addEventListener('change', (event) => {
-    commitInboxRecentSearch(event.currentTarget.value);
-  });
-
-  document.getElementById('inbox-clear-filters')?.addEventListener('click', () => {
-    const hadSelection = selectedArticleCount() > 0;
-    const changed = handleInboxFilterChange(() => {
-      state.inboxSectionFilter = 'all';
-      state.inboxStatusFilter = 'all';
-      state.inboxSearchQuery = '';
-      setInboxKeywordFilterTokens([]);
-    });
-    if (!changed) return;
-    renderInbox();
-    if (!hadSelection) {
-      showToast('필터를 초기화했습니다.');
-    }
-  });
-
-  document.getElementById('inbox-save-preset')?.addEventListener('click', () => {
-    saveCurrentInboxPreset();
-    renderInbox();
-  });
-
-  document.querySelectorAll('[data-apply-preset]').forEach((button) => {
-    button.addEventListener('click', () => {
-      applyInboxPreset(button.dataset.applyPreset || '');
-    });
-  });
-
-  document.querySelectorAll('[data-remove-preset]').forEach((button) => {
-    button.addEventListener('click', () => {
-      removeInboxPreset(button.dataset.removePreset || '');
-      showToast('저장 프리셋을 삭제했습니다.');
-      renderInbox();
-    });
-  });
-
-  document.querySelectorAll('[data-apply-recent-search]').forEach((button) => {
-    button.addEventListener('click', () => {
-      const query = button.dataset.applyRecentSearch || '';
-      if (!setInboxSearchQuery(query)) return;
-      renderInbox();
-      requestAnimationFrame(() => {
-        restoreInboxSearchField({ start: query.length, end: query.length }, { focus: false });
-      });
-    });
-  });
-
-  document.getElementById('page-size')?.addEventListener('change', (event) => {
+  document.getElementById('page-size').addEventListener('change', (event) => {
     state.pageSize = Number(event.target.value);
     state.selectedPage = 1;
     renderInbox();
   });
 
-  ['prev-page', 'prev-page-top'].forEach((id) => {
-    document.getElementById(id)?.addEventListener('click', () => {
-      state.selectedPage = Math.max(1, state.selectedPage - 1);
-      renderInbox();
-    });
+  document.getElementById('prev-page').addEventListener('click', () => {
+    state.selectedPage = Math.max(1, state.selectedPage - 1);
+    renderInbox();
   });
 
-  ['next-page', 'next-page-top'].forEach((id) => {
-    document.getElementById(id)?.addEventListener('click', () => {
-      state.selectedPage = Math.min(maxPage, state.selectedPage + 1);
-      renderInbox();
-    });
-  });
-
-  document.getElementById('jump-current-article')?.addEventListener('click', () => {
-    if (!previewArticle) return;
-    const selector = `.table-row[data-article-key="${CSS.escape(articleKey(previewArticle))}"]`;
-    app.querySelector(selector)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  });
-
-  document.getElementById('scroll-top-inbox')?.addEventListener('click', () => {
-    document.getElementById('article-inbox-page')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  document.getElementById('next-page').addEventListener('click', () => {
+    state.selectedPage = Math.min(maxPage, state.selectedPage + 1);
+    renderInbox();
   });
 
   document.querySelectorAll('[data-select-article]').forEach((checkbox) => {
@@ -6008,14 +3912,33 @@ renderInbox = function renderInboxOverride() {
       event.stopPropagation();
       const article = data[Number(button.dataset.addReportArticle)] || null;
       if (!article) return;
-      const snapshot = captureWorkspaceSnapshot();
       const targetSection = inboxTargetSection(article);
       const result = addArticleToReportSection(targetSection, article);
       if (result.added) {
         deselectArticles([article]);
-        registerUndoAction(`기사를 ${sectionLabel(targetSection)}에 추가했습니다.`, snapshot);
+        showToast(`기사를 ${sectionLabel(targetSection)}에 추가했습니다.`);
+        renderInbox();
+        return;
+      }
+      if (result.added) {
+        deselectArticles([article]);
+        showToast('선택 기사를 주요 보도에 반영했습니다.');
       } else if (result.reason === 'industry_to_main_blocked') {
         showToast('업계 보도에 들어간 기사는 주요 보도로 올릴 수 없습니다.');
+      }
+      renderInbox();
+    });
+  });
+
+  document.querySelectorAll('[data-add-industry-article]').forEach((button) => {
+    button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const article = data[Number(button.dataset.addIndustryArticle)] || null;
+      if (!article) return;
+      const result = addArticleToReportSection('industry', article);
+      if (result.added) {
+        deselectArticles([article]);
+        showToast('선택 기사를 업계 보도에 반영했습니다.');
       }
       renderInbox();
     });
@@ -6024,7 +3947,6 @@ renderInbox = function renderInboxOverride() {
   app.querySelectorAll('.table-row[data-index]').forEach((row) => {
     const focusArticle = () => {
       state.selectedArticle = data[Number(row.dataset.index)] || null;
-      state.inboxPreviewOpen = false;
       renderInbox();
     };
 
@@ -6037,106 +3959,26 @@ renderInbox = function renderInboxOverride() {
     });
   });
 
-  document.getElementById('select-all-visible')?.addEventListener('change', (event) => {
+  document.getElementById('select-all-visible').addEventListener('change', (event) => {
     toggleVisibleArticleSelection(visible, event.target.checked);
     renderInbox();
   });
 
-  document.getElementById('clear-selection')?.addEventListener('click', () => {
+  document.getElementById('clear-selection').addEventListener('click', () => {
     clearSelectedArticles();
     renderInbox();
   });
 
-  addSelectedToReportButton?.addEventListener('click', () => {
-    assignSelectedArticlesToInboxReport();
-    renderInbox();
-  });
-
-  document.getElementById('assign-major')?.addEventListener('click', () => {
-    assignSelectedArticlesToSection('major');
-    renderInbox();
-  });
-
-  document.getElementById('assign-industry')?.addEventListener('click', () => {
-    assignSelectedArticlesToSection('industry');
-    renderInbox();
-  });
-
-  document.getElementById('open-selected')?.addEventListener('click', () => {
-    openSelectedArticles();
-  });
-
-  document.getElementById('mobile-add-selected')?.addEventListener('click', () => {
-    assignSelectedArticlesToInboxReport();
-    renderInbox();
-  });
-
-  document.getElementById('mobile-open-selected')?.addEventListener('click', () => {
-    openSelectedArticles();
-  });
-
-  document.getElementById('mobile-clear-selection')?.addEventListener('click', () => {
-    clearSelectedArticles();
-    renderInbox();
-  });
-
-  const addPreviewArticleToReport = (article) => {
-    if (!article) return;
-    const snapshot = captureWorkspaceSnapshot();
-    const targetSection = inboxTargetSection(article);
-    const result = addArticleToReportSection(targetSection, article);
-    if (result.added) {
-      deselectArticles([article]);
-      registerUndoAction(`기사를 ${sectionLabel(targetSection)}에 추가했습니다.`, snapshot);
-    }
-    state.inboxPreviewOpen = false;
-    renderInbox();
-  };
-
-  const openPreviewBuilder = () => {
-    state.builderSideView = 'draft';
-    state.inboxPreviewOpen = false;
-    render('builder');
-  };
-
-  document.getElementById('preview-open-article')?.addEventListener('click', () => {
-    if (previewArticle?.url) {
-      openArticleUrl(previewArticle.url);
-    }
-  });
-
-  document.getElementById('preview-add-report')?.addEventListener('click', () => {
-    addPreviewArticleToReport(previewArticle);
-  });
-
-  document.getElementById('preview-open-builder')?.addEventListener('click', () => {
-    openPreviewBuilder();
-  });
-
-  document.getElementById('mobile-preview-open-article')?.addEventListener('click', () => {
-    if (previewArticle?.url) {
-      openArticleUrl(previewArticle.url);
-    }
-  });
-
-  document.getElementById('mobile-preview-add-report')?.addEventListener('click', () => {
-    addPreviewArticleToReport(previewArticle);
-  });
-
-  document.getElementById('mobile-preview-open-builder')?.addEventListener('click', () => {
-    openPreviewBuilder();
-  });
-
-  document.getElementById('mobile-preview-toggle')?.addEventListener('click', () => {
-    state.inboxPreviewOpen = true;
-    renderInbox();
-  });
-
-  ['mobile-preview-close', 'mobile-preview-dismiss'].forEach((id) => {
-    document.getElementById(id)?.addEventListener('click', () => {
-      state.inboxPreviewOpen = false;
+  const addSelectedToReportButton = document.getElementById('add-selected-to-report');
+  if (addSelectedToReportButton) {
+    addSelectedToReportButton.addEventListener('click', () => {
+      assignSelectedArticlesToInboxReport();
       renderInbox();
     });
+  }
+
+  document.getElementById('open-selected').addEventListener('click', () => {
+    openSelectedArticles();
   });
 };
 
@@ -6155,21 +3997,18 @@ renderBuilderColumn = function renderBuilderColumnOverride(sectionName, items) {
         ${items.length
           ? items.map((article) => {
             const entryKey = draftEntryKey(sectionName, article);
-            const active = entryKey === state.builderFocusKey;
             return `
-              <div class="builder-item ${active ? 'active is-expanded' : ''}" data-builder-focus="${escapeHtml(entryKey)}">
-                <div class="builder-item-head">
-                  <div class="builder-item-head-copy">
-                    <strong>${escapeHtml(article.title)}</strong>
-                    <p class="builder-item-subcopy">${escapeHtml(mediaLabel(article))} · ${escapeHtml(article.keyword || '-')}</p>
-                  </div>
-                  <span class="panel-pill tone-neutral">${active ? '편집 중' : '카드 선택'}</span>
-                </div>
+              <div class="builder-item ${entryKey === state.builderFocusKey ? 'active' : ''}" data-builder-focus="${escapeHtml(entryKey)}">
+                <strong>${escapeHtml(article.title)}</strong>
                 ${renderBuilderItemMeta(article)}
                 ${renderBuilderItemSummaryRows(article)}
-                ${active
-                  ? renderBuilderInlineEditor(sectionName, article, entryKey)
-                  : '<p class="small-copy builder-item-hint">카드를 선택하면 이 자리에서 바로 문구를 편집할 수 있습니다.</p>'}
+                <div class="inline-actions compact">
+                  <button class="ghost-btn" data-builder-open="${escapeHtml(article.url || '')}">기사 열기</button>
+                  ${sectionName === 'major'
+                    ? `<button class="ghost-btn" data-builder-move-industry="${escapeHtml(entryKey)}">업계로 이동</button>`
+                    : ''}
+                  <button class="ghost-btn" data-builder-remove="${escapeHtml(entryKey)}">제거</button>
+                </div>
               </div>
             `;
           }).join('')
@@ -6180,319 +4019,75 @@ renderBuilderColumn = function renderBuilderColumnOverride(sectionName, items) {
 };
 
 renderBuilderDetailPanel = function renderBuilderDetailPanelOverride() {
-  return '';
-};
-
-renderReportBuilder = function renderReportBuilderOverride() {
-  updateShellMeta();
-  ensureBuilderFocus();
-  state.builderSideView = 'draft';
-  const sections = getReportSections();
-  const canImportArticles = canImportCustomBuilderArticles();
-  const reportText = state.reportTextDraft || generateReportText();
-  const reportItemCount = sections.major.length + sections.industry.length;
-  const totalDraftChars = characterLength(reportText);
-  const importFeedback = getBuilderImportFeedback(state.builderImportUrl, state.builderImportSection);
-  const existingImportLocation = state.builderImportUrl
-    ? findExistingArticleLocation({ url: state.builderImportUrl, title: '', publisher: '' })
-    : null;
-
-  app.innerHTML = `
-    <section class="page" id="report-builder-page">
-      ${renderWorkflowProgress('builder')}
-      <div class="builder-layout">
-        <div class="builder-workspace">
-          ${canImportArticles
-            ? `
-              <article class="card builder-toolbar-card">
-                <div class="panel-heading">
-                  <div>
-                    <h3>기사 추가</h3>
-                    <p class="small-copy">리포트 작성 중 필요한 기사 링크를 직접 추가하고, 주요 보도 또는 업계 보도로 바로 분류합니다.</p>
-                  </div>
-                  <button class="${state.builderImportOpen ? 'ghost-btn' : 'primary-btn'}" id="builder-toggle-import">
-                    ${state.builderImportOpen ? '입력 닫기' : '기사 추가'}
-                  </button>
-                </div>
-                ${state.builderImportOpen
-                  ? `
-                    <form class="builder-import-form" id="builder-import-form">
-                      <label class="detail-field builder-import-field">
-                        <span>기사 링크</span>
-                        <input
-                          id="builder-import-url"
-                          type="url"
-                          inputmode="url"
-                          placeholder="https://기사-링크"
-                          value="${escapeHtml(state.builderImportUrl)}"
-                          ${state.builderImportBusy ? 'disabled' : ''}
-                        />
-                      </label>
-                      <div class="builder-import-section" role="group" aria-label="추가 위치 선택">
-                        ${[
-                          ['major', '주요 보도'],
-                          ['industry', '업계 보도']
-                        ].map(([value, label]) => `
-                          <button
-                            type="button"
-                            class="filter-chip ${state.builderImportSection === value ? 'active' : ''}"
-                            data-builder-import-section="${value}"
-                            aria-pressed="${state.builderImportSection === value}"
-                            ${state.builderImportBusy ? 'disabled' : ''}
-                          >
-                            <strong>${label}</strong>
-                          </button>
-                        `).join('')}
-                      </div>
-                      <div class="inline-actions compact builder-import-actions">
-                        <button type="button" class="ghost-btn" id="builder-import-cancel" ${state.builderImportBusy ? 'disabled' : ''}>취소</button>
-                        <button type="submit" class="primary-btn" id="builder-import-submit" ${(state.builderImportBusy || existingImportLocation || importFeedback.state === 'invalid' || importFeedback.state === 'idle') ? 'disabled' : ''}>
-                          ${state.builderImportBusy ? '기사 가져오는 중...' : '링크 기사 추가'}
-                        </button>
-                      </div>
-                      <div class="builder-import-status is-${escapeHtml(importFeedback.state)}">
-                        <strong>${escapeHtml(importFeedback.title)}</strong>
-                        <p>${escapeHtml(importFeedback.description)}</p>
-                      </div>
-                      ${existingImportLocation
-                        ? `<div class="builder-import-duplicate">
-                            <strong>${escapeHtml(existingImportLocation.scope === 'report' ? '이미 리포트에 있는 링크입니다.' : '기사 인박스에 이미 있는 링크입니다.')}</strong>
-                            <button type="button" class="ghost-btn" id="builder-import-duplicate-jump">${escapeHtml(existingImportLocation.scope === 'report' ? '기존 카드 보기' : '인박스에서 보기')}</button>
-                          </div>`
-                        : ''}
-                    </form>
-                  `
-                  : ''
-                }
-              </article>
-            `
-            : ''}
-          <div class="builder-columns">
-            ${renderBuilderColumn('major', sections.major)}
-            ${renderBuilderColumn('industry', sections.industry)}
+  const location = findDraftLocation(state.builderFocusKey);
+  if (!location) {
+    return `
+      <article class="card detail-panel">
+        ${renderAnnotation('SCR-BUILD-DETAIL-001')}
+        <div class="panel-heading">
+          <div>
+            <p class="panel-kicker">기사 설정</p>
+            <h3>기사별 설정</h3>
           </div>
         </div>
+        ${renderDataEmpty('builder-detail-empty', '편집할 기사를 선택하세요', '리포트에 반영된 기사를 고르면 요약과 발행 옵션을 수정할 수 있습니다.')}
+      </article>
+    `;
+  }
 
-        <aside class="builder-side-stack">
-          ${renderAiReviewCard()}
-          ${renderBuilderDraftPanel({
-            reportText,
-            reportItemCount,
-            totalDraftChars,
-            sections,
-            canImportArticles
-          })}
-        </aside>
+  const article = location.item;
+  const key = draftEntryKey(location.sectionName, article);
+  return `
+    <article class="card detail-panel" id="builder-detail-panel" role="tabpanel" aria-labelledby="builder-side-view-detail">
+      ${renderAnnotation('SCR-BUILD-DETAIL-001')}
+      <div class="panel-heading">
+        <div>
+          <p class="panel-kicker">기사 설정</p>
+          <h3>기사별 설정</h3>
+        </div>
       </div>
-    </section>
+      <div class="detail-hero">
+        <strong>${escapeHtml(article.title)}</strong>
+        <p>${escapeHtml(mediaLabel(article))} · ${escapeHtml(article.keyword || '-')}</p>
+      </div>
+      <div class="builder-chip-row detail-meta-pills">
+        ${article.keyword ? `<span class="status-badge status-selected builder-item-keyword">${escapeHtml(article.keyword)}</span>` : ''}
+        <span class="panel-pill tone-neutral">발행 ${escapeHtml(formatArticlePublishedTime(article))}</span>
+      </div>
+      <div class="inline-actions compact">
+        <button class="ghost-btn" id="builder-detail-open">기사 열기</button>
+        ${location.sectionName === 'major'
+          ? '<button class="ghost-btn" id="builder-detail-move-industry">업계로 이동</button>'
+          : ''}
+      </div>
+      <label class="detail-field">
+        <span>기사 요약 및 결론 (30자 내외)</span>
+        <input id="builder-summary-lead" data-detail-key="${escapeHtml(key)}" value="${escapeHtml(articleSummaryLead(article))}" />
+      </label>
+      <label class="detail-field">
+        <span>주요 내용 한줄 요약 (40자 내외)</span>
+        <input id="builder-key-point" data-detail-key="${escapeHtml(key)}" value="${escapeHtml(articleKeyPoint(article))}" />
+      </label>
+      <div class="detail-static-row">
+        <span>카카오 메시지</span>
+        <strong>항상 포함</strong>
+      </div>
+      ${renderBuilderAiActionButton(key, { mode: 'detail', id: 'builder-ai-summarize', extraClass: 'detail-ai-actions' })}
+      <p class="small-copy detail-footnote">기사별 설정에서 정리한 값은 주요 보도와 업계 보도 카드, 보고서 초안에 함께 반영됩니다.</p>
+    </article>
   `;
+};
 
-  bindWorkflowProgressActions();
-
-  app.querySelectorAll('[data-builder-focus]').forEach((node) => {
-    node.addEventListener('click', () => {
-      setBuilderFocus(node.dataset.builderFocus);
-      renderReportBuilder();
-    });
-  });
-
-  app.querySelectorAll('.builder-item input, .builder-item button').forEach((node) => {
-    node.addEventListener('click', (event) => {
-      event.stopPropagation();
-    });
-  });
-
-  app.querySelectorAll('[data-builder-remove]').forEach((button) => {
-    button.addEventListener('click', (event) => {
-      event.stopPropagation();
-      const snapshot = captureWorkspaceSnapshot();
-      removeDraftItem(button.dataset.builderRemove);
-      registerUndoAction('리포트 빌더에서 기사를 제거했습니다.', snapshot);
-      renderReportBuilder();
-    });
-  });
-
-  app.querySelectorAll('[data-builder-open]').forEach((button) => {
-    button.addEventListener('click', (event) => {
-      event.stopPropagation();
-      openArticleUrl(button.dataset.builderOpen);
-    });
-  });
-
-  app.querySelectorAll('[data-builder-ai]').forEach((button) => {
-    button.addEventListener('click', async (event) => {
-      event.stopPropagation();
-      if (!state.capabilities?.aiSummarize) {
-        const connected = await connectRemoteAiAccess();
-        if (!connected) return;
-        renderReportBuilder();
-        return;
-      }
-
-      if (state.capabilities?.requiresToken && !getStoredAiToken()) {
-        showToast('AI 접근 토큰을 먼저 입력해주세요.');
-        return;
-      }
-
-      if (button.dataset.builderAi === 'report-draft') {
-        await summarizeReportDraftWithAi();
-        return;
-      }
-
-      await summarizeDraftItemWithAi(button.dataset.builderAi);
-    });
-  });
-
-  app.querySelectorAll('[data-ai-token-input]').forEach((input) => {
-    input.addEventListener('click', (event) => {
-      event.stopPropagation();
-    });
-    input.addEventListener('input', (event) => {
-      setStoredAiToken(String(event.target.value || '').trim());
-    });
-  });
-
-  app.querySelectorAll('[data-builder-move-industry]').forEach((button) => {
-    button.addEventListener('click', (event) => {
-      event.stopPropagation();
-      const snapshot = captureWorkspaceSnapshot();
-      const result = moveDraftItemToSection(button.dataset.builderMoveIndustry, 'industry');
-      if (result.moved) {
-        registerUndoAction('기사를 업계 보도로 이동했습니다.', snapshot);
-      }
-      renderReportBuilder();
-    });
-  });
-
-  app.querySelectorAll('[data-builder-summary-input]').forEach((input) => {
-    input.addEventListener('input', (event) => {
-      updateDraftItem(event.target.dataset.builderSummaryInput, {
-        summaryLead: event.target.value,
-        conclusion: event.target.value
-      });
-      syncBuilderCardPreview(event.target.dataset.builderSummaryInput);
-      syncBuilderReportTextArea();
-    });
-  });
-
-  app.querySelectorAll('[data-builder-keypoint-input]').forEach((input) => {
-    input.addEventListener('input', (event) => {
-      updateDraftItem(event.target.dataset.builderKeypointInput, {
-        keyPoint: event.target.value,
-        oneLine: event.target.value
-      });
-      syncBuilderCardPreview(event.target.dataset.builderKeypointInput);
-      syncBuilderReportTextArea();
-    });
-  });
-
-  const reportTextField = document.getElementById('report-text');
-  if (reportTextField) {
-    reportTextField.addEventListener('input', (event) => {
-      state.reportTextDraft = event.target.value;
-      state.builderDraftRestored = false;
-      persistStoredBuilderDraft();
-      const charCount = document.getElementById('builder-draft-char-count');
-      if (charCount) {
-        charCount.textContent = formatNumber(characterLength(event.target.value));
-      }
-    });
-  }
-
-  const draftToKakaoButton = document.getElementById('draft-to-kakao');
-  if (draftToKakaoButton) {
-    draftToKakaoButton.addEventListener('click', () => {
-      render('kakao');
-    });
-  }
-
-  document.getElementById('ai-review-apply')?.addEventListener('click', () => {
-    const snapshot = captureWorkspaceSnapshot();
-    if (applyPendingAiReview()) {
-      registerUndoAction('AI 제안 적용을 되돌릴 수 있습니다.', snapshot);
-      renderReportBuilder();
-    }
-  });
-
-  document.getElementById('ai-review-cancel')?.addEventListener('click', () => {
-    clearPendingAiReview();
-    pushActivityLog({
-      title: 'AI 제안 취소',
-      detail: '기존 문구를 유지했습니다.',
-      tone: 'reported',
-      page: 'builder'
-    });
-    showToast('AI 제안을 취소하고 기존 문구를 유지했습니다.');
-    renderReportBuilder();
-  });
-
-  document.querySelectorAll('[data-builder-empty-nav]').forEach((button) => {
-    button.addEventListener('click', () => {
-      render(button.dataset.builderEmptyNav || 'builder');
-    });
-  });
-
-  document.getElementById('builder-empty-import')?.addEventListener('click', () => {
-    state.builderImportOpen = true;
-    renderReportBuilder();
-  });
-
-  const builderToggleImport = document.getElementById('builder-toggle-import');
-  if (builderToggleImport) {
-    builderToggleImport.addEventListener('click', () => {
-      state.builderImportOpen = !state.builderImportOpen;
-      if (!state.builderImportOpen) {
-        state.builderImportUrl = '';
-        state.builderImportSection = 'major';
-      }
-      renderReportBuilder();
-    });
-  }
-
-  const builderImportUrl = document.getElementById('builder-import-url');
-  if (builderImportUrl) {
-    builderImportUrl.addEventListener('input', (event) => {
-      state.builderImportUrl = String(event.target.value || '');
-      syncBuilderImportInlineFeedback();
-    });
-  }
-
-  app.querySelectorAll('[data-builder-import-section]').forEach((button) => {
-    button.addEventListener('click', () => {
-      state.builderImportSection = button.dataset.builderImportSection === 'industry' ? 'industry' : 'major';
-      renderReportBuilder();
-    });
-  });
-
-  const builderImportCancel = document.getElementById('builder-import-cancel');
-  if (builderImportCancel) {
-    builderImportCancel.addEventListener('click', () => {
-      state.builderImportOpen = false;
-      state.builderImportUrl = '';
-      state.builderImportSection = 'major';
-      renderReportBuilder();
-    });
-  }
-
-  const builderImportForm = document.getElementById('builder-import-form');
-  if (builderImportForm) {
-    builderImportForm.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      await submitBuilderImportedArticle();
-    });
-  }
-
-  document.getElementById('builder-import-duplicate-jump')?.addEventListener('click', () => {
-    if (existingImportLocation) {
-      focusExistingArticleLocation(existingImportLocation);
-    }
-  });
+const baseRenderReportBuilder = renderReportBuilder;
+renderReportBuilder = function renderReportBuilderOverride() {
+  updateShellMeta();
+  const result = baseRenderReportBuilder();
+  app.querySelectorAll('#builder-detail-panel .detail-static-row').forEach((row) => row.remove());
+  return result;
 };
 
 renderKakaoPreview = function renderKakaoPreviewOverride() {
   updateShellMeta();
-  const sections = getReportSections();
-  const reportItemCount = sections.major.length + sections.industry.length;
   const fullText = getCurrentReportText();
   const derivedSegments = buildKakaoPreviewSegments();
   const activeSegment = derivedSegments.find((segment) => segment.order === state.selectedSegmentOrder) || derivedSegments[0] || null;
@@ -6505,103 +4100,8 @@ renderKakaoPreview = function renderKakaoPreviewOverride() {
     state.selectedSegmentOrder = activeSegment.order;
   }
 
-  if (!reportItemCount) {
-    app.innerHTML = `
-      <section class="page" id="kakao-preview-page">
-        ${renderWorkflowProgress('kakao')}
-        <div class="kakao-layout kakao-layout-empty">
-          <article class="card kakao-empty-hero">
-            ${renderAnnotation('SCR-KAKAO-EMPTY-001')}
-            <div class="panel-heading">
-              <div>
-                <p class="panel-kicker">Message Ready</p>
-                <h3>초안이 만들어지면 여기서 바로 검수합니다</h3>
-              </div>
-              <span class="panel-pill tone-neutral">검수 준비 전</span>
-            </div>
-            <div class="kakao-empty-grid">
-              <div class="kakao-empty-copy">
-                <p class="small-copy">리포트 빌더에서 기사 카드를 반영하면 전체 메시지, 분할 파트, 복사 버튼이 이 화면에 바로 열립니다. 지금은 거대한 폰 목업 대신 검수 순서만 먼저 보여줍니다.</p>
-                <div class="kakao-empty-checklist">
-                  ${[
-                    '기사 인박스에서 필요한 기사 선택',
-                    '리포트 빌더에서 문구 정리',
-                    '카카오 프리뷰에서 전체/분할 길이 최종 확인'
-                  ].map((item) => `<div class="kakao-empty-check"><strong>${escapeHtml(item)}</strong></div>`).join('')}
-                </div>
-                <div class="inline-actions compact stack-mobile">
-                  <button class="primary-btn" id="kakao-empty-to-builder">리포트 빌더로 이동</button>
-                  <button class="ghost-btn" id="kakao-empty-to-inbox">기사 인박스 보기</button>
-                </div>
-              </div>
-              <div class="kakao-empty-sample">
-                <div class="kakao-empty-sample-head">
-                  <strong>Daily Comm Report</strong>
-                  <span>검수 예시</span>
-                </div>
-                <div class="kakao-empty-sample-body">
-                  <p class="bubble-meta">전체 메시지 · 준비 전</p>
-                  <div class="kakao-empty-bubble">기사 2~3건을 반영하면 여기서 실제 카카오 메시지를 한 번에 검수할 수 있습니다.</div>
-                  <div class="kakao-empty-segments">
-                    <span class="panel-pill tone-neutral">Part 1</span>
-                    <span class="panel-pill tone-neutral">Part 2</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </article>
-
-          <aside class="card kakao-side-card kakao-empty-side">
-            <div class="panel-heading">
-              <div>
-                <p class="panel-kicker">검수 체크리스트</p>
-                <h3>비어 있을 때 먼저 할 일</h3>
-              </div>
-              <span class="panel-pill tone-neutral">3단계</span>
-            </div>
-            <div class="segment-tabs">
-              <button class="active" type="button" disabled>
-                <span>기사 반영</span>
-                <small>인박스에서 시작</small>
-              </button>
-              <button type="button" disabled>
-                <span>초안 편집</span>
-                <small>빌더에서 문구 정리</small>
-              </button>
-              <button type="button" disabled>
-                <span>메시지 검수</span>
-                <small>여기서 최종 확인</small>
-              </button>
-            </div>
-            <div class="draft-summary">
-              <div>
-                <span>리포트 기사</span>
-                <strong>0건</strong>
-              </div>
-              <div>
-                <span>예상 파트 수</span>
-                <strong>-</strong>
-              </div>
-            </div>
-          </aside>
-        </div>
-      </section>
-    `;
-
-    bindWorkflowProgressActions();
-
-    document.getElementById('kakao-empty-to-builder')?.addEventListener('click', () => {
-      render('builder');
-    });
-    document.getElementById('kakao-empty-to-inbox')?.addEventListener('click', () => {
-      render('inbox');
-    });
-    return;
-  }
-
   app.innerHTML = `
     <section class="page" id="kakao-preview-page">
-      ${renderWorkflowProgress('kakao')}
       <div class="kakao-layout">
         <article class="card kakao-device-card">
           ${renderAnnotation('SCR-KAKAO-DEVICE-001')}
@@ -6702,8 +4202,6 @@ renderKakaoPreview = function renderKakaoPreviewOverride() {
     </section>
   `;
 
-  bindWorkflowProgressActions();
-
   const kakaoFullTab = app.querySelector('[data-kakao-view="full"]');
   const kakaoSegmentedTab = app.querySelector('[data-kakao-view="segmented"]');
   const kakaoPanels = app.querySelectorAll('.phone-screen');
@@ -6751,24 +4249,12 @@ renderKakaoPreview = function renderKakaoPreviewOverride() {
 
   document.getElementById('copy-all').addEventListener('click', async () => {
     await navigator.clipboard.writeText(fullText);
-    pushActivityLog({
-      title: '카카오 전체 복사',
-      detail: `전체 메시지 ${formatNumber(totalChars)}자를 복사했습니다.`,
-      tone: 'warning',
-      page: 'kakao'
-    });
     showToast('전체 메시지를 복사했습니다.');
   });
 
   document.getElementById('copy-current').addEventListener('click', async () => {
     if (!activeSegment) return;
     await navigator.clipboard.writeText(activeSegment.content);
-    pushActivityLog({
-      title: '카카오 파트 복사',
-      detail: `Part ${formatNumber(activeSegment.order)} ${formatNumber(activeSegmentChars)}자를 복사했습니다.`,
-      tone: 'warning',
-      page: 'kakao'
-    });
     showToast(`Part ${activeSegment.order} 복사 완료`);
   });
 };
@@ -6790,8 +4276,6 @@ renderSettings = function renderSettingsOverride() {
   const validationPolicy = config.validation && typeof config.validation === 'object'
     ? config.validation
     : { strict: false, minValidUrlRatio: 0 };
-  const deployment = deploymentConfig(config);
-  const alertDeliveryLabel = formatAlertDeliveryLabel(alertPolicy);
   const settingsPolicyRows = [
     {
       label: '재시도 정책',
@@ -6804,10 +4288,6 @@ renderSettings = function renderSettingsOverride() {
         : '비활성'
     },
     {
-      label: '알림 수신처',
-      value: alertDeliveryLabel
-    },
-    {
       label: '허용 도메인',
       value: allowedDomains.length
         ? `${allowedDomains[0]}${allowedDomains.length > 1 ? ` 외 ${formatNumber(allowedDomains.length - 1)}개` : ''}`
@@ -6818,38 +4298,11 @@ renderSettings = function renderSettingsOverride() {
       value: `${validationPolicy.strict ? '엄격 검증' : '기본 검증'} · 최소 ${formatNumber(Math.round(Number(validationPolicy.minValidUrlRatio || 0) * 100))}%`
     },
     {
-      label: '배포 공개 범위',
-      value: formatSettingsVisibility(deployment.visibility)
-    },
-    {
-      label: 'AI API',
-      value: hasRemoteAiConfigured(config) ? formatApiHostLabel(deployment.aiApiBase) : '로컬 기본 경로'
-    },
-    {
       label: 'AI 연결',
-      value: `${hasRemoteAiConfigured(config) ? '외부 API 연동' : '로컬 API 기본'} · ${formatSettingsVisibility(deployment.visibility)}`
-    },
-    {
-      label: '마지막 반영 데이터',
-      value: formatDateTime(state.articleMeta?.generatedAt || state.report?.generatedAt)
+      value: `${hasRemoteAiConfigured(config) ? '외부 API 연동' : '로컬 API 기본'} · ${formatSettingsVisibility(deploymentConfig(config).visibility)}`
     }
   ];
-  [
-    '재시도 횟수와 간격이 길어질수록 실제 장애 인지가 늦어질 수 있습니다.',
-    '알림 채널이 비활성이면 크롤링 실패를 운영자가 직접 발견해야 합니다.',
-    '수신처가 잘못되면 장애가 나도 담당자에게 도착하지 않습니다.',
-    '허용 도메인이 좁을수록 잘못된 링크 유입은 줄지만 기사 누락 가능성은 커질 수 있습니다.',
-    '검증 기준이 높을수록 링크 품질은 좋아지지만 usable 기사 수는 줄 수 있습니다.',
-    '배포 공개 범위는 노출 가능한 기능과 운영 카드 범위를 함께 바꿉니다.',
-    'AI API 경로가 바뀌면 요약과 기사 링크 추가 동선이 함께 영향을 받습니다.',
-    '외부 AI 연결 여부에 따라 공개 배포판에서 가능한 기능 범위가 달라집니다.',
-    '마지막 반영 시각이 오래되면 운영자가 오늘 데이터로 오인할 수 있습니다.'
-  ].forEach((impact, index) => {
-    if (settingsPolicyRows[index]) {
-      settingsPolicyRows[index].impact = impact;
-    }
-  });
-  const showOpsPolicyCard = deployment.visibility !== 'public-readonly';
+  const showOpsPolicyCard = deploymentConfig(config).visibility !== 'public-readonly';
   const renderTagList = (items, emptyTitle, emptyBody) =>
     items.length
       ? `<div class="settings-tag-list">${items.map((item) => `<span class="settings-tag">${escapeHtml(item)}</span>`).join('')}</div>`
@@ -6897,88 +4350,46 @@ renderSettings = function renderSettingsOverride() {
         </article>
 
         ${showOpsPolicyCard
-          ? `<article class="card settings-card settings-policy-link-card">
+          ? `<article class="card settings-card">
               ${renderAnnotation('SCR-SET-DICT-001')}
               <div class="panel-heading">
                 <div>
                   <p class="panel-kicker">Operations Policy</p>
-                  <h3>운영 정책 보기</h3>
+                  <h3>운영 정책 요약</h3>
                 </div>
-                <button class="ghost-btn" id="open-settings-policy-modal">팝업 열기</button>
+                <span class="panel-pill">${formatNumber(settingsPolicyRows.length)}개</span>
               </div>
-              <p class="small-copy">운영 정책 요약과 장애 알림 점검 정보는 별도 팝업에서 확인합니다.</p>
-              <div class="settings-trust-banner">
-                <strong>장애 알림은 ${escapeHtml(alertDeliveryLabel)}.</strong>
-                <span>배포 공개 범위 ${escapeHtml(formatSettingsVisibility(deployment.visibility))} · 마지막 데이터 ${escapeHtml(formatDateTime(state.articleMeta?.generatedAt || state.report?.generatedAt))}</span>
+              <p class="small-copy">크롤링 재시도, 장애 알림, 허용 도메인, 검증 기준, AI 연결 상태처럼 운영 안정성에 직접 영향을 주는 설정만 한 카드에서 빠르게 확인합니다.</p>
+              <div class="settings-list">
+                ${settingsPolicyRows.map((row) => `
+                    <div class="settings-row">
+                      <strong>${escapeHtml(row.label)}</strong>
+                      <span>${escapeHtml(row.value)}</span>
+                    </div>
+                  `).join('')}
               </div>
             </article>`
           : ''}
       </div>
 
-      ${showOpsPolicyCard ? renderOperationalMicroPolicyCard('settings') : ''}
-      ${showOpsPolicyCard ? renderSettingsPolicyModal({ settingsPolicyRows, alertPolicy, deployment }) : ''}
-
-      <article class="card toolbar-card settings-readonly-card">
+      <article class="card toolbar-card">
         ${renderAnnotation('SCR-SET-ACTION-001')}
-        <p class="small-copy">현재 배포본의 설정 페이지는 확인 전용입니다. 실제 운영 값 수정은 설정 파일과 배포 파이프라인에서 관리되고, 이 화면에서는 키워드와 스케줄 상태만 안전하게 점검할 수 있습니다.</p>
+        <p class="small-copy">설정 편집 UI는 읽기 전용 상태이며, 저장 버튼은 현재 확인용 액션입니다.</p>
         <div class="inline-actions compact">
-          <button class="ghost-btn" id="settings-to-builder">리포트 빌더 보기</button>
+          <button class="ghost-btn" id="cancel-settings">취소</button>
+          <button class="primary-btn" id="save-settings" aria-label="Save settings">설정 저장</button>
         </div>
       </article>
     </section>
   `;
 
-  document.getElementById('settings-to-builder').addEventListener('click', () => {
-    render('builder');
-  });
-  document.getElementById('open-settings-policy-modal')?.addEventListener('click', () => {
-    state.settingsPolicyModalOpen = true;
+  document.getElementById('cancel-settings').addEventListener('click', () => {
     renderSettings();
+    showToast('변경사항을 취소했습니다.');
   });
-  document.getElementById('close-settings-policy-modal')?.addEventListener('click', () => {
-    state.settingsPolicyModalOpen = false;
-    renderSettings();
-  });
-  document.getElementById('settings-policy-modal-backdrop')?.addEventListener('click', (event) => {
-    if (event.target.id !== 'settings-policy-modal-backdrop') return;
-    state.settingsPolicyModalOpen = false;
-    renderSettings();
-  });
-  document.getElementById('settings-alert-test')?.addEventListener('click', async () => {
-    if (state.settingsAlertTestBusy) return;
-    state.settingsAlertTestBusy = true;
-    state.settingsAlertTestResult = null;
-    renderSettings();
 
-    try {
-      const payload = await requestAlertTest(alertPolicy);
-      state.settingsAlertTestResult = {
-        state: payload?.mode === 'sent' ? 'ready' : 'warning',
-        title: payload?.mode === 'sent' ? '테스트 알림을 발송했습니다.' : '테스트 알림 payload를 검증했습니다.',
-        description: payload?.description || '전달 방식과 메시지 구성을 점검했습니다.',
-        meta: payload?.subject
-          ? `${formatAlertDeliveryLabel(alertPolicy)} / ${payload.subject}`
-          : formatAlertDeliveryLabel(alertPolicy)
-      };
-      pushActivityLog({
-        title: '장애 알림 점검',
-        detail: state.settingsAlertTestResult.meta || '전달 방식과 payload를 점검했습니다.',
-        tone: payload?.mode === 'sent' ? 'warning' : 'reported',
-        page: 'settings'
-      });
-      showToast(state.settingsAlertTestResult.title);
-    } catch (error) {
-      state.settingsAlertTestResult = {
-        state: 'invalid',
-        title: '테스트 알림 점검에 실패했습니다.',
-        description: error instanceof Error ? error.message : '알림 설정을 다시 확인해 주세요.',
-        meta: ''
-      };
-      showToast(state.settingsAlertTestResult.description);
-    } finally {
-      state.settingsAlertTestBusy = false;
-      renderSettings();
-    }
+  document.getElementById('save-settings').addEventListener('click', () => {
+    showToast('설정이 저장되었습니다.');
   });
 };
 
@@ -7029,172 +4440,6 @@ buildMediaDistribution = function buildMediaDistributionOverride() {
     }));
 };
 
-function dateKeyToUtcDayIndex(dateKey) {
-  const match = String(dateKey || '').match(/^(\d{4})-(\d{2})-(\d{2})$/u);
-  if (!match) return Number.NaN;
-  const [, year, month, day] = match;
-  return Math.floor(Date.UTC(Number(year), Number(month) - 1, Number(day)) / 86400000);
-}
-
-function buildOperationalMicroPolicies() {
-  const stats = getStats();
-  const articles = state.articles;
-  const total = Math.max(articles.length, 1);
-  const currentDateKey = currentSeoulDateKey();
-  const dataDateIndex = dateKeyToUtcDayIndex(state.date);
-  const currentDateIndex = dateKeyToUtcDayIndex(currentDateKey);
-  const lagDays = Number.isFinite(dataDateIndex) && Number.isFinite(currentDateIndex)
-    ? Math.max(currentDateIndex - dataDateIndex, 0)
-    : 0;
-  const failedKeywords = Array.isArray(stats.failedKeywords) ? stats.failedKeywords.filter(Boolean) : [];
-  const majorCount = articles.filter((article) => article.section === 'major').length;
-  const majorShare = Math.round((majorCount / total) * 100);
-  const mediaItems = buildMediaDistribution();
-  const topMedia = mediaItems[0] || null;
-  const keywordCounts = Object.entries(
-    articles.reduce((acc, article) => {
-      const key = String(article.keyword || '').trim();
-      if (!key) return acc;
-      acc[key] = (acc[key] || 0) + 1;
-      return acc;
-    }, {})
-  ).sort((left, right) => right[1] - left[1]);
-  const [topKeywordName = '', topKeywordCount = 0] = keywordCounts[0] || [];
-  const topKeywordShare = topKeywordCount ? Math.round((topKeywordCount / total) * 100) : 0;
-  const blockedTextCount = Number(stats.droppedBlockedTextCount || 0);
-  const noUsableCandidatePages = Number(stats.noUsableCandidatePages || 0);
-
-  const items = [
-    lagDays > 0
-      ? {
-          statusClass: 'warning',
-          statusLabel: '주의',
-          title: '데이터 기준일 지연',
-          detail: `오늘은 ${formatDateLabel(currentDateKey)}인데 현재 로드 데이터는 ${formatDateLabel(state.date)} 기준입니다.`,
-          meta: `+${formatNumber(lagDays)}일`
-        }
-      : {
-          statusClass: 'reported',
-          statusLabel: '정상',
-          title: '데이터 기준일',
-          detail: `현재 화면은 ${formatDateLabel(state.date)} 당일 데이터 기준으로 동작합니다.`,
-          meta: formatDateLabel(state.date)
-        },
-    failedKeywords.length
-      ? {
-          statusClass: 'warning',
-          statusLabel: '주의',
-          title: '실패 키워드 확인',
-          detail: `이번 수집에서 ${failedKeywords.join(', ')} 키워드는 usable candidate를 만들지 못했습니다.`,
-          meta: `${formatNumber(failedKeywords.length)}개`
-        }
-      : {
-          statusClass: 'selected',
-          statusLabel: '안정',
-          title: '키워드 커버리지',
-          detail: '설정된 키워드가 모두 usable article을 확보했습니다.',
-          meta: '누락 없음'
-        },
-    majorCount < 8 || majorShare < 10
-      ? {
-          statusClass: 'warning',
-          statusLabel: '주의',
-          title: '주요 보도 부족',
-          detail: `전체 ${formatNumber(articles.length)}건 중 주요 보도는 ${formatNumber(majorCount)}건(${formatNumber(majorShare)}%)입니다.`,
-          meta: `${formatNumber(majorCount)}건`
-        }
-      : {
-          statusClass: 'selected',
-          statusLabel: '안정',
-          title: '주요/업계 비중',
-          detail: `주요 보도 ${formatNumber(majorCount)}건, 업계 보도 ${formatNumber(Math.max(articles.length - majorCount, 0))}건으로 분포가 유지됩니다.`,
-          meta: `${formatNumber(majorShare)}%`
-        },
-    topMedia && topMedia.percent >= 20
-      ? {
-          statusClass: 'warning',
-          statusLabel: '주의',
-          title: '매체 편중 감시',
-          detail: `${topMedia.name}가 ${formatNumber(topMedia.count)}건으로 전체의 ${formatNumber(topMedia.percent)}%를 차지합니다.`,
-          meta: `${formatNumber(topMedia.percent)}%`
-        }
-      : {
-          statusClass: 'selected',
-          statusLabel: '안정',
-          title: '매체 분산',
-          detail: topMedia
-            ? `상위 매체 ${topMedia.name} 비중이 ${formatNumber(topMedia.percent)}% 수준입니다.`
-            : '집계할 매체 데이터가 아직 없습니다.',
-          meta: topMedia ? topMedia.name : '-'
-        },
-    topKeywordName && topKeywordShare >= 15
-      ? {
-          statusClass: 'warning',
-          statusLabel: '주의',
-          title: '키워드 편중 감시',
-          detail: `${topKeywordName} 관련 기사가 ${formatNumber(topKeywordCount)}건으로 전체의 ${formatNumber(topKeywordShare)}%입니다.`,
-          meta: `${formatNumber(topKeywordShare)}%`
-        }
-      : {
-          statusClass: 'reported',
-          statusLabel: '정상',
-          title: '키워드 분포',
-          detail: topKeywordName
-            ? `최다 키워드는 ${topKeywordName} ${formatNumber(topKeywordCount)}건입니다.`
-            : '키워드 분포를 계산할 데이터가 없습니다.',
-          meta: topKeywordName ? topKeywordName : '-'
-        },
-    {
-      statusClass: blockedTextCount >= 20 || noUsableCandidatePages >= 50 ? 'reported' : 'selected',
-      statusLabel: blockedTextCount >= 20 || noUsableCandidatePages >= 50 ? '필터링' : '정상',
-      title: '노이즈 차단',
-      detail: `차단 텍스트 ${formatNumber(blockedTextCount)}건, usable candidate 없음 ${formatNumber(noUsableCandidatePages)}페이지를 걸러냈습니다.`,
-      meta: `${formatNumber(blockedTextCount)}건`
-    }
-  ];
-
-  return {
-    items,
-    warningCount: items.filter((item) => item.statusClass === 'warning' || item.statusClass === 'failed').length
-  };
-}
-
-function renderOperationalMicroPolicyCard(context = 'dashboard') {
-  const { items, warningCount } = buildOperationalMicroPolicies();
-  const dashboardMode = context === 'dashboard';
-  const wrapperClass = dashboardMode
-    ? 'card panel-card dashboard-card dashboard-card-ops'
-    : 'card settings-card settings-ops-card';
-  const summaryLabel = warningCount ? `${formatNumber(warningCount)}개 주의` : '안정적';
-
-  return `
-    <article class="${wrapperClass}">
-      <div class="panel-heading dashboard-panel-heading">
-        <div>
-          <p class="panel-kicker">Guardrails</p>
-          <h3>운영 미세 폴리시</h3>
-        </div>
-        ${dashboardMode
-          ? `<button class="ghost-btn" id="dashboard-open-settings">설정 보기</button>`
-          : `<span class="panel-pill">${summaryLabel}</span>`}
-      </div>
-      <p class="panel-note ops-policy-note">실데이터 기준으로 기준일 지연, 실패 키워드, 편중 신호를 즉시 확인합니다.</p>
-      <div class="ops-policy-list">
-        ${items.map((item) => `
-          <div class="ops-policy-item is-${escapeHtml(item.statusClass)}">
-            <span class="status-badge status-${escapeHtml(item.statusClass)}">${escapeHtml(item.statusLabel)}</span>
-            <div class="ops-policy-copy">
-              <strong>${escapeHtml(item.title)}</strong>
-              <p>${escapeHtml(item.detail)}</p>
-            </div>
-            <span class="ops-policy-meta">${escapeHtml(item.meta || '')}</span>
-          </div>
-        `).join('')}
-      </div>
-    </article>
-  `;
-}
-
 buildRunLogs = function buildRunLogsOverride() {
   const stats = getStats();
   const stamp = state.articleMeta?.generatedAt || state.report?.generatedAt || new Date().toISOString();
@@ -7217,28 +4462,6 @@ buildRunLogs = function buildRunLogsOverride() {
   ];
 };
 
-function renderRecentActivityLog(limit = 6) {
-  const items = state.activityLog.slice(0, limit);
-  if (!items.length) {
-    return renderDataEmpty('activity-log-empty', '최근 작업 로그가 없습니다', '기사 반영, AI 적용, 카카오 복사 같은 운영 작업이 이곳에 누적됩니다.');
-  }
-
-  return `
-    <div class="run-log-list activity-log-list">
-      ${items.map((item) => `
-        <div class="run-log-row">
-          <div class="run-log-main">
-            <strong>${escapeHtml(item.title)}</strong>
-            <span class="run-log-time">${escapeHtml(formatDateTime(item.createdAt))}</span>
-          </div>
-          <span class="status-badge status-${escapeHtml(item.tone || 'reported')}">${escapeHtml(item.page || '작업')}</span>
-          <p class="run-log-detail">${escapeHtml(item.detail || '운영 작업 기록')}</p>
-        </div>
-      `).join('')}
-    </div>
-  `;
-}
-
 renderDashboard = function renderDashboardOverride() {
   const stats = getStats();
   const sections = getReportSections();
@@ -7249,16 +4472,11 @@ renderDashboard = function renderDashboardOverride() {
   const trendItems = buildTrendItems();
   const mediaItems = buildMediaDistribution();
   const runLogs = buildRunLogs();
-  const spotlight = state.articles.filter((article) => !isArticleAssigned(article)).slice(0, 5);
-  const spotlightItems = spotlight.length ? spotlight : state.articles.slice(0, 5);
+  const spotlight = state.articles.slice(0, 5);
   const coverageRatio = total ? Math.round((reported / total) * 100) : 0;
-  const flow = buildDashboardFlowState({ total, reported });
 
   app.innerHTML = `
     <section class="page" id="dashboard-page">
-      ${renderFreshnessBanner()}
-      ${renderDashboardFlowCard(flow)}
-      ${renderDashboardPriorityStrip({ total, pending, reported, failed, coverageRatio })}
       <div class="kpi-grid">
         ${[
           ['오늘 수집 기사', `${formatNumber(total)}건`],
@@ -7341,7 +4559,6 @@ renderDashboard = function renderDashboardOverride() {
         </article>
 
         <article class="card panel-card dashboard-card dashboard-card-logs">
-          <div id="dashboard-log-panel"></div>
           ${renderAnnotation('SCR-DASH-LOG-001')}
           <div class="panel-heading">
             <div>
@@ -7362,9 +4579,9 @@ renderDashboard = function renderDashboardOverride() {
             `).join('')}
           </div>
           <div class="spotlight-list">
-            ${spotlightItems.length
-              ? spotlightItems.map((article) => `
-                <button class="spotlight-item" data-open-dashboard-article="${escapeHtml(articleKey(article))}">
+            ${spotlight.length
+              ? spotlight.map((article, index) => `
+                <button class="spotlight-item" data-open="${index}">
                   <span class="spotlight-tag ${sectionBadgeClass(article.section)}">${escapeHtml(sectionLabel(article.section))}</span>
                   <strong>${escapeHtml(article.title)}</strong>
                   <p>${escapeHtml(article.summary || '')}</p>
@@ -7378,59 +4595,17 @@ renderDashboard = function renderDashboardOverride() {
   `;
 
   document.getElementById('go-inbox').addEventListener('click', () => render('inbox'));
-  document.getElementById('dashboard-flow-primary')?.addEventListener('click', (event) => {
-    const page = event.currentTarget.dataset.dashboardPage || 'dashboard';
-    if (event.currentTarget.dataset.dashboardBuilderFocus === 'draft') {
-      state.builderSideView = 'draft';
-    }
-    render(page);
-  });
-  document.getElementById('dashboard-flow-secondary')?.addEventListener('click', (event) => {
-    const page = event.currentTarget.dataset.dashboardPage || '';
-    const scrollTarget = event.currentTarget.dataset.dashboardScroll || '';
-    if (page) {
-      render(page);
-      return;
-    }
-    if (scrollTarget) {
-      document.getElementById(scrollTarget)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  });
 
-  app.querySelectorAll('[data-dashboard-priority-page]').forEach((button) => {
-    button.addEventListener('click', (event) => {
-      const page = event.currentTarget.dataset.dashboardPriorityPage || '';
-      const scrollTarget = event.currentTarget.dataset.dashboardPriorityScroll || '';
-      if (page) {
-        render(page);
-        return;
-      }
-      if (scrollTarget) {
-        document.getElementById(scrollTarget)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    });
-  });
-
-  app.querySelectorAll('[data-open-dashboard-article]').forEach((button) => {
+  app.querySelectorAll('[data-open]').forEach((button) => {
     button.addEventListener('click', () => {
-      const article = findArticleRecord(button.dataset.openDashboardArticle || '');
+      const article = state.articles[Number(button.dataset.open)];
       if (article?.url) window.open(article.url, '_blank', 'noopener,noreferrer');
     });
   });
 };
 
 function render(pageName) {
-  const currentPage = state.activePage;
-  if (currentPage) {
-    state.pageScrollPositions[currentPage] = window.scrollY;
-  }
   state.activePage = pageName;
-  document.body.dataset.page = pageName;
-  if (pageName !== 'inbox') {
-    document.body.classList.remove('has-mobile-selection-bar');
-    document.body.classList.remove('has-mobile-preview-bar');
-    document.body.classList.remove('has-mobile-preview-sheet');
-  }
   setActiveNav();
   updateShellMeta();
 
@@ -7449,17 +4624,10 @@ function render(pageName) {
   if (pageName === 'builder') renderReportBuilder();
   if (pageName === 'kakao') renderKakaoPreview();
   if (pageName === 'settings') renderSettings();
-
-  const nextScrollTop = state.pageScrollPositions[pageName] ?? 0;
-  requestAnimationFrame(() => {
-    window.scrollTo({ top: nextScrollTop, left: 0, behavior: 'auto' });
-  });
 }
 
 async function loadData() {
   state.loading = true;
-  state.loadingPhase = 'source';
-  state.loadingMessage = '오늘 기사와 보고서 파일을 확인하고 있습니다.';
   state.loadError = '';
   render(state.activePage);
 
@@ -7468,42 +4636,26 @@ async function loadData() {
   let { articlePayload, reportPayload, segmentsPayload } = await fetchDateArtifacts(resolvedDate);
 
   if (!articlePayload) {
-    state.loadingMessage = '오늘 데이터가 없어 최신 발행일을 다시 확인하고 있습니다.';
-    render(state.activePage);
     const latestPayload = await fetchJson('../data/latest.json', null, { cacheBust: true, noStore: true });
     const fallbackDate = typeof latestPayload?.date === 'string' ? latestPayload.date : '';
 
     if (fallbackDate && fallbackDate !== resolvedDate) {
-      state.loadingMessage = `${formatDateLabel(fallbackDate)} 기준 데이터로 다시 불러오고 있습니다.`;
-      render(state.activePage);
       resolvedDate = fallbackDate;
       ({ articlePayload, reportPayload, segmentsPayload } = await fetchDateArtifacts(resolvedDate));
     }
   }
 
+  const configPayload = await configPromise;
+  const capabilitiesPayload = await fetchAiCapabilities(configPayload || {});
+
+  const articles = normalizeArticles(articlePayload);
+
   if (!articlePayload) {
     state.loading = false;
-    state.loadingPhase = '';
-    state.loadingMessage = '';
     state.loadError = `기사 파일을 찾을 수 없습니다: data/articles/${resolvedDate}.json`;
     render(state.activePage);
     return;
   }
-
-  state.loadingPhase = 'config';
-  state.loadingMessage = '운영 설정과 키워드 구성을 동기화하고 있습니다.';
-  render(state.activePage);
-  const configPayload = await configPromise;
-
-  state.loadingPhase = 'capabilities';
-  state.loadingMessage = 'AI 요약 기능과 연결 상태를 확인하고 있습니다.';
-  render(state.activePage);
-  const capabilitiesPayload = await fetchAiCapabilities(configPayload || {});
-
-  state.loadingPhase = 'ready';
-  state.loadingMessage = '기사 인박스와 보고서 초안을 준비하고 있습니다.';
-  render(state.activePage);
-  const articles = normalizeArticles(articlePayload);
 
   state.date = resolvedDate;
   state.articleMeta = articlePayload.metadata || null;
@@ -7517,19 +4669,15 @@ async function loadData() {
     model: String(capabilitiesPayload?.model || ''),
     requiresToken: Boolean(capabilitiesPayload?.requiresToken)
   };
-  const restoredDraft = initializeReportDraft();
+  initializeReportDraft();
   normalizeInboxKeywordFilter();
   state.loading = false;
-  state.loadingPhase = '';
-  state.loadingMessage = '';
   state.selectedArticle = state.articles[0] || null;
   state.selectedArticleUrls = [];
   state.previewMode = 'summary';
   state.aiBusyKey = '';
   ensureBuilderFocus();
-  if (!restoredDraft) {
-    state.reportTextDraft = generateReportText();
-  }
+  state.reportTextDraft = generateReportText();
 
   if (state.segments[0]) {
     state.selectedSegmentOrder = state.segments[0].order;
