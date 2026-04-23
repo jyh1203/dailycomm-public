@@ -2338,7 +2338,7 @@ function buildDashboardFlowState({ total, reported }) {
       eyebrow: '오늘 작업 시작',
       title: '먼저 수집 결과를 확인해 주세요',
       description: '기사 인박스에서 오늘 데이터가 들어왔는지 확인한 뒤, 리포트에 넣을 기사부터 고르면 됩니다.',
-      primary: { label: '기사 인박스 열기', page: 'inbox' },
+      primary: { label: '기사 선택하기', page: 'inbox' },
       secondary: { label: '설정 확인', page: 'settings' },
       steps
     };
@@ -2349,7 +2349,7 @@ function buildDashboardFlowState({ total, reported }) {
       eyebrow: '다음 행동',
       title: '기사 선택부터 시작하면 됩니다',
       description: `오늘 수집 기사 ${formatNumber(total)}건이 준비되어 있습니다. 기사 인박스에서 필요한 기사만 체크하고 리포트에 바로 추가하세요.`,
-      primary: { label: '기사 인박스에서 고르기', page: 'inbox' },
+      primary: { label: '기사 선택하기', page: 'inbox' },
       secondary: { label: '최근 실행 기록 보기', scrollTarget: 'dashboard-log-panel' },
       steps
     };
@@ -2359,8 +2359,8 @@ function buildDashboardFlowState({ total, reported }) {
     eyebrow: '다음 행동',
     title: '초안을 다듬고 카카오 전송 전 점검만 남았습니다',
     description: `리포트에 ${formatNumber(reported)}건이 반영되어 있습니다. 초안 문구를 정리한 뒤 카카오 프리뷰에서 최종 메시지를 확인하세요.`,
-    primary: { label: '보고서 초안 열기', page: 'builder', builderFocus: 'draft' },
-    secondary: { label: '카카오 프리뷰 보기', page: 'kakao' },
+    primary: { label: '초안 만들기', page: 'builder', builderFocus: 'draft' },
+    secondary: { label: '카카오 검수하기', page: 'kakao' },
     steps
   };
 }
@@ -2416,7 +2416,7 @@ function renderDashboardPriorityStrip({ total, pending, reported, failed, covera
       detail: pending
         ? `기사 인박스에서 필요한 후보를 먼저 고르면 오늘 수집 ${formatNumber(total)}건 중 우선 정리할 수 있습니다.`
         : '기사 인박스 선별이 끝났습니다. 리포트 빌더에서 문구를 다듬고 카카오 검수로 넘어가면 됩니다.',
-      actionLabel: pending ? '기사 인박스 열기' : '리포트 빌더 열기',
+      actionLabel: pending ? '기사 선택하기' : '초안 만들기',
       actionPage: pending ? 'inbox' : 'builder'
     },
     {
@@ -2435,7 +2435,7 @@ function renderDashboardPriorityStrip({ total, pending, reported, failed, covera
       detail: reported
         ? '기사 카드에서 문구를 다듬었다면 카카오 프리뷰에서 전체 메시지와 파트 길이를 최종 점검하세요.'
         : '반영된 기사가 아직 적습니다. 주요 보도와 업계 보도를 먼저 나누면 뒤쪽 단계가 훨씬 빨라집니다.',
-      actionLabel: reported ? '카카오 프리뷰 열기' : '리포트 빌더 열기',
+      actionLabel: reported ? '카카오 검수하기' : '초안 만들기',
       actionPage: reported ? 'kakao' : 'builder'
     }
   ];
@@ -2497,7 +2497,7 @@ function renderWorkflowProgress(currentPage = state.activePage) {
     <article class="card workflow-progress-card">
       <div class="workflow-progress-head">
         <div>
-          <p class="panel-kicker">Workflow</p>
+          <p class="panel-kicker">진행</p>
           <h3>현재 진행 상태</h3>
         </div>
         <span class="panel-pill tone-neutral">${items.filter((item) => item.state === 'complete').length}단계 완료</span>
@@ -2777,26 +2777,14 @@ function renderBuilderDraftPanel({ reportText, reportItemCount, totalDraftChars,
           <span class="panel-pill tone-neutral">업계 ${formatNumber(state.articles.filter((article) => article.section === 'industry').length)}건</span>
         </div>
         ${renderDataEmpty('builder-draft-empty', '초안이 아직 비어 있습니다', canImportArticles ? '기사 인박스에서 먼저 고르거나, 왼쪽 상단 기사 추가로 링크를 바로 넣어 시작해 보세요.' : '기사 인박스에서 기사를 추가해 초안을 시작해 보세요.')}
-        <div class="builder-empty-guide">
-          ${[
-            ['1', '기사 후보 먼저 고르기', `기사 인박스에서 오늘 수집 ${formatNumber(state.articles.length)}건 중 필요한 기사만 체크해 바로 반영합니다.`],
-            ['2', canImportArticles ? '링크 기사도 바로 추가' : '카드를 반영해 초안 시작', canImportArticles ? '왼쪽 상단 기사 추가 버튼으로 보고형 URL을 직접 넣어 초안을 채울 수 있습니다.' : '기사 인박스에서 반영한 카드가 이 초안 영역에 바로 쌓입니다.'],
-            ['3', '문구 편집 후 카카오 검수', '카드를 선택해 요약을 다듬으면 오른쪽 초안과 카카오 프리뷰에 바로 반영됩니다.']
-          ].map(([step, title, body]) => `
-            <div class="builder-empty-guide-card">
-              <span class="builder-empty-step">${escapeHtml(step)}</span>
-              <div class="builder-empty-guide-copy">
-                <strong>${escapeHtml(title)}</strong>
-                <p>${escapeHtml(body)}</p>
-              </div>
-            </div>
-          `).join('')}
+        <div class="toolbar-note builder-empty-note">
+          <strong>시작</strong>
+          <span>필요한 기사만 고르면 초안과 카카오 검수 화면이 자동으로 채워집니다.</span>
         </div>
         <div class="inline-actions compact stack-mobile builder-empty-actions">
-          <button class="primary-btn" type="button" data-builder-empty-nav="inbox">기사 인박스 보기</button>
-          ${canImportArticles ? '<button class="ghost-btn" type="button" id="builder-empty-import">기사 추가 열기</button>' : ''}
+          <button class="primary-btn" type="button" data-builder-empty-nav="inbox">기사 선택하기</button>
+          ${canImportArticles ? '<button class="ghost-btn" type="button" id="builder-empty-import">직접 링크 추가</button>' : ''}
         </div>
-        ${canImportArticles ? '<p class="panel-note builder-empty-note">링크 기사는 왼쪽 상단 기사 추가에서 바로 넣을 수 있습니다.</p>' : ''}
       </article>
     `;
   }
@@ -3712,11 +3700,11 @@ function updateWorkspaceActions() {
   if (!chrome.openReport) return;
 
   const actionByPage = {
-    dashboard: { label: '기사 인박스', targetPage: 'inbox', ariaLabel: 'Open Inbox Shortcut' },
-    inbox: { label: '리포트 빌더', targetPage: 'builder', ariaLabel: 'Open Report Builder' },
-    builder: { label: '카카오 프리뷰', targetPage: 'kakao', ariaLabel: 'Open Kakao Preview' },
-    kakao: { label: '리포트 빌더', targetPage: 'builder', ariaLabel: 'Open Report Builder' },
-    settings: { label: '리포트 빌더', targetPage: 'builder', ariaLabel: 'Open Report Builder' }
+    dashboard: { label: '기사 선택하기', targetPage: 'inbox', ariaLabel: 'Select Articles' },
+    inbox: { label: '초안 만들기', targetPage: 'builder', ariaLabel: 'Build Report Draft' },
+    builder: { label: '카카오 검수하기', targetPage: 'kakao', ariaLabel: 'Review Kakao Preview' },
+    kakao: { label: '초안 수정하기', targetPage: 'builder', ariaLabel: 'Edit Report Draft' },
+    settings: { label: '초안 만들기', targetPage: 'builder', ariaLabel: 'Build Report Draft' }
   };
 
   const action = actionByPage[state.activePage] || null;
@@ -3884,7 +3872,7 @@ function renderFreshnessBanner() {
   return `
     <article class="card freshness-banner">
       <div>
-        <p class="panel-kicker">Freshness Check</p>
+        <p class="panel-kicker">데이터 상태</p>
         <h3>오늘 최신 데이터가 아닙니다</h3>
       </div>
       <p>${escapeHtml(freshness.runtimeLabel)}</p>
@@ -5400,6 +5388,8 @@ renderInbox = function renderInboxOverride() {
   const canOpenSelected = selectedArticles.some((article) => Boolean(article?.url));
   const searchQuery = String(state.inboxSearchQuery || '').trim();
   const activeFilterCount = activeInboxFilterCount();
+  const advancedFilterCount = activeFilterCount - (searchQuery ? 1 : 0);
+  const advancedFiltersOpen = state.inboxFiltersOpen || advancedFilterCount > 0;
   const bulkHelpText = majorAssignment.blocked.length
     ? `체크한 기사는 여기서 한 번에 추가하고, 현재 기사 1건은 행 버튼과 오른쪽 패널에서 처리합니다. 업계 보도 기사 ${formatNumber(majorAssignment.blocked.length)}건은 주요 보도만으로는 옮길 수 없습니다.`
     : selectedCount
@@ -5419,7 +5409,7 @@ renderInbox = function renderInboxOverride() {
             ${renderAnnotation('SCR-INBOX-TABLE-001')}
             <div class="toolbar-topline">
               <div>
-                <p class="panel-kicker">Inbox Controls</p>
+                <p class="panel-kicker">기사 목록</p>
                 <h3>기사 목록</h3>
               </div>
               <div class="toolbar-meta">
@@ -5428,7 +5418,7 @@ renderInbox = function renderInboxOverride() {
             </div>
 
             <div class="table-control-stack">
-              <div class="table-control-bar">
+              <div class="table-control-bar inbox-essential-controls">
                 <div class="chip-group chip-group-inline">
                   ${[
                     ['all', '전체', statusCounts.all],
@@ -5441,6 +5431,15 @@ renderInbox = function renderInboxOverride() {
                     </button>
                   `).join('')}
                 </div>
+                <button
+                  class="ghost-btn inbox-advanced-toggle"
+                  id="inbox-toggle-advanced"
+                  type="button"
+                  aria-expanded="${advancedFiltersOpen}"
+                  aria-controls="inbox-advanced-panel"
+                >
+                  ${advancedFiltersOpen ? '고급 필터 접기' : `고급 필터${advancedFilterCount ? ` ${formatNumber(advancedFilterCount)}` : ''}`}
+                </button>
               </div>
 
               <div class="inbox-search-row">
@@ -5456,6 +5455,9 @@ renderInbox = function renderInboxOverride() {
                   />
                   ${searchQuery ? '<button class="ghost-btn search-clear-btn" id="inbox-search-clear" type="button">지우기</button>' : ''}
                 </label>
+              </div>
+
+              <div class="inbox-advanced-panel ${advancedFiltersOpen ? 'is-open' : ''}" id="inbox-advanced-panel" ${advancedFiltersOpen ? '' : 'hidden'}>
                 <div class="chip-group chip-group-inline inbox-status-group">
                   ${[
                     ['all', '전체 상태', statusFilterCounts.all],
@@ -5468,25 +5470,25 @@ renderInbox = function renderInboxOverride() {
                     </button>
                   `).join('')}
                 </div>
-              </div>
 
-              <div class="inbox-utility-row">
-                <div class="toolbar-stats inbox-results-pills">
-                  <span class="panel-pill tone-neutral">현재 범위 ${formatNumber(filterScope.length)}건</span>
-                  <span class="panel-pill tone-neutral">미반영 ${formatNumber(statusFilterCounts.unreported)}건</span>
-                  <span class="panel-pill tone-neutral">리포트 반영 ${formatNumber(assignedCount)}건</span>
-                  ${activeFilterCount ? `<span class="panel-pill tone-neutral">활성 필터 ${formatNumber(activeFilterCount)}개</span>` : ''}
-                  ${searchQuery ? `<span class="panel-pill tone-neutral">검색어 "${escapeHtml(searchQuery)}"</span>` : ''}
-                </div>
-                <div class="inline-actions compact inbox-jump-actions">
-                  ${activeFilterCount ? '<button class="ghost-btn" id="inbox-clear-filters">필터 초기화</button>' : ''}
-                  <button class="ghost-btn" id="jump-current-article" ${previewArticle ? '' : 'disabled'}>현재 기사로</button>
-                  <button class="ghost-btn" id="scroll-top-inbox">맨 위로</button>
+                <div class="inbox-utility-row">
+                  <div class="toolbar-stats inbox-results-pills">
+                    <span class="panel-pill tone-neutral">현재 범위 ${formatNumber(filterScope.length)}건</span>
+                    <span class="panel-pill tone-neutral">미반영 ${formatNumber(statusFilterCounts.unreported)}건</span>
+                    <span class="panel-pill tone-neutral">리포트 반영 ${formatNumber(assignedCount)}건</span>
+                    ${activeFilterCount ? `<span class="panel-pill tone-neutral">활성 필터 ${formatNumber(activeFilterCount)}개</span>` : ''}
+                    ${searchQuery ? `<span class="panel-pill tone-neutral">검색어 "${escapeHtml(searchQuery)}"</span>` : ''}
+                  </div>
+                  <div class="inline-actions compact inbox-jump-actions">
+                    ${activeFilterCount ? '<button class="ghost-btn" id="inbox-clear-filters">필터 초기화</button>' : ''}
+                    <button class="ghost-btn" id="jump-current-article" ${previewArticle ? '' : 'disabled'}>현재 기사로</button>
+                    <button class="ghost-btn" id="scroll-top-inbox">맨 위로</button>
+                  </div>
                 </div>
               </div>
             </div>
 
-            ${(state.inboxSavedPresets.length || state.inboxRecentSearches.length || activeFilterCount)
+            ${(advancedFiltersOpen && (state.inboxSavedPresets.length || state.inboxRecentSearches.length || activeFilterCount))
               ? `<div class="inbox-memory-stack">
                   <div class="inbox-memory-row">
                     <div class="inbox-memory-copy">
@@ -5526,7 +5528,7 @@ renderInbox = function renderInboxOverride() {
                 </div>`
               : ''}
 
-            ${state.inboxSectionFilter !== 'all' && keywordGroups.length
+            ${advancedFiltersOpen && state.inboxSectionFilter !== 'all' && keywordGroups.length
               ? `<div class="keyword-band-list">
                   ${keywordGroups.map((group) => `
                     <div class="keyword-filter-band">
@@ -5591,10 +5593,9 @@ renderInbox = function renderInboxOverride() {
             <div class="table table-articles">
               <div class="table-head">
                 <span class="table-head-label table-head-label-center">선택</span>
+                ${renderInboxSortHeader('title', '기사')}
                 <span class="table-head-label table-head-label-center">상태</span>
                 ${renderInboxSortHeader('media', '매체')}
-                ${renderInboxSortHeader('title', '기사')}
-                ${renderInboxSortHeader('keyword', '키워드')}
                 ${renderInboxSortHeader('time', '발행')}
                 <span class="table-head-label table-head-label-center">액션</span>
               </div>
@@ -5624,14 +5625,16 @@ renderInbox = function renderInboxOverride() {
                         <div class="selection-cell">
                           <input type="checkbox" data-select-article="${globalIndex}" ${picked ? 'checked' : ''} ${locked ? 'disabled' : ''} aria-label="select article ${globalIndex + 1}" />
                         </div>
-                        <div class="table-cell table-cell-status" data-label="상태"><span class="status-badge status-${escapeHtml(status)}">${escapeHtml(statusLabel(status))}</span></div>
-                        <div class="table-cell table-cell-media" data-label="매체">${escapeHtml(mediaLabel(article))}</div>
                         <div class="table-cell table-cell-title title-wrap">
-                          ${sourcePill ? `<div class="title-meta-strip">${sourcePill}</div>` : ''}
+                          <div class="title-meta-strip">
+                            ${sourcePill || ''}
+                            <span class="panel-pill tone-neutral">${escapeHtml(article.keyword || '키워드 없음')}</span>
+                          </div>
                           <strong>${highlightTitleKeywords(article.title, article)}</strong>
                           <p>${highlightSummaryKeywords(article.summary, article)}</p>
                         </div>
-                        <div class="table-cell table-cell-keyword" data-label="키워드">${escapeHtml(article.keyword || '-')}</div>
+                        <div class="table-cell table-cell-status" data-label="상태"><span class="status-badge status-${escapeHtml(status)}">${escapeHtml(statusLabel(status))}</span></div>
+                        <div class="table-cell table-cell-media" data-label="매체">${escapeHtml(mediaLabel(article))}</div>
                         <div class="table-cell table-cell-time" data-label="발행">${escapeHtml(formatArticlePublishedTime(article))}</div>
                         <div class="table-cell table-cell-actions">
                           ${renderInboxActionButton({
@@ -5680,6 +5683,11 @@ renderInbox = function renderInboxOverride() {
   `;
 
   bindWorkflowProgressActions();
+
+  document.getElementById('inbox-toggle-advanced')?.addEventListener('click', () => {
+    state.inboxFiltersOpen = !state.inboxFiltersOpen;
+    renderInbox();
+  });
 
   const addSelectedToReportButton = document.getElementById('add-selected-to-report');
   if (addSelectedToReportButton) {
@@ -6097,7 +6105,7 @@ renderReportBuilder = function renderReportBuilderOverride() {
                     <p class="small-copy">리포트 작성 중 필요한 기사 링크를 직접 추가하고, 주요 보도 또는 업계 보도로 바로 분류합니다.</p>
                   </div>
                   <button class="${state.builderImportOpen ? 'ghost-btn' : 'primary-btn'}" id="builder-toggle-import">
-                    ${state.builderImportOpen ? '입력 닫기' : '기사 추가'}
+                    ${state.builderImportOpen ? '입력 닫기' : '직접 링크 추가'}
                   </button>
                 </div>
                 ${state.builderImportOpen
@@ -6395,81 +6403,29 @@ renderKakaoPreview = function renderKakaoPreviewOverride() {
     app.innerHTML = `
       <section class="page" id="kakao-preview-page">
         ${renderWorkflowProgress('kakao')}
-        <div class="kakao-layout kakao-layout-empty">
+        <div class="kakao-layout kakao-layout-empty kakao-layout-empty-compact">
           <article class="card kakao-empty-hero">
             ${renderAnnotation('SCR-KAKAO-EMPTY-001')}
             <div class="panel-heading">
               <div>
-                <p class="panel-kicker">Message Ready</p>
-                <h3>초안이 만들어지면 여기서 바로 검수합니다</h3>
+                <p class="panel-kicker">검수 준비</p>
+                <h3>초안이 만들어지면 바로 검수합니다</h3>
               </div>
               <span class="panel-pill tone-neutral">검수 준비 전</span>
             </div>
-            <div class="kakao-empty-grid">
-              <div class="kakao-empty-copy">
-                <p class="small-copy">리포트 빌더에서 기사 카드를 반영하면 전체 메시지, 분할 파트, 복사 버튼이 이 화면에 바로 열립니다. 지금은 거대한 폰 목업 대신 검수 순서만 먼저 보여줍니다.</p>
-                <div class="kakao-empty-checklist">
-                  ${[
-                    '기사 인박스에서 필요한 기사 선택',
-                    '리포트 빌더에서 문구 정리',
-                    '카카오 프리뷰에서 전체/분할 길이 최종 확인'
-                  ].map((item) => `<div class="kakao-empty-check"><strong>${escapeHtml(item)}</strong></div>`).join('')}
-                </div>
-                <div class="inline-actions compact stack-mobile">
-                  <button class="primary-btn" id="kakao-empty-to-builder">리포트 빌더로 이동</button>
-                  <button class="ghost-btn" id="kakao-empty-to-inbox">기사 인박스 보기</button>
-                </div>
-              </div>
-              <div class="kakao-empty-sample">
-                <div class="kakao-empty-sample-head">
-                  <strong>Daily Comm Report</strong>
-                  <span>검수 예시</span>
-                </div>
-                <div class="kakao-empty-sample-body">
-                  <p class="bubble-meta">전체 메시지 · 준비 전</p>
-                  <div class="kakao-empty-bubble">기사 2~3건을 반영하면 여기서 실제 카카오 메시지를 한 번에 검수할 수 있습니다.</div>
-                  <div class="kakao-empty-segments">
-                    <span class="panel-pill tone-neutral">Part 1</span>
-                    <span class="panel-pill tone-neutral">Part 2</span>
-                  </div>
-                </div>
-              </div>
+            <p class="small-copy">리포트에 기사 1건 이상을 반영하면 전체 메시지, 분할 파트, 복사 버튼이 이 화면에 나타납니다.</p>
+            <div class="kakao-empty-checklist kakao-empty-checklist-compact">
+              ${[
+                '기사 선택',
+                '초안 정리',
+                '카카오 검수'
+              ].map((item) => `<span class="panel-pill tone-neutral">${escapeHtml(item)}</span>`).join('')}
+            </div>
+            <div class="inline-actions compact stack-mobile">
+              <button class="primary-btn" id="kakao-empty-to-builder">초안 만들기</button>
+              <button class="ghost-btn" id="kakao-empty-to-inbox">기사 선택하기</button>
             </div>
           </article>
-
-          <aside class="card kakao-side-card kakao-empty-side">
-            <div class="panel-heading">
-              <div>
-                <p class="panel-kicker">검수 체크리스트</p>
-                <h3>비어 있을 때 먼저 할 일</h3>
-              </div>
-              <span class="panel-pill tone-neutral">3단계</span>
-            </div>
-            <div class="segment-tabs">
-              <button class="active" type="button" disabled>
-                <span>기사 반영</span>
-                <small>인박스에서 시작</small>
-              </button>
-              <button type="button" disabled>
-                <span>초안 편집</span>
-                <small>빌더에서 문구 정리</small>
-              </button>
-              <button type="button" disabled>
-                <span>메시지 검수</span>
-                <small>여기서 최종 확인</small>
-              </button>
-            </div>
-            <div class="draft-summary">
-              <div>
-                <span>리포트 기사</span>
-                <strong>0건</strong>
-              </div>
-              <div>
-                <span>예상 파트 수</span>
-                <strong>-</strong>
-              </div>
-            </div>
-          </aside>
         </div>
       </section>
     `;
@@ -6493,7 +6449,7 @@ renderKakaoPreview = function renderKakaoPreviewOverride() {
           ${renderAnnotation('SCR-KAKAO-DEVICE-001')}
           <div class="panel-heading">
             <div>
-              <p class="panel-kicker">Message View</p>
+              <p class="panel-kicker">메시지</p>
               <h3>${state.kakaoView === 'full' ? '전체 메시지' : '분할 메시지'}</h3>
             </div>
             <div class="toggle" role="tablist" aria-label="kakao-view-toggle">
@@ -6735,11 +6691,21 @@ renderSettings = function renderSettingsOverride() {
       settingsPolicyRows[index].impact = impact;
     }
   });
-  const showOpsPolicyCard = deployment.visibility !== 'public-readonly';
-  const renderTagList = (items, emptyTitle, emptyBody) =>
-    items.length
-      ? `<div class="settings-tag-list">${items.map((item) => `<span class="settings-tag">${escapeHtml(item)}</span>`).join('')}</div>`
-      : renderDataEmpty(`settings-empty-${String(emptyTitle).replace(/\s+/g, '-').toLowerCase()}`, emptyTitle, emptyBody);
+  const showOpsPolicyCard = false;
+  const renderTagList = (items, emptyTitle, emptyBody, limit = 12) => {
+    if (!items.length) {
+      return renderDataEmpty(`settings-empty-${String(emptyTitle).replace(/\s+/g, '-').toLowerCase()}`, emptyTitle, emptyBody);
+    }
+
+    const visibleItems = items.slice(0, limit);
+    const hiddenCount = Math.max(items.length - visibleItems.length, 0);
+    return `
+      <div class="settings-tag-list">
+        ${visibleItems.map((item) => `<span class="settings-tag">${escapeHtml(item)}</span>`).join('')}
+        ${hiddenCount ? `<span class="settings-tag settings-tag-more">외 ${formatNumber(hiddenCount)}개</span>` : ''}
+      </div>
+    `;
+  };
 
   app.innerHTML = `
     <section class="page" id="settings-page">
@@ -6748,19 +6714,19 @@ renderSettings = function renderSettingsOverride() {
           ${renderAnnotation('SCR-SET-KEY-001')}
           <div class="panel-heading">
             <div>
-              <p class="panel-kicker">Keywords</p>
+              <p class="panel-kicker">키워드</p>
               <h3>키워드 관리</h3>
             </div>
             <span class="panel-pill">${formatNumber(keywordList().length)}개</span>
           </div>
-          ${renderTagList(keywordList(), '등록된 키워드가 없습니다', 'config에 키워드를 추가하면 이곳에 표시됩니다.')}
+          ${renderTagList(keywordList(), '등록된 키워드가 없습니다', 'config에 키워드를 추가하면 이곳에 표시됩니다.', 10)}
         </article>
 
         <article class="card settings-card">
           ${renderAnnotation('SCR-SET-SCHED-001')}
           <div class="panel-heading">
             <div>
-              <p class="panel-kicker">Schedule</p>
+              <p class="panel-kicker">스케줄</p>
               <h3>크롤링 스케줄</h3>
             </div>
             <span class="panel-pill">${formatNumber((config.schedule || []).length)}개</span>
@@ -6774,12 +6740,12 @@ renderSettings = function renderSettingsOverride() {
           ${renderAnnotation('SCR-SET-MEDIA-001')}
           <div class="panel-heading">
             <div>
-              <p class="panel-kicker">Whitelist</p>
+              <p class="panel-kicker">매체</p>
               <h3>매체 라벨</h3>
             </div>
             <span class="panel-pill">${formatNumber(mediaWhitelist().length)}개</span>
           </div>
-          ${renderTagList(mediaWhitelist(), '등록된 매체 라벨이 없습니다', '화이트리스트 매체를 추가하면 이곳에 표시됩니다.')}
+          ${renderTagList(mediaWhitelist(), '등록된 매체 라벨이 없습니다', '화이트리스트 매체를 추가하면 이곳에 표시됩니다.', 12)}
         </article>
 
         ${showOpsPolicyCard
@@ -6808,7 +6774,7 @@ renderSettings = function renderSettingsOverride() {
         ${renderAnnotation('SCR-SET-ACTION-001')}
         <p class="small-copy">현재 배포본의 설정 페이지는 확인 전용입니다. 실제 운영 값 수정은 설정 파일과 배포 파이프라인에서 관리되고, 이 화면에서는 키워드와 스케줄 상태만 안전하게 점검할 수 있습니다.</p>
         <div class="inline-actions compact">
-          <button class="ghost-btn" id="settings-to-builder">리포트 빌더 보기</button>
+          <button class="ghost-btn" id="settings-to-builder">초안 만들기</button>
         </div>
       </article>
     </section>
@@ -7145,23 +7111,6 @@ renderDashboard = function renderDashboardOverride() {
       ${renderFreshnessBanner()}
       ${renderDashboardFlowCard(flow)}
       ${renderDashboardPriorityStrip({ total, pending, reported, failed, coverageRatio })}
-      <div class="kpi-grid">
-        ${[
-          ['오늘 수집 기사', `${formatNumber(total)}건`],
-          ['리포트 반영률', `${coverageRatio}%`],
-          ['리포트 기사', `${formatNumber(reported)}건`],
-          ['미반영 기사', `${formatNumber(pending)}건`],
-          ['제외 / 실패', `${formatNumber(failed)}건`]
-        ].map(([label, value], index) => `
-          <article class="card kpi-card">
-            ${renderAnnotation(`SCR-DASH-CARD-00${index + 1}`)}
-            <div class="kpi-copy">
-              <h3>${escapeHtml(label)}</h3>
-            </div>
-            <p class="kpi-value">${escapeHtml(value)}</p>
-          </article>
-        `).join('')}
-      </div>
 
       <div class="dashboard-grid">
         <article class="card panel-card dashboard-card dashboard-card-trend">
