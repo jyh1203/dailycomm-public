@@ -5476,22 +5476,31 @@ main {
   font-size: 11px;
 }
 
-.table-card .icon-action-label {
-  display: none;
-}
-
+.table-card .icon-action-label,
 .table-card .row-action-btn .icon-action-icon {
   display: inline-flex;
 }
 
 .table-card .row-action-btn {
-  width: 40px;
-  min-width: 40px;
-  padding: 0;
+  width: auto;
+  min-width: 86px;
+  padding: 0 10px;
 }
 
 .table-card .table-cell-actions {
   justify-content: center;
+}
+
+@media (max-width: 1280px) {
+  .table-card .icon-action-label {
+    display: none;
+  }
+
+  .table-card .row-action-btn {
+    width: 40px;
+    min-width: 40px;
+    padding: 0;
+  }
 }
 
 .settings-tag {
@@ -5553,8 +5562,8 @@ main {
     display: flex;
     grid-template-columns: none;
     gap: 8px;
-    overflow-x: auto;
-    overflow-y: hidden;
+    overflow-x: visible;
+    overflow-y: visible;
     padding: 0 2px 4px;
     margin: 0 -2px;
     scrollbar-width: thin;

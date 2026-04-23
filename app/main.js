@@ -6671,7 +6671,7 @@ renderSettings = function renderSettingsOverride() {
       settingsPolicyRows[index].impact = impact;
     }
   });
-  const showOpsPolicyCard = false;
+  const showOpsPolicyCard = true;
   const renderTagList = (items, emptyTitle, emptyBody, limit = 12) => {
     if (!items.length) {
       return renderDataEmpty(`settings-empty-${String(emptyTitle).replace(/\s+/g, '-').toLowerCase()}`, emptyTitle, emptyBody);
