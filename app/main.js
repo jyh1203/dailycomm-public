@@ -143,23 +143,23 @@ const pageMeta = {
 const LOADING_STEPS = [
   {
     id: 'source',
-    label: '원본 확인',
-    description: '기사와 리포트 파일을 읽고 오늘 기준 데이터를 확인합니다.'
+    label: '데이터',
+    description: '기사 파일 확인'
   },
   {
     id: 'config',
-    label: '운영 설정',
-    description: '키워드와 분류 기준, 배포 설정을 동기화합니다.'
+    label: '설정',
+    description: '키워드 확인'
   },
   {
     id: 'capabilities',
-    label: 'AI 준비',
-    description: '요약 기능 사용 가능 여부와 연결 상태를 점검합니다.'
+    label: 'AI',
+    description: '필요 시 확인'
   },
   {
     id: 'ready',
-    label: '화면 구성',
-    description: '기사 인박스와 보고서 초안 화면을 정리합니다.'
+    label: '화면',
+    description: '인박스 준비'
   }
 ];
 
@@ -167,7 +167,7 @@ let state = {
   date: currentSeoulDateKey(),
   loading: true,
   loadingPhase: 'source',
-  loadingMessage: '오늘 기사와 보고서 파일을 확인하고 있습니다.',
+  loadingMessage: '오늘 데이터를 확인 중입니다.',
   loadError: '',
   articleMeta: null,
   articles: [],
@@ -312,9 +312,9 @@ function getDataFreshnessState(dateKey = state.date) {
     currentDateKey,
     lagDays,
     isLagging: lagDays > 0,
-    pillLabel: lagDays > 0 ? `${formatDateLabel(dateKey)} / ${formatNumber(lagDays)}일 지연` : formatDateLabel(dateKey),
+    pillLabel: lagDays > 0 ? `기준일 ${formatDateLabel(dateKey)} · ${formatNumber(lagDays)}일 전` : formatDateLabel(dateKey),
     runtimeLabel: lagDays > 0
-      ? `${formatDateLabel(currentDateKey)} 기준 최신 데이터가 아니어서 ${formatDateLabel(dateKey)} 데이터로 보고 있습니다.`
+      ? `오늘(${formatDateLabel(currentDateKey)}) 기준 최신 데이터가 아닙니다. 현재 ${formatDateLabel(dateKey)} 데이터를 보고 있습니다.`
       : `${formatDateLabel(dateKey)} 기준 최신 데이터를 보고 있습니다.`
   };
 }
@@ -487,8 +487,8 @@ function renderBuilderAiActionButton(key, options = {}) {
       : enabled && requiresToken && !storedToken
         ? '토큰 입력 후 정리'
         : canConnect
-          ? (storedToken ? 'AI 연결 후 정리' : 'AI 연결')
-          : 'AI 연결 필요';
+          ? (storedToken ? '요약 연결 후 정리' : 'AI 요약 연결')
+          : '요약 미지원';
   const tokenInput = showTokenInput && (canConnect || enabled || requiresToken)
     ? `
       <label class="ai-token-field">
@@ -2545,12 +2545,14 @@ function renderInboxPreviewContent(article, { prefix = 'preview', compact = fals
   const canAdd = canAddInboxReport(article);
   const addLabel = canAdd ? `${sectionLabel(targetSection)} 추가` : '리포트에 이미 반영됨';
   const summary = String(article.summary || article.title || '').trim();
+  const renderedSummary = compact ? truncateText(summary, 120) : summary;
+  const compactMeta = `${mediaLabel(article)} · ${article.keyword || '-'} · ${formatArticlePublishedTime(article)} · ${assigned ? '반영됨' : sectionLabel(targetSection)}`;
 
   return `
       <div class="panel-heading">
         <div>
-          <p class="panel-kicker">${compact ? 'Quick Preview' : 'Selected Article'}</p>
-          <h3>현재 기사</h3>
+          <p class="panel-kicker">${compact ? 'Quick' : 'Selected Article'}</p>
+          <h3>${compact ? '빠른 확인' : '현재 기사'}</h3>
         </div>
         <span class="panel-pill tone-neutral">${selected ? '체크됨' : '단건 액션'}</span>
       </div>
@@ -2560,26 +2562,28 @@ function renderInboxPreviewContent(article, { prefix = 'preview', compact = fals
           <span class="panel-pill tone-neutral">${escapeHtml(formatArticlePublishedTime(article))}</span>
         </div>
         <strong class="preview-inline-title">${escapeHtml(article.title || '')}</strong>
-        <p class="preview-summary">${escapeHtml(summary)}</p>
+        <p class="preview-summary">${escapeHtml(renderedSummary)}</p>
       </div>
-      <dl class="meta-list preview-meta-list">
-        <div>
-          <dt>매체</dt>
-          <dd>${escapeHtml(mediaLabel(article))}</dd>
-        </div>
-        <div>
-          <dt>키워드</dt>
-          <dd>${escapeHtml(article.keyword || '-')}</dd>
-        </div>
-        <div>
-          <dt>상태</dt>
-          <dd>${assigned ? '리포트 반영' : '대기'}</dd>
-        </div>
-        <div>
-          <dt>추천 섹션</dt>
-          <dd>${escapeHtml(sectionLabel(targetSection))}</dd>
-        </div>
-      </dl>
+      ${compact
+        ? `<p class="preview-compact-meta">${escapeHtml(compactMeta)}</p>`
+        : `<dl class="meta-list preview-meta-list">
+            <div>
+              <dt>매체</dt>
+              <dd>${escapeHtml(mediaLabel(article))}</dd>
+            </div>
+            <div>
+              <dt>키워드</dt>
+              <dd>${escapeHtml(article.keyword || '-')}</dd>
+            </div>
+            <div>
+              <dt>상태</dt>
+              <dd>${assigned ? '리포트 반영' : '대기'}</dd>
+            </div>
+            <div>
+              <dt>추천 섹션</dt>
+              <dd>${escapeHtml(sectionLabel(targetSection))}</dd>
+            </div>
+          </dl>`}
       <div class="inline-actions compact stack-mobile preview-actions">
         <button class="ghost-btn" type="button" id="${escapeHtml(prefix)}-open-article" ${article.url ? '' : 'disabled'}>기사 열기</button>
         ${canAdd
@@ -2615,7 +2619,6 @@ function renderMobilePreviewDock(article, { selectedCount = 0 } = {}) {
   if (!article || selectedCount > 0) return '';
 
   const open = Boolean(state.inboxPreviewOpen);
-  const summary = String(article.summary || article.title || '').trim();
 
   return `
     <div class="mobile-preview-region ${open ? 'is-open' : ''}">
@@ -2625,14 +2628,14 @@ function renderMobilePreviewDock(article, { selectedCount = 0 } = {}) {
           <strong>${escapeHtml(article.title || '')}</strong>
           <span>${escapeHtml(mediaLabel(article))} · ${escapeHtml(article.keyword || '-')} · ${escapeHtml(formatArticlePublishedTime(article))}</span>
         </div>
-        <span class="panel-pill tone-neutral">${summary ? `${formatNumber(characterLength(summary))}자` : '바로 보기'}</span>
+        <span class="panel-pill tone-neutral">열기</span>
       </button>
       <button class="mobile-preview-backdrop ${open ? 'is-open' : ''}" id="mobile-preview-close" type="button" aria-label="현재 기사 미리보기 닫기"></button>
       <div class="mobile-preview-sheet ${open ? 'is-open' : ''}" id="mobile-preview-sheet" role="dialog" aria-modal="false" aria-label="현재 기사 미리보기">
         <div class="mobile-preview-sheet-head">
           <div>
-            <p class="panel-kicker">Quick Preview</p>
-            <strong>현재 기사 빠른 확인</strong>
+            <p class="panel-kicker">Quick</p>
+            <strong>빠른 확인</strong>
           </div>
           <button class="ghost-btn" id="mobile-preview-dismiss" type="button">닫기</button>
         </div>
@@ -3177,6 +3180,12 @@ function characterLength(text) {
   return String(text || '').length;
 }
 
+function truncateText(text, maxLength = 120) {
+  const source = String(text || '').trim();
+  if (source.length <= maxLength) return source;
+  return `${source.slice(0, Math.max(maxLength - 1, 0)).trim()}…`;
+}
+
 function byteLength(text) {
   return new TextEncoder().encode(String(text || '')).length;
 }
@@ -3466,7 +3475,7 @@ function formatAlertDeliveryLabel(alertPolicy) {
   return `${String(alertPolicy?.channel || '알림').toUpperCase()} 채널로 전달됩니다`;
 }
 
-function renderSettingsPolicySummaryCard({ settingsPolicyRows, alertPolicy, deployment }) {
+function renderSettingsPolicySummaryCard({ settingsPolicyRows, alertPolicy, deployment, compact = false }) {
   return `
     <article class="card settings-card settings-policy-summary-card">
       <div class="panel-heading">
@@ -3476,7 +3485,7 @@ function renderSettingsPolicySummaryCard({ settingsPolicyRows, alertPolicy, depl
         </div>
         <span class="panel-pill">${formatNumber(settingsPolicyRows.length)}개</span>
       </div>
-      <p class="small-copy">크롤링 재시도, 장애 알림, 허용 도메인, 검증 기준, AI 연결 상태처럼 운영 안정성에 직접 영향을 주는 설정만 한 번에 확인합니다.</p>
+      <p class="small-copy">장애 알림, 허용 도메인, 검증 기준만 빠르게 확인합니다.</p>
       <div class="settings-trust-banner">
         <strong>장애 알림은 ${escapeHtml(formatAlertDeliveryLabel(alertPolicy))}.</strong>
         <span>배포 공개 범위 ${escapeHtml(formatSettingsVisibility(deployment.visibility))} · 마지막 데이터 ${escapeHtml(formatDateTime(state.articleMeta?.generatedAt || state.report?.generatedAt))}</span>
@@ -3487,7 +3496,7 @@ function renderSettingsPolicySummaryCard({ settingsPolicyRows, alertPolicy, depl
             <strong>${escapeHtml(row.label)}</strong>
             <div class="settings-row-copy">
               <span>${escapeHtml(row.value)}</span>
-              ${row.impact ? `<small>${escapeHtml(row.impact)}</small>` : ''}
+              ${!compact && row.impact ? `<small>${escapeHtml(row.impact)}</small>` : ''}
             </div>
           </div>
         `).join('')}
@@ -3509,9 +3518,9 @@ function renderSettingsPolicyModal({ settingsPolicyRows, alertPolicy, deployment
           </div>
           <button class="ghost-btn" id="close-settings-policy-modal">닫기</button>
         </div>
-        <p class="small-copy">운영 설정 요약과 장애 알림 점검 결과를 한 팝업에서 확인합니다.</p>
+        <p class="small-copy">핵심 운영 상태만 확인합니다.</p>
         <div class="settings-modal-body">
-          ${renderSettingsPolicySummaryCard({ settingsPolicyRows, alertPolicy, deployment })}
+          ${renderSettingsPolicySummaryCard({ settingsPolicyRows, alertPolicy, deployment, compact: true })}
           ${renderAlertTestCard(alertPolicy)}
         </div>
       </section>
@@ -3740,7 +3749,7 @@ function currentLoadingStepIndex() {
 function renderLoading() {
   const currentStepIndex = currentLoadingStepIndex();
   const currentStepCount = Math.min(currentStepIndex + 1, LOADING_STEPS.length);
-  const loadingMessage = state.loadingMessage || '기사, 리포트, 설정 파일을 순서대로 읽고 있습니다.';
+  const loadingMessage = state.loadingMessage || '데이터를 확인 중입니다.';
   const loadingStageMarkup = LOADING_STEPS.map((step, index) => {
     const status = index < currentStepIndex ? 'done' : index === currentStepIndex ? 'current' : 'pending';
     const statusLabel = status === 'done' ? '완료' : status === 'current' ? '진행 중' : '대기';
@@ -3770,7 +3779,7 @@ function renderLoading() {
           <div class="loading-copy">
             <span class="panel-kicker">Workspace Sync</span>
             <div class="loading-title-row">
-              <h3>데이터를 불러오는 중입니다</h3>
+              <h3>불러오는 중</h3>
               <span class="status-badge loading-progress">${currentStepCount} / ${LOADING_STEPS.length} 단계</span>
             </div>
             <p>${escapeHtml(loadingMessage)}</p>
@@ -3866,12 +3875,22 @@ function renderFreshnessBanner() {
   return `
     <article class="card freshness-banner">
       <div>
-        <p class="panel-kicker">데이터 상태</p>
-        <h3>오늘 최신 데이터가 아닙니다</h3>
+        <p class="panel-kicker">최신성 경고</p>
+        <h3>${escapeHtml(formatDateLabel(state.date))} 데이터입니다</h3>
       </div>
       <p>${escapeHtml(freshness.runtimeLabel)}</p>
     </article>
   `;
+}
+
+function mountGlobalFreshnessBanner() {
+  const freshness = getDataFreshnessState();
+  if (!freshness.isLagging || state.loading || state.loadError) return;
+  if (app.querySelector('.freshness-banner')) return;
+
+  const page = app.querySelector('.page');
+  if (!page) return;
+  page.insertAdjacentHTML('afterbegin', renderFreshnessBanner());
 }
 
 function buildTrendItems() {
@@ -7267,6 +7286,7 @@ function render(pageName) {
   if (pageName === 'builder') renderReportBuilder();
   if (pageName === 'kakao') renderKakaoPreview();
   if (pageName === 'settings') renderSettings();
+  mountGlobalFreshnessBanner();
 
   const nextScrollTop = state.pageScrollPositions[pageName] ?? 0;
   requestAnimationFrame(() => {
@@ -7277,7 +7297,7 @@ function render(pageName) {
 async function loadData() {
   state.loading = true;
   state.loadingPhase = 'source';
-  state.loadingMessage = '오늘 기사와 보고서 파일을 확인하고 있습니다.';
+  state.loadingMessage = '오늘 데이터를 확인 중입니다.';
   state.loadError = '';
   render(state.activePage);
 
@@ -7286,13 +7306,13 @@ async function loadData() {
   let { articlePayload, reportPayload, segmentsPayload } = await fetchDateArtifacts(resolvedDate);
 
   if (!articlePayload) {
-    state.loadingMessage = '오늘 데이터가 없어 최신 발행일을 다시 확인하고 있습니다.';
+    state.loadingMessage = '최신 발행일을 찾는 중입니다.';
     render(state.activePage);
     const latestPayload = await fetchJson('../data/latest.json', null, { cacheBust: true, noStore: true });
     const fallbackDate = typeof latestPayload?.date === 'string' ? latestPayload.date : '';
 
     if (fallbackDate && fallbackDate !== resolvedDate) {
-      state.loadingMessage = `${formatDateLabel(fallbackDate)} 기준 데이터로 다시 불러오고 있습니다.`;
+      state.loadingMessage = `${formatDateLabel(fallbackDate)} 데이터를 불러오는 중입니다.`;
       render(state.activePage);
       resolvedDate = fallbackDate;
       ({ articlePayload, reportPayload, segmentsPayload } = await fetchDateArtifacts(resolvedDate));
@@ -7309,12 +7329,12 @@ async function loadData() {
   }
 
   state.loadingPhase = 'config';
-  state.loadingMessage = '운영 설정과 키워드 구성을 동기화하고 있습니다.';
+  state.loadingMessage = '설정을 확인 중입니다.';
   render(state.activePage);
   const configPayload = await configPromise;
 
   state.loadingPhase = 'capabilities';
-  state.loadingMessage = 'AI 요약 기능과 연결 상태를 확인하고 있습니다.';
+  state.loadingMessage = 'AI 상태를 확인 중입니다.';
   render(state.activePage);
   const capabilitiesPayload = shouldAutoFetchAiCapabilities(configPayload || {})
     ? await fetchAiCapabilities(configPayload || {})
@@ -7324,7 +7344,7 @@ async function loadData() {
       };
 
   state.loadingPhase = 'ready';
-  state.loadingMessage = '기사 인박스와 보고서 초안을 준비하고 있습니다.';
+  state.loadingMessage = '화면을 준비 중입니다.';
   render(state.activePage);
   const articles = normalizeArticles(articlePayload);
 
