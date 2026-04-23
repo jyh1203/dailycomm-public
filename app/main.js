@@ -682,6 +682,11 @@ function hasRemoteAiConfigured(config = state.config) {
   return Boolean(configured);
 }
 
+function shouldAutoFetchAiCapabilities(config = state.config) {
+  const deployment = deploymentConfig(config);
+  return deployment.visibility !== 'public-readonly';
+}
+
 function getStoredAiToken() {
   try {
     return String(
@@ -7311,7 +7316,12 @@ async function loadData() {
   state.loadingPhase = 'capabilities';
   state.loadingMessage = 'AI 요약 기능과 연결 상태를 확인하고 있습니다.';
   render(state.activePage);
-  const capabilitiesPayload = await fetchAiCapabilities(configPayload || {});
+  const capabilitiesPayload = shouldAutoFetchAiCapabilities(configPayload || {})
+    ? await fetchAiCapabilities(configPayload || {})
+    : {
+        aiSummarize: false,
+        requiresToken: false
+      };
 
   state.loadingPhase = 'ready';
   state.loadingMessage = '기사 인박스와 보고서 초안을 준비하고 있습니다.';
