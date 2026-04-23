@@ -211,6 +211,12 @@ main,
   color: var(--text-soft);
 }
 
+.small-copy,
+.empty-state p,
+.panel-note {
+  line-height: 1.4;
+}
+
 .eyebrow,
 .panel-kicker,
 .hero-kicker,
@@ -842,13 +848,13 @@ main {
 .dashboard-flow-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
-  gap: 20px;
+  gap: 14px;
   align-items: start;
 }
 
 .dashboard-flow-copy {
   display: grid;
-  gap: 14px;
+  gap: 10px;
 }
 
 .dashboard-flow-copy h3 {
@@ -868,9 +874,9 @@ main {
 
 .dashboard-priority-card {
   display: grid;
-  gap: 12px;
-  padding: 18px;
-  border-radius: 22px;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: 18px;
   background:
     radial-gradient(circle at top right, rgba(13, 78, 179, 0.08), transparent 34%),
     linear-gradient(180deg, rgba(247, 250, 255, 0.96), rgba(255, 255, 255, 0.96));
@@ -885,7 +891,8 @@ main {
 .dashboard-priority-card p {
   margin: 0;
   color: var(--text-soft);
-  line-height: 1.65;
+  font-size: 13px;
+  line-height: 1.35;
 }
 
 .dashboard-priority-card .ghost-btn {
@@ -894,15 +901,15 @@ main {
 
 .dashboard-step-list {
   display: grid;
-  gap: 12px;
+  gap: 8px;
 }
 
 .dashboard-step {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 12px;
-  padding: 14px 16px;
-  border-radius: 20px;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 16px;
   background: rgba(15, 23, 39, 0.04);
   border: 1px solid rgba(15, 23, 39, 0.05);
 }
@@ -943,8 +950,8 @@ main {
 .dashboard-step-copy p {
   margin: 0;
   color: var(--text-soft);
-  font-size: 13px;
-  line-height: 1.55;
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 .dashboard-grid {
@@ -960,8 +967,8 @@ main {
 
 .workflow-progress-card {
   display: grid;
-  gap: 16px;
-  margin-bottom: 18px;
+  gap: 10px;
+  margin-bottom: 12px;
 }
 
 .workflow-progress-head {
@@ -980,9 +987,9 @@ main {
 .workflow-progress-step {
   width: 100%;
   min-width: 0;
-  min-height: 74px;
-  padding: 14px 16px;
-  border-radius: 20px;
+  min-height: 58px;
+  padding: 10px 12px;
+  border-radius: 16px;
   border: 1px solid rgba(15, 23, 39, 0.08);
   background: rgba(248, 250, 253, 0.9);
   display: grid;
@@ -1686,8 +1693,8 @@ main {
 .selection-toolbar {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  padding: 6px 10px;
-  border-radius: 16px;
+  padding: 6px 8px;
+  border-radius: 14px;
   background: rgba(13, 78, 179, 0.05);
   border: 1px solid rgba(13, 78, 179, 0.08);
 }
@@ -1706,8 +1713,8 @@ main {
 .selection-toolbar-hint {
   margin: 0;
   color: var(--text-soft);
-  font-size: 13px;
-  line-height: 1.55;
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 .toolbar-actions {
@@ -2679,8 +2686,8 @@ main {
 .builder-import-status {
   display: grid;
   gap: 4px;
-  padding: 12px 14px;
-  border-radius: 16px;
+  padding: 9px 12px;
+  border-radius: 14px;
   border: 1px solid rgba(15, 23, 39, 0.08);
   background: rgba(15, 23, 39, 0.04);
 }
@@ -2892,8 +2899,8 @@ main {
 }
 
 .builder-draft-status {
-  padding: 14px 16px;
-  border-radius: 18px;
+  padding: 10px 12px;
+  border-radius: 14px;
   background: rgba(15, 23, 39, 0.04);
   border: 1px solid rgba(15, 23, 39, 0.06);
 }
@@ -2915,9 +2922,9 @@ main {
 }
 
 .builder-readiness-card {
-  gap: 14px;
-  padding: 16px 18px;
-  border-radius: 22px;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 18px;
   background: linear-gradient(180deg, rgba(247, 249, 252, 0.96), rgba(255, 255, 255, 0.94));
   border: 1px solid rgba(15, 23, 39, 0.08);
 }
@@ -2932,15 +2939,15 @@ main {
 
 .builder-readiness-list {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .builder-readiness-item {
   grid-template-columns: auto minmax(0, 1fr);
   align-items: flex-start;
-  gap: 12px;
-  padding: 12px 14px;
-  border-radius: 18px;
+  gap: 10px;
+  padding: 9px 11px;
+  border-radius: 14px;
   background: rgba(15, 23, 39, 0.03);
   border: 1px solid rgba(15, 23, 39, 0.06);
 }
