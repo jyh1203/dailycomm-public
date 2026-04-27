@@ -6116,6 +6116,14 @@ main {
   gap: 10px;
 }
 
+.ai-curation-group-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding-bottom: 2px;
+  background: rgba(255, 255, 255, 0.96);
+}
+
 .ai-curation-summary-head span,
 .ai-curation-group-head span {
   color: var(--text-soft);
@@ -6134,12 +6142,18 @@ main {
 .ai-curation-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
   gap: 12px;
 }
 
 .ai-curation-group {
   display: grid;
+  align-self: start;
+  align-content: start;
   gap: 10px;
+  max-height: min(58vh, 680px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .ai-curation-group-copy,
