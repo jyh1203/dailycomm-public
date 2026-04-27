@@ -166,7 +166,7 @@ const LOADING_STEPS = [
 
 const DEFAULT_INBOX_AI_CURATION_PROMPT = [
   '전체 기사 목록에서 아래 두 그룹을 각각 추천해줘.',
-  '1. 카카오 기업 기사: 카카오 및 주요 계열사의 사업 성과, 신규 서비스, 임원 인터뷰, 주요 MOU/제휴, 투자 관련 기사',
+  '1. 카카오 기업 기사: 카카오 및 주요 계열사의 사업 성과, 신규 서비스, AI/인프라/데이터센터/플랫폼 전략, 임원 인터뷰, 주요 MOU/제휴, 투자 관련 기사',
   '2. 업계 기사: 카카오가 아니어도 AI, 플랫폼, 핀테크, 모빌리티, 콘텐츠, 광고, 커머스, 클라우드, 데이터센터, 투자 흐름을 이해하는 데 도움되는 기사',
   '정치, 사건/사고, 생활 정보, 단순 소비 혜택, 결제수단/채널만 스쳐 언급된 기사는 제외해줘.',
   '각 기사마다 짧은 추천 이유를 붙여줘.'
@@ -231,6 +231,7 @@ let state = {
     requiresToken: false
   },
   aiBusyKey: '',
+  aiWorkStatus: null,
   pageScrollPositions: {}
 };
 
@@ -526,13 +527,62 @@ function renderBuilderAiActionButton(key, options = {}) {
     <div class="inline-actions compact ai-actions ${extraClass}">
       ${tokenInput}
       <button
-        class="${buttonClass}"
+        class="${buttonClass} ${busy ? 'is-busy' : ''}"
         ${id ? `id="${id}"` : ''}
         data-builder-ai="${escapeHtml(key)}"
+        data-ai-action-state="${busy ? 'busy' : 'idle'}"
+        aria-busy="${busy ? 'true' : 'false'}"
         ${(!enabled && !canConnect) || busy ? 'disabled' : ''}
       >
         ${label}
       </button>
+    </div>
+  `;
+}
+
+function beginAiWorkStatus(id, scope, title, detail = '') {
+  state.aiWorkStatus = {
+    id,
+    scope,
+    state: 'busy',
+    title,
+    detail,
+    updatedAt: new Date().toISOString()
+  };
+}
+
+function completeAiWorkStatus(id, scope, title, detail = '', stateName = 'done') {
+  state.aiWorkStatus = {
+    id,
+    scope,
+    state: stateName,
+    title,
+    detail,
+    updatedAt: new Date().toISOString()
+  };
+}
+
+function renderAiWorkStatus(scope) {
+  const status = state.aiWorkStatus;
+  if (!status || status.scope !== scope) return '';
+
+  const isBusy = status.state === 'busy';
+  const statusLabel = isBusy ? '작업 중' : status.state === 'error' ? '확인 필요' : '완료';
+  const updatedLabel = status.updatedAt ? formatSavedTime(status.updatedAt) : '';
+  return `
+    <div
+      class="ai-work-status is-${escapeHtml(status.state)}"
+      data-ai-work-status="${escapeHtml(status.id)}"
+      role="status"
+      aria-live="polite"
+      aria-busy="${isBusy ? 'true' : 'false'}"
+    >
+      <span class="ai-work-status-icon" aria-hidden="true"></span>
+      <div>
+        <span>${escapeHtml(statusLabel)}${updatedLabel && !isBusy ? ` · ${escapeHtml(updatedLabel)}` : ''}</span>
+        <strong>${escapeHtml(status.title || (isBusy ? 'AI가 작업 중입니다.' : 'AI 작업이 완료되었습니다.'))}</strong>
+        ${status.detail ? `<p>${escapeHtml(status.detail)}</p>` : ''}
+      </div>
     </div>
   `;
 }
@@ -1853,6 +1903,21 @@ function activeInboxFilterCount() {
   return count;
 }
 
+function activeInboxFilterLabels() {
+  const labels = [];
+  if (state.inboxSectionFilter !== 'all') labels.push(sectionLabel(state.inboxSectionFilter));
+  if (state.inboxStatusFilter === 'unreported') labels.push('미반영만');
+  if (state.inboxStatusFilter === 'reported') labels.push('리포트 반영');
+  if (state.inboxAiFilter === 'recommended') labels.push('카카오 추천만');
+  const searchQuery = normalizedInboxSearchQuery();
+  if (searchQuery) labels.push(`검색: ${searchQuery}`);
+  inboxKeywordFilterTokens().forEach((token) => {
+    const { keyword } = parseInboxKeywordToken(token);
+    if (keyword) labels.push(`키워드: ${keyword}`);
+  });
+  return labels;
+}
+
 function snapshotCurrentInboxPreset() {
   return {
     sectionFilter: state.inboxSectionFilter,
@@ -2384,11 +2449,20 @@ function syncBuilderReportTextArea() {
   if (reportText) {
     reportText.value = nextText;
     reportText.textContent = nextText;
+    resizeReportTextArea(reportText);
   }
   const charCount = document.getElementById('builder-draft-char-count');
   if (charCount) {
     charCount.textContent = formatNumber(characterLength(nextText));
   }
+}
+
+function resizeReportTextArea(reportTextField) {
+  if (!reportTextField) return;
+  reportTextField.style.height = 'auto';
+  const styles = window.getComputedStyle(reportTextField);
+  const minHeight = Number.parseFloat(styles.minHeight) || 0;
+  reportTextField.style.height = `${Math.ceil(Math.max(reportTextField.scrollHeight, minHeight)) + 4}px`;
 }
 
 function syncBuilderCardPreview(key) {
@@ -2969,6 +3043,7 @@ function renderBuilderDraftPanel({ reportText, reportItemCount, totalDraftChars,
         <strong>${escapeHtml(savedLabel)}</strong>
         ${savedDescription ? `<p>${escapeHtml(savedDescription)}</p>` : ''}
       </div>
+      ${renderAiWorkStatus('builder-ai')}
       <div class="builder-draft-tabs" role="tablist" aria-label="보고서 초안 패널">
         ${renderDraftTabButton('draft', '보고서 초안')}
         ${renderDraftTabButton('suggestion', '추천 관점', !suggestionAvailable)}
@@ -3297,6 +3372,12 @@ function applyPendingAiReview() {
     tone: 'warning',
     page: 'builder'
   });
+  completeAiWorkStatus(
+    review.mode === 'batch' ? 'builder-report-draft' : 'builder-single-summary',
+    'builder-ai',
+    'AI 제안 적용 완료',
+    `${formatNumber(review.changedCount || 0)}건 문구를 리포트 초안에 반영했습니다.`
+  );
   clearPendingAiReview();
   return true;
 }
@@ -3326,15 +3407,34 @@ async function summarizeDraftItemWithAi(key) {
   if (state.aiBusyKey) return;
 
   state.aiBusyKey = key;
+  beginAiWorkStatus(
+    'builder-single-summary',
+    'builder-ai',
+    '선택한 기사 AI 정리 중',
+    '기존 문구와 AI 제안을 비교할 준비를 하고 있습니다.'
+  );
   renderReportBuilder();
 
   try {
     const outcome = await buildAiSummaryProposalForDraftItem(key);
     if (!outcome?.updated || !outcome?.proposal) {
+      completeAiWorkStatus(
+        'builder-single-summary',
+        'builder-ai',
+        'AI 정리를 적용할 기사가 없습니다',
+        '리포트 빌더에 반영된 기사에서 다시 실행해 주세요.',
+        'error'
+      );
       showToast('리포트에 반영된 기사만 AI 정리를 사용할 수 있습니다.');
       return;
     }
     if (!outcome.proposal.changed) {
+      completeAiWorkStatus(
+        'builder-single-summary',
+        'builder-ai',
+        'AI 정리 완료',
+        '현재 문구와 AI 제안이 같아 적용할 변경점은 없습니다.'
+      );
       showToast('AI 제안이 현재 문구와 같아서 적용할 변경점이 없습니다.');
       return;
     }
@@ -3346,9 +3446,22 @@ async function summarizeDraftItemWithAi(key) {
       changedCount: 1,
       failedCount: 0
     });
+    completeAiWorkStatus(
+      'builder-single-summary',
+      'builder-ai',
+      'AI 정리 완료',
+      '비교 화면에서 기존 문구와 AI 제안을 확인할 수 있습니다.'
+    );
     showToast('AI 제안을 비교 화면에 준비했습니다.');
     return;
   } catch (error) {
+    completeAiWorkStatus(
+      'builder-single-summary',
+      'builder-ai',
+      'AI 정리 실패',
+      error instanceof Error ? error.message : 'AI 정리에 실패했습니다.',
+      'error'
+    );
     showToast(error instanceof Error ? error.message : 'AI 정리에 실패했습니다.');
   } finally {
     state.aiBusyKey = '';
@@ -3371,6 +3484,12 @@ async function summarizeReportDraftWithAi() {
 
   state.aiBusyKey = 'report-draft';
   state.builderSideView = 'draft';
+  beginAiWorkStatus(
+    'builder-report-draft',
+    'builder-ai',
+    '리포트 전체 AI 정리 중',
+    `기사 ${formatNumber(entryKeys.length)}건의 문구를 다시 정리하고 있습니다.`
+  );
   renderReportBuilder();
 
   let successCount = 0;
@@ -3411,9 +3530,22 @@ async function summarizeReportDraftWithAi() {
 
     if (!changedCount) {
       if (failedCount > 0) {
+        completeAiWorkStatus(
+          'builder-report-draft',
+          'builder-ai',
+          'AI 정리 완료',
+          `변경점은 없었고 ${formatNumber(failedCount)}건은 응답에 실패했습니다.`,
+          'error'
+        );
         showToast(`AI가 기사 ${successCount}건을 확인했지만 변경 없이 ${failedCount}건은 실패했습니다.`);
         return;
       }
+      completeAiWorkStatus(
+        'builder-report-draft',
+        'builder-ai',
+        'AI 정리 완료',
+        `기사 ${formatNumber(successCount)}건을 검토했지만 적용할 변경점은 없습니다.`
+      );
       showToast(`AI가 기사 ${successCount}건을 검토했지만 적용할 변경점은 없었습니다.`);
       return;
     }
@@ -3426,9 +3558,22 @@ async function summarizeReportDraftWithAi() {
       changedCount,
       failedCount
     });
+    completeAiWorkStatus(
+      'builder-report-draft',
+      'builder-ai',
+      'AI 일괄 정리 완료',
+      `변경 후보 ${formatNumber(changedCount)}건을 비교 화면에 준비했습니다.`
+    );
     showToast(`AI 제안 ${changedCount}건을 비교 화면에 준비했습니다.`);
     return;
   } catch (error) {
+    completeAiWorkStatus(
+      'builder-report-draft',
+      'builder-ai',
+      'AI 일괄 정리 실패',
+      error instanceof Error ? error.message : 'AI 정리에 실패했습니다.',
+      'error'
+    );
     showToast(error instanceof Error ? error.message : 'AI 정리에 실패했습니다.');
   } finally {
     state.aiBusyKey = '';
@@ -3502,6 +3647,16 @@ function collectArticleAiThemes(text) {
       patterns: [/(출시|론칭|오픈|공개|업데이트|개편|신규 서비스|신기능|정식 출시|베타|고도화|적용)/i]
     },
     {
+      key: 'aiInfra',
+      label: 'AI·인프라',
+      patterns: [/(AI|인공지능|생성형 AI|LLM|초거대|데이터센터|데이터 센터|클라우드|인프라|GPU|반도체|서버|모델|에이전트)/i]
+    },
+    {
+      key: 'platformStrategy',
+      label: '플랫폼 전략',
+      patterns: [/(플랫폼 전략|사업 전략|전략 고도화|서비스 전략|광고 플랫폼|커머스 플랫폼|톡비즈|카카오톡|메신저|생태계|트래픽|이용자 기반)/i]
+    },
+    {
       key: 'executive',
       label: '임원 인터뷰',
       patterns: [/(인터뷰|간담회|기자간담회|설명회|대표|CEO|총괄|사장|부사장|임원)/i]
@@ -3525,6 +3680,7 @@ function articleAiFormatLabel(article, band) {
   const text = `${article?.title || ''} ${article?.summary || ''}`;
   const themes = collectArticleAiThemes(text).map((theme) => theme.key);
   if (themes.includes('performance') || themes.includes('investment')) return '보고서형';
+  if (themes.includes('aiInfra') || themes.includes('platformStrategy')) return '전략형';
   if (themes.includes('partnership') || themes.includes('executive')) return '브리핑형';
   if (themes.includes('service')) return '서비스형';
   if (band === 'watch') return '모니터링형';
@@ -3535,6 +3691,9 @@ function articleAiToneLabel(article) {
   const text = `${article?.title || ''} ${article?.summary || ''}`;
   if (/(실적|매출|영업이익|투자|지분|MOU|업무협약|계약)/i.test(text)) {
     return '분석형';
+  }
+  if (/(AI|인공지능|데이터센터|데이터 센터|클라우드|인프라|플랫폼 전략|사업 전략|톡비즈)/i.test(text)) {
+    return '전략형';
   }
   if (/(인터뷰|간담회|대표|CEO|총괄|임원)/i.test(text)) {
     return '공식적';
@@ -3617,6 +3776,14 @@ function buildArticleAiInsight(article) {
   if (themeKeys.includes('service')) {
     score += 16;
     reasons.push('신규 서비스·출시 관련 기사라 활용도가 높습니다.');
+  }
+  if (themeKeys.includes('aiInfra')) {
+    score += 16;
+    reasons.push('AI·데이터센터·인프라 전략과 연결돼 사업 방향을 설명하기 좋습니다.');
+  }
+  if (themeKeys.includes('platformStrategy')) {
+    score += 14;
+    reasons.push('플랫폼 전략 흐름을 보여줘 카카오 사업 메시지로 확장하기 좋습니다.');
   }
   if (themeKeys.includes('executive')) {
     score += 14;
@@ -3728,6 +3895,23 @@ function isKakaoAiRecommended(article) {
   return insight.qualified && insight.band !== 'skip';
 }
 
+function articleRecommendationThemeLabels(article, { sectionName = '' } = {}) {
+  const text = `${article?.title || ''} ${article?.summary || ''} ${article?.keyword || ''}`;
+  const labels = collectArticleAiThemes(text).map((theme) => theme.label);
+  const fallback = sectionName === 'industry'
+    ? buildIndustryArticleAiInsight(article).reasons[0]
+    : buildArticleAiInsight(article).reasons[0];
+  const fallbackLabel = fallback
+    ? fallback
+      .replace(/입니다\.?$/u, '')
+      .replace(/하기 좋습니다\.?$/u, '')
+      .replace(/확인할 수 있는 /u, '')
+      .slice(0, 18)
+    : '';
+
+  return [...new Set([...labels, fallbackLabel].filter(Boolean))].slice(0, 3);
+}
+
 function buildIndustryArticleAiInsight(article) {
   const keyword = String(article?.keyword || '').trim();
   const title = String(article?.title || '').trim();
@@ -3739,10 +3923,10 @@ function buildIndustryArticleAiInsight(article) {
 
   const kakaoInsight = buildArticleAiInsight(article);
   const industryCorePatterns = [
-    /(AI|인공지능|플랫폼|핀테크|모빌리티|콘텐츠|광고|커머스|클라우드|데이터센터|반도체|투자|제휴|MOU|협약|규제|정책)/i
+    /(AI|인공지능|플랫폼|핀테크|모빌리티|콘텐츠|광고|커머스|클라우드|데이터센터|데이터 센터|인프라|반도체|투자|제휴|MOU|협약|규제|정책)/i
   ];
   const industryNoisePatterns = [
-    /(선거|후보|정당|정치|국회|수사|기소|고발|사건|범죄|오픈채팅|채팅방|지원금|편의점|치킨|드라마|예능|프로야구|야구|부동산|생활 정보|원유|호르무즈|파나마 운하|격침|국제유가|트럼프|굿모닝 마켓|투자노트|외신 헤드라인|오늘의 키워드)/i
+    /(선거|후보|정당|정치|국회|수사|기소|고발|사건|범죄|오픈채팅|채팅방|지원금|편의점|치킨|드라마|예능|프로야구|야구|부동산|생활 정보|전쟁|지정학|원유|호르무즈|파나마 운하|격침|국제유가|트럼프|굿모닝 마켓|투자노트|외신 헤드라인|오늘의 키워드)/i
   ];
   const matchedThemes = collectArticleAiThemes(text);
   const themeKeys = matchedThemes.map((theme) => theme.key);
@@ -3795,7 +3979,8 @@ function buildIndustryArticleAiInsight(article) {
 
   const finalScore = clampNumber(Math.round(score), 0, 98);
   const band = articleAiBandFromScore(finalScore);
-  const qualified = !kakaoInsight.directKakao && !hasNoise && (article?.section === 'industry' || hasIndustryCore || matchedThemes.length > 0);
+  const strategicIndustrySignal = hasIndustryCore || matchedThemes.length > 0;
+  const qualified = !kakaoInsight.directKakao && !hasNoise && strategicIndustrySignal;
 
   return {
     score: finalScore,
@@ -4095,19 +4280,29 @@ function renderAiCurationPickGroup(sectionName, title, picks, emptyText) {
         ? picks.map((pick) => {
           const key = articleKey(pick.article);
           const assigned = isArticleAssigned(pick.article);
+          const themeLabels = articleRecommendationThemeLabels(pick.article, { sectionName: normalizedSection });
           return `
             <article class="ai-curation-pick">
               <div class="ai-curation-pick-head">
                 <span class="panel-pill tone-neutral">${escapeHtml(mediaLabel(pick.article))}</span>
                 <span class="panel-pill tone-neutral">${escapeHtml(pick.article?.keyword || '기사')}</span>
               </div>
+              ${themeLabels.length
+                ? `<div class="ai-curation-theme-row">
+                    ${themeLabels.map((label) => `<span class="panel-pill tone-neutral">${escapeHtml(label)}</span>`).join('')}
+                  </div>`
+                : ''}
               <div class="ai-curation-pick-copy">
                 <strong>${escapeHtml(pick.article?.title || '')}</strong>
                 <p>${escapeHtml(pick.reason || 'AI 추천 이유 없음')}</p>
               </div>
               <div class="inline-actions compact ai-curation-pick-actions">
                 <button class="ghost-btn" type="button" data-ai-curation-focus="${escapeHtml(key)}">미리보기</button>
-                <button class="${assigned ? 'ghost-btn' : 'primary-btn'}" type="button" data-ai-curation-add="${escapeHtml(key)}" data-ai-curation-section="${escapeHtml(normalizedSection)}" ${assigned ? 'disabled' : ''}>${assigned ? '추가됨' : '바로 추가'}</button>
+                <button
+                  class="${assigned ? 'ghost-btn' : 'primary-btn'}"
+                  type="button"
+                  ${assigned ? `data-ai-curation-open-builder="${escapeHtml(key)}"` : `data-ai-curation-add="${escapeHtml(key)}" data-ai-curation-section="${escapeHtml(normalizedSection)}"`}
+                >${assigned ? '빌더에서 확인' : '바로 추가'}</button>
               </div>
             </article>
           `;
@@ -4134,7 +4329,10 @@ function renderInboxAiCurationCard(articles) {
   const compactRunLabel = state.inboxAiCurationBusy ? '추천 중...' : '추천 실행';
   const summaryText = result
     ? `주요 보도 ${formatNumber((result.kakaoPicks || []).length)}건 · 업계 보도 ${formatNumber((result.industryPicks || []).length)}건`
-    : `추천 전 · 전체 ${formatNumber(totalArticles)}건`;
+    : `추천 전 · 주요/업계 후보 자동 분류`;
+  const trustText = result?.mode === 'local-preview'
+    ? '로컬 규칙 미리보기입니다. 사업 성과·서비스·AI/인프라·MOU·투자 신호를 먼저 추립니다.'
+    : 'AI 응답입니다. 추천 이유는 기사 카드에서 확인하고 바로 빌더에 반영할 수 있습니다.';
 
   return `
     <section class="inbox-ai-curation inbox-ai-recommendation ${expanded ? 'is-expanded' : 'is-collapsed'}">
@@ -4142,6 +4340,7 @@ function renderInboxAiCurationCard(articles) {
         <div>
           <p class="panel-kicker">AI 추천</p>
           <h3>AI 기사 추천</h3>
+          <p class="panel-note ai-curation-head-note">주요 보도와 업계 보도 후보를 나눠 바로 추가합니다.</p>
         </div>
         <div class="inline-actions compact">
           <span class="panel-pill tone-neutral">${escapeHtml(summaryText)}</span>
@@ -4149,11 +4348,12 @@ function renderInboxAiCurationCard(articles) {
           <button class="ghost-btn compact-toggle-btn" type="button" id="inbox-ai-curation-toggle" aria-expanded="${expanded}" aria-controls="inbox-ai-curation-body">${expanded ? '접기' : '펼치기'}</button>
         </div>
       </div>
+      ${renderAiWorkStatus('inbox-ai')}
       ${expanded
         ? `
           <div class="collapsible-card-body" id="inbox-ai-curation-body">
             <div class="builder-chip-row preview-ai-chip-row">
-              ${['주요 보도', '업계 보도', '사업 성과', '신규 서비스', 'MOU·투자'].map((label) => `
+              ${['주요 보도', '업계 보도', '사업 성과', '신규 서비스', 'AI·인프라', 'MOU·투자'].map((label) => `
                 <span class="panel-pill tone-neutral">${escapeHtml(label)}</span>
               `).join('')}
             </div>
@@ -4189,6 +4389,7 @@ function renderInboxAiCurationCard(articles) {
                     <span>${escapeHtml(formatSavedTime(result.generatedAt) || '방금')}</span>
                   </div>
                   <p>${escapeHtml(result.summary || '추천 결과를 준비했습니다.')}</p>
+                  <p class="ai-curation-trust">${escapeHtml(trustText)}</p>
                 </div>
                 <div class="ai-curation-grid">
                   ${renderAiCurationPickGroup('major', '주요 보도 추천', result.kakaoPicks || [], '주요 보도 기준에 맞는 추천 기사가 없습니다.')}
@@ -4197,7 +4398,7 @@ function renderInboxAiCurationCard(articles) {
               `
               : `
                 <div class="ai-curation-empty">
-                  <p class="small-copy">추천 실행 후 주요 보도와 업계 보도 후보가 표시됩니다.</p>
+                  <p class="small-copy">추천 실행 후 사업 성과·신규 서비스·AI/인프라·임원 인터뷰·MOU·투자 신호가 있는 후보가 카드로 표시됩니다.</p>
                 </div>
               `}
           </div>
@@ -4308,6 +4509,12 @@ async function curateInboxArticlesWithAi() {
   state.inboxAiCurationPrompt = prompt;
   state.inboxAiCurationOpen = true;
   state.inboxAiCurationBusy = true;
+  beginAiWorkStatus(
+    'inbox-curation',
+    'inbox-ai',
+    'AI 추천 기준으로 기사 분류 중',
+    '사업 성과, 신규 서비스, AI/인프라, 임원 인터뷰, MOU, 투자 신호를 우선 확인하고 있습니다.'
+  );
   renderInbox();
 
   let usedFallback = false;
@@ -4327,16 +4534,35 @@ async function curateInboxArticlesWithAi() {
       }
       const payload = await requestAiArticleCuration(state.articles, prompt);
       state.inboxAiCurationResult = normalizeAiArticleCurationResult(payload, state.articles, prompt);
+      completeAiWorkStatus(
+        'inbox-curation',
+        'inbox-ai',
+        'AI 추천 완료',
+        `주요 보도 ${formatNumber((state.inboxAiCurationResult.kakaoPicks || []).length)}건, 업계 보도 ${formatNumber((state.inboxAiCurationResult.industryPicks || []).length)}건을 준비했습니다.`
+      );
       showToast('AI 추천 결과를 준비했습니다.');
       return;
     }
 
     usedFallback = true;
     state.inboxAiCurationResult = buildLocalAiArticleCuration(state.articles, prompt);
+    completeAiWorkStatus(
+      'inbox-curation',
+      'inbox-ai',
+      '로컬 기준 추천 완료',
+      `주요 보도 ${formatNumber((state.inboxAiCurationResult.kakaoPicks || []).length)}건, 업계 보도 ${formatNumber((state.inboxAiCurationResult.industryPicks || []).length)}건을 준비했습니다.`
+    );
     showToast('로컬 기준 추천을 표시합니다.');
   } catch (error) {
     usedFallback = true;
     state.inboxAiCurationResult = buildLocalAiArticleCuration(state.articles, prompt);
+    completeAiWorkStatus(
+      'inbox-curation',
+      'inbox-ai',
+      '로컬 기준 추천 완료',
+      `${error instanceof Error ? error.message : 'AI 추천에 실패했습니다.'} 로컬 기준으로 후보를 표시했습니다.`,
+      'error'
+    );
     showToast(`${error instanceof Error ? error.message : 'AI 추천에 실패했습니다.'} 로컬 기준으로 표시합니다.`);
   } finally {
     state.inboxAiCurationBusy = false;
@@ -6187,8 +6413,10 @@ function renderReportBuilder() {
 
   const reportTextField = document.getElementById('report-text');
   if (reportTextField) {
+    resizeReportTextArea(reportTextField);
     reportTextField.addEventListener('input', (event) => {
       state.reportTextDraft = event.target.value;
+      resizeReportTextArea(event.target);
     });
   }
 
@@ -6617,6 +6845,43 @@ renderInboxPreviewContent = function renderInboxPreviewContentOverride(article, 
   `;
 };
 
+function renderInboxEmptyState({ activeFilterCount = 0, aiFilterCounts = {} } = {}) {
+  if (state.inboxAiFilter === 'recommended') {
+    const hasHiddenRecommendations = Number(aiFilterCounts.recommended || 0) > 0;
+    const description = hasHiddenRecommendations
+      ? '카카오 추천 후보는 있지만 현재 섹션·상태·검색 조건에서 모두 제외됐습니다. 필터 초기화로 전체 후보를 확인하세요.'
+      : '사업 성과·신규 서비스·AI/인프라·임원 인터뷰·MOU·투자 신호가 강한 후보가 보이지 않습니다. 추천 실행으로 후보를 다시 정리할 수 있습니다.';
+
+    return `
+      <div class="data-empty inbox-empty-state" id="inbox-empty">
+        <strong>카카오 기준 추천 기사가 없습니다</strong>
+        <p>${escapeHtml(description)}</p>
+        <div class="inline-actions compact stack-mobile inbox-empty-actions">
+          ${hasHiddenRecommendations || activeFilterCount
+            ? '<button class="ghost-btn" type="button" id="inbox-empty-clear-filters">필터 초기화</button>'
+            : ''}
+          <button class="primary-btn" type="button" id="inbox-empty-run-ai" ${state.inboxAiCurationBusy || !state.articles.length ? 'disabled' : ''}>추천 다시 실행</button>
+          <button class="ghost-btn" type="button" id="inbox-empty-show-all">전체 기사 보기</button>
+        </div>
+      </div>
+    `;
+  }
+
+  if (activeFilterCount) {
+    return `
+      <div class="data-empty inbox-empty-state" id="inbox-empty">
+        <strong>조건에 맞는 기사가 없습니다</strong>
+        <p>필터나 검색어 때문에 목록이 비었습니다. 현재 조건을 초기화하면 전체 기사를 다시 볼 수 있습니다.</p>
+        <div class="inline-actions compact stack-mobile inbox-empty-actions">
+          <button class="primary-btn" type="button" id="inbox-empty-clear-filters">필터 초기화</button>
+        </div>
+      </div>
+    `;
+  }
+
+  return renderDataEmpty('inbox-empty', '조건에 맞는 기사가 없습니다', '검색어를 바꿔보세요.');
+}
+
 renderInbox = function renderInboxOverride() {
   updateShellMeta();
   normalizeInboxKeywordFilter();
@@ -6665,6 +6930,7 @@ renderInbox = function renderInboxOverride() {
   const canOpenSelected = selectedArticles.some((article) => Boolean(article?.url));
   const searchQuery = String(state.inboxSearchQuery || '').trim();
   const activeFilterCount = activeInboxFilterCount();
+  const activeFilterLabels = activeInboxFilterLabels();
   const advancedFilterCount = activeFilterCount - (searchQuery ? 1 : 0);
   const advancedFiltersOpen = state.inboxFiltersOpen;
   const bulkHelpText = majorAssignment.blocked.length
@@ -6732,6 +6998,15 @@ renderInbox = function renderInboxOverride() {
                   />
                   ${searchQuery ? '<button class="ghost-btn search-clear-btn" id="inbox-search-clear" type="button">지우기</button>' : ''}
                 </label>
+              </div>
+
+              <div class="inbox-active-filter-summary ${activeFilterLabels.length ? 'has-filters' : ''}">
+                <div>
+                  <span>현재 보기</span>
+                  <strong>${escapeHtml(activeFilterLabels.length ? activeFilterLabels.join(' · ') : '전체 기사')}</strong>
+                </div>
+                <p>${escapeHtml(`${formatNumber(data.length)}건 표시 · 미반영 ${formatNumber(statusFilterCounts.unreported)}건 · 카카오 추천 ${formatNumber(aiFilterCounts.recommended)}건`)}</p>
+                ${activeFilterCount ? '<button class="ghost-btn" id="inbox-clear-filters-summary" type="button">필터 초기화</button>' : ''}
               </div>
 
               <div class="inbox-advanced-panel ${advancedFiltersOpen ? 'is-open' : ''}" id="inbox-advanced-panel" ${advancedFiltersOpen ? '' : 'hidden'}>
@@ -6954,13 +7229,7 @@ renderInbox = function renderInboxOverride() {
                     </div>
                   `;
                 }).join('')
-                : renderDataEmpty(
-                  'inbox-empty',
-                  state.inboxAiFilter === 'recommended' ? '카카오 기준 추천 기사가 없습니다' : '조건에 맞는 기사가 없습니다',
-                  state.inboxAiFilter === 'recommended'
-                    ? '현재 로컬 데이터에는 실적·신규 서비스·임원 인터뷰·MOU·투자 기준을 만족하는 후보가 없습니다. 크롤링을 다시 실행하면 새 기준으로 다시 채워집니다.'
-                    : (activeFilterCount ? '필터 초기화로 돌아가세요.' : '검색어를 바꿔보세요.')
-                )}
+                : renderInboxEmptyState({ activeFilterCount, aiFilterCounts })}
             </div>
 
             ${renderInboxPaginationControls({ maxPage, mode: 'bottom' })}
@@ -7006,6 +7275,25 @@ renderInbox = function renderInboxOverride() {
       const key = button.dataset.aiCurationAdd || '';
       const sectionName = button.dataset.aiCurationSection || 'major';
       addAiCurationPickToReport(sectionName, key);
+    });
+  });
+
+  app.querySelectorAll('[data-ai-curation-open-builder]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const key = button.dataset.aiCurationOpenBuilder || '';
+      const sections = getReportSections();
+      const majorArticle = sections.major.find((article) => articleKey(article) === key);
+      const industryArticle = sections.industry.find((article) => articleKey(article) === key);
+      const entry = majorArticle
+        ? draftEntryKey('major', majorArticle)
+        : industryArticle
+          ? draftEntryKey('industry', industryArticle)
+          : '';
+      if (entry) {
+        setBuilderFocus(entry);
+      }
+      state.builderDraftTab = 'suggestion';
+      render('builder');
     });
   });
 
@@ -7167,7 +7455,7 @@ renderInbox = function renderInboxOverride() {
     commitInboxRecentSearch(event.currentTarget.value);
   });
 
-  document.getElementById('inbox-clear-filters')?.addEventListener('click', () => {
+  const clearInboxFilters = () => {
     const hadSelection = selectedArticleCount() > 0;
     const changed = handleInboxFilterChange(() => {
       state.inboxSectionFilter = 'all';
@@ -7181,6 +7469,14 @@ renderInbox = function renderInboxOverride() {
     if (!hadSelection) {
       showToast('필터를 초기화했습니다.');
     }
+  };
+
+  document.getElementById('inbox-clear-filters')?.addEventListener('click', clearInboxFilters);
+  document.getElementById('inbox-clear-filters-summary')?.addEventListener('click', clearInboxFilters);
+  document.getElementById('inbox-empty-clear-filters')?.addEventListener('click', clearInboxFilters);
+  document.getElementById('inbox-empty-show-all')?.addEventListener('click', clearInboxFilters);
+  document.getElementById('inbox-empty-run-ai')?.addEventListener('click', async () => {
+    await curateInboxArticlesWithAi();
   });
 
   document.getElementById('inbox-save-preset')?.addEventListener('click', () => {
@@ -7407,6 +7703,28 @@ renderInbox = function renderInboxOverride() {
   });
 };
 
+function renderBuilderInlineSuggestionSummary(article, entryKey) {
+  const insight = buildArticleAiInsight(article);
+  const themeLabels = articleRecommendationThemeLabels(article, { sectionName: article?.section || '' });
+  return `
+    <div class="builder-inline-suggestion">
+      <div class="builder-inline-suggestion-head">
+        <div>
+          <span>추천 관점</span>
+          <strong>${escapeHtml(insight.draft.title)}</strong>
+        </div>
+        <button class="ghost-btn" type="button" data-builder-show-suggestion="${escapeHtml(entryKey)}">자세히</button>
+      </div>
+      <p>${escapeHtml(insight.draft.keyPoint)}</p>
+      ${themeLabels.length
+        ? `<div class="builder-chip-row preview-ai-chip-row">
+            ${themeLabels.map((label) => `<span class="panel-pill tone-neutral">${escapeHtml(label)}</span>`).join('')}
+          </div>`
+        : ''}
+    </div>
+  `;
+}
+
 renderBuilderColumn = function renderBuilderColumnOverride(sectionName, items) {
   const heading = builderSectionHeading(sectionName);
   return `
@@ -7435,7 +7753,7 @@ renderBuilderColumn = function renderBuilderColumnOverride(sectionName, items) {
                 ${renderBuilderItemMeta(article)}
                 ${renderBuilderItemSummaryRows(article)}
                 ${active
-                  ? renderBuilderInlineEditor(sectionName, article, entryKey)
+                  ? `${renderBuilderInlineSuggestionSummary(article, entryKey)}${renderBuilderInlineEditor(sectionName, article, entryKey)}`
                   : '<p class="small-copy builder-item-hint">선택해 편집</p>'}
               </div>
             `;
@@ -7576,6 +7894,15 @@ renderReportBuilder = function renderReportBuilderOverride() {
     });
   });
 
+  app.querySelectorAll('[data-builder-show-suggestion]').forEach((button) => {
+    button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      setBuilderFocus(button.dataset.builderShowSuggestion);
+      state.builderDraftTab = 'suggestion';
+      renderReportBuilder();
+    });
+  });
+
   app.querySelectorAll('.builder-item input, .builder-item button').forEach((node) => {
     node.addEventListener('click', (event) => {
       event.stopPropagation();
@@ -7668,10 +7995,12 @@ renderReportBuilder = function renderReportBuilderOverride() {
 
   const reportTextField = document.getElementById('report-text');
   if (reportTextField) {
+    resizeReportTextArea(reportTextField);
     reportTextField.addEventListener('input', (event) => {
       state.reportTextDraft = event.target.value;
       state.builderDraftRestored = false;
       persistStoredBuilderDraft();
+      resizeReportTextArea(event.target);
       const charCount = document.getElementById('builder-draft-char-count');
       if (charCount) {
         charCount.textContent = formatNumber(characterLength(event.target.value));
@@ -7768,6 +8097,58 @@ renderReportBuilder = function renderReportBuilderOverride() {
     }
   });
 };
+
+function buildKakaoFinalCheckItems({ sections, derivedSegments, totalChars }) {
+  const majorCount = sections.major.length;
+  const industryCount = sections.industry.length;
+  const overLimitCount = derivedSegments.filter((segment) => characterLength(segment.content) > KAKAO_SEGMENT_CHAR_LIMIT).length;
+  return [
+    {
+      label: '주요 보도',
+      value: `${formatNumber(majorCount)}건`,
+      status: majorCount > 0 ? 'pass' : 'warn'
+    },
+    {
+      label: '업계 보도',
+      value: `${formatNumber(industryCount)}건`,
+      status: industryCount > 0 ? 'pass' : 'warn'
+    },
+    {
+      label: '분할 제한',
+      value: overLimitCount ? `${formatNumber(overLimitCount)}개 초과` : '정상',
+      status: overLimitCount ? 'warn' : 'pass'
+    },
+    {
+      label: '복사 준비',
+      value: totalChars > 0 && derivedSegments.length ? '가능' : '대기',
+      status: totalChars > 0 && derivedSegments.length ? 'pass' : 'warn'
+    }
+  ];
+}
+
+function renderKakaoFinalCheckCard({ sections, derivedSegments, totalChars }) {
+  const items = buildKakaoFinalCheckItems({ sections, derivedSegments, totalChars });
+  const readyCount = items.filter((item) => item.status === 'pass').length;
+  return `
+    <div class="kakao-final-check-card">
+      <div class="kakao-final-check-head">
+        <div>
+          <span>최종 점검</span>
+          <strong>${formatNumber(readyCount)}/${formatNumber(items.length)} 완료</strong>
+        </div>
+        <button class="ghost-btn" type="button" id="kakao-final-edit">초안 수정</button>
+      </div>
+      <div class="kakao-final-check-grid">
+        ${items.map((item) => `
+          <div class="kakao-final-check-item is-${escapeHtml(item.status)}">
+            <span>${escapeHtml(item.label)}</span>
+            <strong>${escapeHtml(item.value)}</strong>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
 
 renderKakaoPreview = function renderKakaoPreviewOverride() {
   updateShellMeta();
@@ -7885,6 +8266,7 @@ renderKakaoPreview = function renderKakaoPreviewOverride() {
             <span class="panel-pill tone-neutral">${formatNumber(derivedSegments.length)}개 파트</span>
           </div>
           <p class="panel-note">파트별 글자 수만 확인하세요.</p>
+          ${renderKakaoFinalCheckCard({ sections, derivedSegments, totalChars })}
           <div class="segment-tabs">
             ${derivedSegments.length
               ? derivedSegments.map((segment) => `
@@ -7923,6 +8305,10 @@ renderKakaoPreview = function renderKakaoPreviewOverride() {
   `;
 
   bindWorkflowProgressActions();
+
+  document.getElementById('kakao-final-edit')?.addEventListener('click', () => {
+    render('builder');
+  });
 
   const kakaoFullTab = app.querySelector('[data-kakao-view="full"]');
   const kakaoSegmentedTab = app.querySelector('[data-kakao-view="segmented"]');
