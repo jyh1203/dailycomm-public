@@ -169,6 +169,8 @@ const DEFAULT_INBOX_AI_CURATION_PROMPT = [
   '1. 카카오 기업 기사: 카카오 및 주요 계열사의 사업 성과, 신규 서비스, AI/인프라/데이터센터/플랫폼 전략, 임원 인터뷰, 주요 MOU/제휴, 투자 관련 기사',
   '2. 업계 기사: 카카오가 아니어도 AI, 플랫폼, 핀테크, 모빌리티, 콘텐츠, 광고, 커머스, 클라우드, 데이터센터, 투자 흐름을 이해하는 데 도움되는 기사',
   '정치, 사건/사고, 생활 정보, 단순 소비 혜택, 결제수단/채널만 스쳐 언급된 기사는 제외해줘.',
+  '같은 발표·행사·MOU·실적·투자·서비스 출시처럼 동일한 내용을 다룬 기사가 여러 개 있으면 대표 기사 1건만 추천해줘.',
+  '대표 기사는 원문성, 구체성, 최신성, 언론 신뢰도 기준으로 고르고 중복 기사는 추천에서 제외해줘.',
   '각 기사마다 짧은 추천 이유를 붙여줘.'
 ].join('\n');
 
@@ -199,6 +201,7 @@ let state = {
   inboxAiCurationPrompt: DEFAULT_INBOX_AI_CURATION_PROMPT,
   inboxAiCurationOpen: false,
   inboxAiCurationBusy: false,
+  inboxAiCurationModalOpen: false,
   inboxAiCurationResult: null,
   inboxKeywordFilter: [],
   inboxSearchQuery: '',
@@ -587,6 +590,56 @@ function renderAiWorkStatus(scope) {
   `;
 }
 
+function renderBuilderAiBusyOverlay() {
+  const status = state.aiWorkStatus;
+  if (!state.aiBusyKey || !status || status.scope !== 'builder-ai' || status.state !== 'busy') {
+    return '';
+  }
+
+  return `
+    <div class="builder-ai-busy-backdrop" data-builder-ai-busy-overlay role="presentation">
+      <section
+        class="builder-ai-busy-dialog"
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+      >
+        <span class="builder-ai-busy-spinner" aria-hidden="true"></span>
+        <div>
+          <span>AI 작업 중</span>
+          <strong>${escapeHtml(status.title || 'AI가 문구를 정리하고 있습니다.')}</strong>
+          ${status.detail ? `<p>${escapeHtml(status.detail)}</p>` : ''}
+        </div>
+      </section>
+    </div>
+  `;
+}
+
+function renderInboxAiBusyOverlay() {
+  const status = state.aiWorkStatus;
+  if (!state.inboxAiCurationBusy || !status || status.scope !== 'inbox-ai' || status.state !== 'busy') {
+    return '';
+  }
+
+  return `
+    <div class="inbox-ai-busy-backdrop" data-inbox-ai-busy-overlay role="presentation">
+      <section
+        class="inbox-ai-busy-dialog"
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+      >
+        <span class="inbox-ai-busy-spinner" aria-hidden="true"></span>
+        <div>
+          <span>AI 추천 중</span>
+          <strong>${escapeHtml(status.title || 'AI가 추천 기사를 정리하고 있습니다.')}</strong>
+          ${status.detail ? `<p>${escapeHtml(status.detail)}</p>` : ''}
+        </div>
+      </section>
+    </div>
+  `;
+}
+
 function formatNumber(value) {
   return new Intl.NumberFormat('ko-KR').format(Number(value || 0));
 }
@@ -685,10 +738,6 @@ function toggleInboxKeywordFilter(sectionName, keyword) {
   if (next.has(token)) next.delete(token);
   else next.add(token);
   setInboxKeywordFilterTokens([...next]);
-}
-
-function articleKeywordFilterToken(article) {
-  return inboxKeywordToken(article?.section, article?.keyword);
 }
 
 function formatClassificationValue(value) {
@@ -998,6 +1047,97 @@ async function requestAiSummary(article) {
   throw lastError || new Error('AI 정리에 실패했습니다.');
 }
 
+function buildAiSummaryBatchPayload(entries) {
+  return (Array.isArray(entries) ? entries : [])
+    .map((entry) => {
+      const article = entry?.article || {};
+      const key = String(entry?.key || '').trim();
+      if (!key) return null;
+      return {
+        key,
+        title: article?.title || '',
+        summary: article?.summary || '',
+        publisher: mediaLabel(article),
+        keyword: article?.keyword || '',
+        section: article?.section || '',
+        url: article?.url || '',
+        currentSummaryLead: articleSummaryLead(article),
+        currentKeyPoint: articleKeyPoint(article)
+      };
+    })
+    .filter(Boolean);
+}
+
+async function requestAiSummaryBatch(entries) {
+  const token = getStoredAiToken();
+  const headers = {
+    'Content-Type': 'application/json; charset=utf-8'
+  };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const articles = buildAiSummaryBatchPayload(entries);
+  if (!articles.length) {
+    throw new Error('AI에 보낼 기사가 없습니다.');
+  }
+
+  const candidateUrls = [];
+  if (isLocalUiRuntime()) {
+    candidateUrls.push(buildLocalAiApiUrl('/ai/summarize-batch'));
+  }
+  candidateUrls.push(buildAiApiUrl('/ai/summarize-batch'));
+
+  const apiUrls = [...new Set(candidateUrls)];
+  let lastError = null;
+
+  for (const [index, apiUrl] of apiUrls.entries()) {
+    let response;
+    try {
+      response = await fetch(apiUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ articles })
+      });
+    } catch (error) {
+      lastError = new Error(normalizeAiRequestError(error, 'AI 일괄 정리에 실패했습니다.'));
+      if (index < apiUrls.length - 1) {
+        continue;
+      }
+      throw lastError;
+    }
+
+    const payload = await response.json().catch(() => null);
+    if (response.status === 401) {
+      setStoredAiToken('');
+      throw new Error(payload?.error || 'AI 접근 토큰을 다시 입력해주세요.');
+    }
+
+    if (!response.ok) {
+      const fallbackMessage = response.status === 404 || response.status === 405
+        ? '배치 AI 정리 API가 아직 서버에 반영되지 않았습니다. 서버 업데이트 후 다시 실행해주세요.'
+        : 'AI 일괄 정리에 실패했습니다.';
+      lastError = new Error(payload?.error || fallbackMessage);
+      if (index < apiUrls.length - 1 && [404, 405, 500, 502, 503].includes(response.status)) {
+        continue;
+      }
+      throw lastError;
+    }
+
+    const items = Array.isArray(payload?.items) ? payload.items : [];
+    if (!items.length) {
+      throw new Error('AI 일괄 정리 결과가 비어 있습니다.');
+    }
+
+    return {
+      ...payload,
+      items
+    };
+  }
+
+  throw lastError || new Error('AI 일괄 정리에 실패했습니다.');
+}
+
 async function requestAiDraftPolish(reportText) {
   const token = getStoredAiToken();
   const headers = {
@@ -1266,6 +1406,58 @@ function keywordList() {
   return Array.isArray(state.config?.keywords) ? state.config.keywords.filter(Boolean) : [];
 }
 
+function configuredKeywordSection(keyword, config = state.config || {}) {
+  const target = String(keyword || '').trim();
+  if (!target) return '';
+
+  const dictionary = config.classificationDictionary && typeof config.classificationDictionary === 'object'
+    ? config.classificationDictionary
+    : {};
+
+  const direct = String(dictionary[target] || '').trim();
+  if (direct === 'major' || direct === 'industry') return direct;
+
+  const normalizedTarget = normalizeArticleMatchValue(target);
+  const matchedEntry = Object.entries(dictionary).find(([entryKeyword]) =>
+    normalizeArticleMatchValue(entryKeyword) === normalizedTarget
+  );
+  const matchedSection = String(matchedEntry?.[1] || '').trim();
+  if (matchedSection === 'major' || matchedSection === 'industry') return matchedSection;
+
+  return /(카카오|kakao|김범수|정신아|멜론)/i.test(target) ? 'major' : 'industry';
+}
+
+function keywordBelongsToSection(keyword, sectionName, config = state.config || {}) {
+  return configuredKeywordSection(keyword, config) === sectionName;
+}
+
+function keywordGroupDisplayLabel(sectionName) {
+  return sectionName === 'major' ? '카카오 키워드' : '업계 키워드';
+}
+
+function keywordGroupSubLabel(sectionName) {
+  return sectionName === 'major' ? '주요 보도 기준' : '업계 보도 기준';
+}
+
+function groupedConfiguredKeywords(config = state.config || {}) {
+  const dictionary = config.classificationDictionary && typeof config.classificationDictionary === 'object'
+    ? config.classificationDictionary
+    : {};
+  const keywords = [...new Set([
+    ...(Array.isArray(config.keywords) ? config.keywords : []),
+    ...Object.keys(dictionary)
+  ].map((keyword) => String(keyword || '').trim()).filter(Boolean))];
+
+  return ['major', 'industry'].map((sectionName) => ({
+    key: sectionName,
+    label: keywordGroupDisplayLabel(sectionName),
+    subLabel: keywordGroupSubLabel(sectionName),
+    items: keywords
+      .filter((keyword) => keywordBelongsToSection(keyword, sectionName, config))
+      .sort((left, right) => left.localeCompare(right, 'ko'))
+  }));
+}
+
 function mediaWhitelist() {
   return Array.isArray(state.config?.mediaWhitelistLabels)
     ? state.config.mediaWhitelistLabels.filter(Boolean)
@@ -1515,14 +1707,33 @@ function focusExistingArticleLocation(location) {
 function createDraftItem(article, fallbackSection = 'industry') {
   const seed = cloneArticle(article) || {};
   const section = fallbackSection || (seed.section === 'major' || seed.section === 'industry' ? seed.section : 'industry');
+  const groundedDraft = buildGroundedDraftForArticle(seed);
+  let summaryLead = String(seed.summaryLead || seed.conclusion || seed.oneLine || seed.summary || seed.title || '').trim();
+  let keyPoint = String(seed.keyPoint || seed.oneLine || seed.angle || seed.summary || seed.title || '').trim();
+  let oneLine = String(seed.oneLine || seed.summary || seed.title || '').trim();
+  let conclusion = String(seed.conclusion || '').trim();
+
+  if (isUnsupportedKakaoDraftLine(summaryLead, seed)) {
+    summaryLead = groundedDraft.summaryLead;
+  }
+  if (isUnsupportedKakaoDraftLine(keyPoint, seed)) {
+    keyPoint = groundedDraft.keyPoint;
+  }
+  if (isUnsupportedKakaoDraftLine(oneLine, seed)) {
+    oneLine = groundedDraft.keyPoint;
+  }
+  if (isUnsupportedKakaoDraftLine(conclusion, seed)) {
+    conclusion = groundedDraft.summaryLead;
+  }
+
   return {
     ...seed,
     section,
-    summaryLead: String(seed.summaryLead || seed.conclusion || seed.oneLine || seed.summary || seed.title || '').trim(),
-    keyPoint: String(seed.keyPoint || seed.oneLine || seed.angle || seed.summary || seed.title || '').trim(),
-    oneLine: String(seed.oneLine || seed.summary || seed.title || '').trim(),
+    summaryLead,
+    keyPoint,
+    oneLine,
     angle: String(seed.angle || '').trim(),
-    conclusion: String(seed.conclusion || '').trim(),
+    conclusion,
     includeInKakao: seed.includeInKakao !== false,
     priority: String(seed.priority || (section === 'major' ? 'high' : 'normal'))
   };
@@ -1756,12 +1967,17 @@ function industryKeywordOptions() {
 }
 
 function keywordOptionsForSection(sectionName) {
-  return [...new Set(
-    state.articles
-      .filter((article) => article.section === sectionName)
-      .map((article) => String(article.keyword || '').trim())
-      .filter(Boolean)
-  )].sort((left, right) => left.localeCompare(right, 'ko'));
+  const source = state.articles.filter((article) => article.section === sectionName);
+  const configuredKeywords = keywordList().filter((keyword) => keywordBelongsToSection(keyword, sectionName));
+  const articleKeywords = source
+    .map((article) => String(article.keyword || '').trim())
+    .filter((keyword) => keywordBelongsToSection(keyword, sectionName))
+    .filter((keyword) => keyword && source.some((article) => articleHasKeywordInDisplayText(article, keyword)));
+  const textKeywords = configuredKeywords
+    .filter((keyword) => source.some((article) => articleHasKeywordInDisplayText(article, keyword)));
+
+  return [...new Set([...articleKeywords, ...textKeywords])]
+    .sort((left, right) => left.localeCompare(right, 'ko'));
 }
 
 function inboxKeywordGroups() {
@@ -1769,16 +1985,16 @@ function inboxKeywordGroups() {
   const industryOptions = keywordOptionsForSection('industry');
 
   if (state.inboxSectionFilter === 'major') {
-    return majorOptions.length ? [{ key: 'major', label: '주요 보도', options: majorOptions }] : [];
+    return majorOptions.length ? [{ key: 'major', label: keywordGroupDisplayLabel('major'), subLabel: keywordGroupSubLabel('major'), options: majorOptions }] : [];
   }
 
   if (state.inboxSectionFilter === 'industry') {
-    return industryOptions.length ? [{ key: 'industry', label: '업계 보도', options: industryOptions }] : [];
+    return industryOptions.length ? [{ key: 'industry', label: keywordGroupDisplayLabel('industry'), subLabel: keywordGroupSubLabel('industry'), options: industryOptions }] : [];
   }
 
   return [
-    { key: 'major', label: '주요 보도', options: majorOptions },
-    { key: 'industry', label: '업계 보도', options: industryOptions }
+    { key: 'major', label: keywordGroupDisplayLabel('major'), subLabel: keywordGroupSubLabel('major'), options: majorOptions },
+    { key: 'industry', label: keywordGroupDisplayLabel('industry'), subLabel: keywordGroupSubLabel('industry'), options: industryOptions }
   ].filter((group) => group.options.length);
 }
 
@@ -3230,6 +3446,292 @@ function areAiLinesTooSimilar(summaryLead, keyPoint) {
   return true;
 }
 
+function buildAiComparableBigrams(value) {
+  const normalized = normalizeAiComparableText(value);
+  if (!normalized) return [];
+  if (normalized.length === 1) return [normalized];
+  const bigrams = [];
+  for (let index = 0; index < normalized.length - 1; index += 1) {
+    bigrams.push(normalized.slice(index, index + 2));
+  }
+  return bigrams;
+}
+
+function aiTextSimilarityRatio(left, right) {
+  const normalizedLeft = normalizeAiComparableText(left);
+  const normalizedRight = normalizeAiComparableText(right);
+  if (!normalizedLeft || !normalizedRight) return 0;
+  if (normalizedLeft === normalizedRight) return 1;
+
+  const leftBigrams = buildAiComparableBigrams(normalizedLeft);
+  const rightBigrams = buildAiComparableBigrams(normalizedRight);
+  if (!leftBigrams.length || !rightBigrams.length) return 0;
+
+  const rightCounts = new Map();
+  rightBigrams.forEach((bigram) => {
+    rightCounts.set(bigram, (rightCounts.get(bigram) || 0) + 1);
+  });
+
+  let intersection = 0;
+  leftBigrams.forEach((bigram) => {
+    const count = rightCounts.get(bigram) || 0;
+    if (count > 0) {
+      intersection += 1;
+      rightCounts.set(bigram, count - 1);
+    }
+  });
+
+  return (2 * intersection) / (leftBigrams.length + rightBigrams.length);
+}
+
+function isAiLineTooCloseToSourceText(line, source, threshold = 0.8) {
+  const normalizedLine = normalizeAiComparableText(line);
+  const normalizedSource = normalizeAiComparableText(source);
+  if (!normalizedLine || !normalizedSource) return false;
+  if (normalizedLine === normalizedSource) return true;
+
+  const similarity = aiTextSimilarityRatio(normalizedLine, normalizedSource);
+  if (similarity >= threshold) return true;
+
+  const minLength = Math.min(normalizedLine.length, normalizedSource.length);
+  const maxLength = Math.max(normalizedLine.length, normalizedSource.length);
+  if (minLength >= 10 && (normalizedLine.includes(normalizedSource) || normalizedSource.includes(normalizedLine))) {
+    return minLength / maxLength >= threshold;
+  }
+
+  return false;
+}
+
+function articleAiSourceTexts(article) {
+  return [
+    article?.title,
+    article?.summary
+  ].filter((value) => String(value || '').trim());
+}
+
+function isAiLineTooCloseToArticleSource(line, article, threshold = 0.8) {
+  return articleAiSourceTexts(article).some((source) => isAiLineTooCloseToSourceText(line, source, threshold));
+}
+
+function articleSourceText(article) {
+  return articleAiSourceTexts(article).join(' ').trim();
+}
+
+function articleHasDirectKakaoMention(article) {
+  return /(카카오|kakao|카카오톡|카카오페이|카카오뱅크|카카오모빌리티|카카오엔터|카카오게임즈|멜론)/i
+    .test(articleSourceText(article));
+}
+
+function lineHasKakaoReference(line) {
+  return /(카카오|kakao|카카오톡|카카오페이|카카오뱅크|카카오모빌리티|카카오엔터|카카오게임즈|멜론)/i
+    .test(String(line || ''));
+}
+
+function isUnsupportedKakaoDraftLine(line, article) {
+  return lineHasKakaoReference(line) && !articleHasDirectKakaoMention(article);
+}
+
+function stripReportEllipsis(value) {
+  return String(value || '')
+    .replace(/(?:\s*\.\s*){2,}/g, ' ')
+    .replace(/[…⋯]+/gu, ' ')
+    .replace(/(?:\s*ㆍ\s*){2,}/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function truncateReportLine(value, maxLength = 80) {
+  const source = stripReportEllipsis(value).replace(/[,\s]+$/u, '').trim();
+  if (!source || source.length <= maxLength) return source;
+  return stripReportEllipsis(source.slice(0, Math.max(maxLength, 1)).replace(/[,\s]+$/u, ''));
+}
+
+function cleanPrDraftLine(value, maxLength = 80) {
+  const cleaned = stripReportEllipsis(String(value || '')
+    .replace(/보고서\s*초안에\s*나오는\s*내용을\s*포함하여/gu, '')
+    .replace(/초안에\s*나오는\s*내용을\s*포함하여/gu, '')
+    .replace(/내용을\s*포함하여/gu, '')
+    .replace(/관련\s*내용\s*포함/gu, '')
+    .replace(/전망\s*포함/gu, '')
+    .replace(/\s+/g, ' ')
+    .replace(/[,\s]+$/u, '')
+    .trim());
+  return truncateReportLine(cleaned, maxLength);
+}
+
+function cleanGroundedArticleLine(value, maxLength = 80) {
+  const cleaned = stripReportEllipsis(String(value || '')
+    .replace(/["'“”‘’]/gu, '')
+    .replace(/\s*[.。]\s*/gu, ' ')
+    .replace(/\s*[:：]\s*/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/[,\s]+$/u, '')
+    .trim());
+  return truncateReportLine(cleaned, maxLength);
+}
+
+function firstGroundedSummarySentence(article, maxLength = 80) {
+  const summary = String(article?.summary || '').replace(/\s+/g, ' ').trim();
+  if (!summary) return '';
+  const [firstSentence = summary] = summary.split(/(?<=[.!?。！？])\s+|[;；]/u);
+  return cleanGroundedArticleLine(firstSentence || summary, maxLength);
+}
+
+function buildGroundedSummaryLeadForArticle(article) {
+  const title = String(article?.title || '').trim();
+  const summary = firstGroundedSummarySentence(article, 78);
+  const headlineSource = title
+    .split(/(?:\.{2,}|…|⋯|ㆍ{2,}| - |\|)/u)
+    .map((part) => part.trim())
+    .find(Boolean) || title;
+  const headline = cleanGroundedArticleLine(headlineSource, 78);
+  return headline || summary || cleanGroundedArticleLine(article?.publisher || '기사 주요 내용 확인', 78);
+}
+
+function buildGroundedKeyPointForArticle(article, summaryLead = '') {
+  const candidates = [
+    firstGroundedSummarySentence(article, 64),
+    cleanGroundedArticleLine(article?.summary || '', 64),
+    cleanGroundedArticleLine(article?.title || '', 64)
+  ].filter(Boolean);
+
+  const distinct = candidates.find((candidate) => !areAiLinesTooSimilar(summaryLead, candidate));
+  return distinct || candidates[0] || '';
+}
+
+function buildGroundedDraftForArticle(article) {
+  const summaryLead = buildGroundedSummaryLeadForArticle(article);
+  const keyPoint = buildGroundedKeyPointForArticle(article, summaryLead);
+  return {
+    summaryLead,
+    keyPoint,
+    title: summaryLead,
+    intro: keyPoint || summaryLead
+  };
+}
+
+function prAngleContext(article) {
+  const title = String(article?.title || '').trim();
+  const summary = String(article?.summary || '').trim();
+  const keyword = String(article?.keyword || '').trim();
+  const text = `${title} ${summary}`;
+  const metadataText = `${text} ${keyword}`;
+  const themeKeys = collectArticleAiThemes(text).map((theme) => theme.key);
+  const directKakao = articleHasDirectKakaoMention(article);
+  return {
+    text,
+    metadataText,
+    themeKeys,
+    directKakao,
+    hasAiEducation: /(AI|인공지능|생성형|LLM).{0,24}(교육|대학|인재|양성|교육부|대교협)|(교육|대학|인재|양성|교육부|대교협).{0,24}(AI|인공지능|생성형|LLM)/i.test(text),
+    hasPartnership: /(MOU|업무협약|협약|제휴|파트너십|맞손|공동개발|협력|계약 체결)/i.test(text)
+  };
+}
+
+function firstSafePrLine(candidates, article, maxLength = 80) {
+  const fallbackCandidates = candidates.filter(Boolean);
+  const fallback = cleanPrDraftLine(fallbackCandidates[fallbackCandidates.length - 1] || '', maxLength);
+  for (const candidate of candidates) {
+    const line = cleanPrDraftLine(candidate, maxLength);
+    if (line && !isAiLineTooCloseToArticleSource(line, article, 0.8)) {
+      return line;
+    }
+  }
+  return fallback;
+}
+
+function buildPrAngleLeadForArticle(article) {
+  const context = prAngleContext(article);
+  const groundedDraft = buildGroundedDraftForArticle(article);
+  if (groundedDraft.summaryLead) {
+    return groundedDraft.summaryLead;
+  }
+
+  const candidates = [];
+
+  if (context.hasAiEducation && context.hasPartnership) {
+    candidates.push('AI 인재 교육 민관학 협력체계 구축');
+  }
+  if (context.themeKeys.includes('aiInfra') && context.themeKeys.includes('partnership')) {
+    candidates.push(context.directKakao ? '카카오 AI 협력 생태계 확대' : 'AI 협력 생태계 확대');
+  }
+  if (context.themeKeys.includes('partnership')) {
+    candidates.push(context.directKakao ? '카카오 사업 협력망 확장' : '플랫폼 협력망 확장');
+  }
+  if (context.themeKeys.includes('investment')) {
+    candidates.push(context.directKakao ? '카카오 미래 성장 투자 행보 부각' : '미래 성장 투자 행보 부각');
+  }
+  if (context.themeKeys.includes('performance')) {
+    candidates.push(context.directKakao ? '카카오 핵심 사업 성장성 부각' : '플랫폼 사업 성장성 부각');
+  }
+  if (context.themeKeys.includes('service')) {
+    candidates.push(context.directKakao ? '카카오 신규 서비스 접점 확대' : '신규 서비스 시장 접점 확대');
+  }
+  if (context.themeKeys.includes('aiInfra')) {
+    candidates.push(context.directKakao ? '카카오 AI 인프라 경쟁력 강화' : 'AI 인프라 경쟁력 강화');
+  }
+  if (context.themeKeys.includes('platformStrategy')) {
+    candidates.push(context.directKakao ? '카카오 플랫폼 전략 고도화' : '플랫폼 전략 변화 신호 포착');
+  }
+  if (context.themeKeys.includes('executive')) {
+    candidates.push(context.directKakao ? '카카오 경영 메시지 주목도 확대' : '플랫폼 리더십 메시지 부각');
+  }
+
+  candidates.push(context.directKakao ? '카카오그룹 사업 확장성 부각' : '플랫폼 산업 변화 신호 포착');
+  return firstSafePrLine(candidates, article, 78);
+}
+
+function buildPrAngleKeyPointForArticle(article, summaryLead) {
+  const context = prAngleContext(article);
+  const groundedKeyPoint = buildGroundedKeyPointForArticle(article, summaryLead);
+  if (groundedKeyPoint) {
+    return groundedKeyPoint;
+  }
+
+  const candidates = [];
+  const practicalPrefix = /실전형/i.test(context.text) ? '실전형 ' : '';
+
+  if (context.hasAiEducation && context.hasPartnership) {
+    candidates.push(`${practicalPrefix}AI 인재 양성 프로그램 공동 개발·확산`);
+  }
+  if (context.themeKeys.includes('partnership')) {
+    candidates.push('협력 파트너와 공동 사업 추진 기반 마련');
+  }
+  if (context.themeKeys.includes('investment')) {
+    candidates.push('투자·인수 행보를 통한 성장 옵션 확대');
+  }
+  if (context.themeKeys.includes('performance')) {
+    candidates.push('실적 지표와 성장 동력 중심으로 시장 메시지 강화');
+  }
+  if (context.themeKeys.includes('service')) {
+    candidates.push('신규 기능·서비스 접점 확대로 이용자 경험 강화');
+  }
+  if (context.themeKeys.includes('aiInfra')) {
+    candidates.push('AI·데이터 인프라 기반 기술 경쟁력 부각');
+  }
+  if (context.themeKeys.includes('platformStrategy')) {
+    candidates.push('이용자 기반과 플랫폼 전략 고도화 흐름 확인');
+  }
+  if (context.themeKeys.includes('executive')) {
+    candidates.push('대표·임원 발언 기반 공식 메시지 정리');
+  }
+
+  candidates.push(`${mediaLabel(article)} 보도 기준 사업 메시지화 가능`);
+
+  for (const candidate of candidates) {
+    const line = cleanPrDraftLine(candidate, 64);
+    if (
+      line
+      && !areAiLinesTooSimilar(summaryLead, line)
+      && !isAiLineTooCloseToArticleSource(line, article, 0.8)
+    ) {
+      return line;
+    }
+  }
+
+  return cleanPrDraftLine(candidates[candidates.length - 1], 64);
+}
+
 function buildFallbackAiKeyPoint(article, summaryLead) {
   const rawCandidates = [
     article?.currentKeyPoint,
@@ -3245,9 +3747,13 @@ function buildFallbackAiKeyPoint(article, summaryLead) {
       .map((part) => trimKakaoLine(part, 40))
       .filter(Boolean);
 
-    const candidate = parts.find((part) => !areAiLinesTooSimilar(summaryLead, part));
+    const candidate = parts.find((part) => (
+      !areAiLinesTooSimilar(summaryLead, part)
+      && !isUnsupportedKakaoDraftLine(part, article)
+      && !isAiLineTooCloseToArticleSource(part, article, 0.8)
+    ));
     if (candidate) {
-      return candidate;
+      return cleanPrDraftLine(candidate, 40);
     }
   }
 
@@ -3255,10 +3761,29 @@ function buildFallbackAiKeyPoint(article, summaryLead) {
 }
 
 function buildAiSummaryUpdates(article, result) {
-  const nextSummaryLead = String(result?.summaryLead || articleSummaryLead(article)).trim();
-  let nextKeyPoint = String(result?.keyPoint || articleKeyPoint(article)).trim();
-  if (areAiLinesTooSimilar(nextSummaryLead, nextKeyPoint)) {
-    nextKeyPoint = buildFallbackAiKeyPoint(article, nextSummaryLead) || nextKeyPoint;
+  const groundedDraft = buildGroundedDraftForArticle(article);
+  let nextSummaryLead = cleanPrDraftLine(result?.summaryLead || articleSummaryLead(article), 78);
+  let sanitizedSummaryLead = false;
+  if (
+    isUnsupportedKakaoDraftLine(nextSummaryLead, article)
+    || isAiLineTooCloseToArticleSource(nextSummaryLead, article, 0.8)
+  ) {
+    nextSummaryLead = groundedDraft.summaryLead || buildPrAngleLeadForArticle(article);
+    sanitizedSummaryLead = true;
+  }
+
+  let nextKeyPoint = cleanPrDraftLine(result?.keyPoint || articleKeyPoint(article), 64);
+  if (
+    sanitizedSummaryLead
+    || isUnsupportedKakaoDraftLine(nextKeyPoint, article)
+    || isUnsupportedKakaoDraftLine(nextSummaryLead, article)
+    || areAiLinesTooSimilar(nextSummaryLead, nextKeyPoint)
+    || isAiLineTooCloseToArticleSource(nextKeyPoint, article, 0.8)
+  ) {
+    nextKeyPoint = groundedDraft.keyPoint
+      || buildPrAngleKeyPointForArticle(article, nextSummaryLead)
+      || buildFallbackAiKeyPoint(article, nextSummaryLead)
+      || nextKeyPoint;
   }
   return {
     summaryLead: nextSummaryLead,
@@ -3297,48 +3822,57 @@ function renderAiReviewCard() {
   if (!review?.proposals?.length) return '';
 
   return `
-    <article class="card ai-review-card" id="builder-ai-review-card">
-      <div class="panel-heading">
-        <div>
-          <p class="panel-kicker">AI Review</p>
-          <h3>${escapeHtml(review.title || 'AI 제안 비교')}</h3>
-        </div>
-        <span class="panel-pill tone-neutral">${formatNumber(review.proposals.length)}건 검토</span>
-      </div>
-      <p class="panel-note">${escapeHtml(review.description || '적용 전에 기존 문구와 AI 제안 문구를 비교해 보세요.')}</p>
-      ${review.failedCount
-        ? `<p class="policy-note"><strong>안내</strong><span>일부 기사 ${formatNumber(review.failedCount)}건은 AI 응답이 실패해 이번 제안에서 제외했습니다.</span></p>`
-        : ''}
-      <div class="ai-review-list">
-        ${review.proposals.map((proposal) => `
-          <div class="ai-review-item ${proposal.changed ? 'is-changed' : 'is-same'}">
-            <div class="ai-review-head">
-              <div>
-                <strong>${escapeHtml(proposal.articleTitle || '기사')}</strong>
-                <span>${escapeHtml(sectionLabel(proposal.sectionName))} / ${escapeHtml(proposal.media || '-')}</span>
-              </div>
-              <span class="status-badge status-${proposal.changed ? 'warning' : 'reported'}">${proposal.changed ? '변경' : '유지'}</span>
-            </div>
-            <div class="ai-review-grid">
-              <div class="ai-review-column">
-                <span class="ai-review-label">기존</span>
-                <strong>${escapeHtml(proposal.before.summaryLead || '-')}</strong>
-                <p>${escapeHtml(proposal.before.keyPoint || '-')}</p>
-              </div>
-              <div class="ai-review-column">
-                <span class="ai-review-label">AI 제안</span>
-                <strong>${escapeHtml(proposal.after.summaryLead || '-')}</strong>
-                <p>${escapeHtml(proposal.after.keyPoint || '-')}</p>
-              </div>
-            </div>
+    <div class="ai-review-modal-backdrop" id="ai-review-modal-backdrop" role="presentation">
+      <article
+        class="card ai-review-card ai-review-modal"
+        id="builder-ai-review-card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ai-review-modal-title"
+        tabindex="-1"
+      >
+        <div class="panel-heading ai-review-modal-head">
+          <div>
+            <p class="panel-kicker">AI Review</p>
+            <h3 id="ai-review-modal-title">${escapeHtml(review.title || 'AI 제안 비교')}</h3>
           </div>
-        `).join('')}
-      </div>
-      <div class="inline-actions stack-mobile">
-        <button class="primary-btn" id="ai-review-apply">AI 제안 적용</button>
-        <button class="ghost-btn" id="ai-review-cancel">기존 문구 유지</button>
-      </div>
-    </article>
+          <span class="panel-pill tone-neutral">${formatNumber(review.proposals.length)}건 검토</span>
+        </div>
+        <p class="panel-note">${escapeHtml(review.description || '적용 전에 기존 문구와 AI 제안 문구를 비교해 보세요.')}</p>
+        ${review.failedCount
+          ? `<p class="policy-note"><strong>안내</strong><span>일부 기사 ${formatNumber(review.failedCount)}건은 AI 응답이 실패해 이번 제안에서 제외했습니다.</span></p>`
+          : ''}
+        <div class="ai-review-list">
+          ${review.proposals.map((proposal) => `
+            <div class="ai-review-item ${proposal.changed ? 'is-changed' : 'is-same'}">
+              <div class="ai-review-head">
+                <div>
+                  <strong>${escapeHtml(proposal.articleTitle || '기사')}</strong>
+                  <span>${escapeHtml(sectionLabel(proposal.sectionName))} / ${escapeHtml(proposal.media || '-')}</span>
+                </div>
+                <span class="status-badge status-${proposal.changed ? 'warning' : 'reported'}">${proposal.changed ? '변경' : '유지'}</span>
+              </div>
+              <div class="ai-review-grid">
+                <div class="ai-review-column">
+                  <span class="ai-review-label">기존</span>
+                  <strong>${escapeHtml(proposal.before.summaryLead || '-')}</strong>
+                  <p>${escapeHtml(proposal.before.keyPoint || '-')}</p>
+                </div>
+                <div class="ai-review-column">
+                  <span class="ai-review-label">AI 제안</span>
+                  <strong>${escapeHtml(proposal.after.summaryLead || '-')}</strong>
+                  <p>${escapeHtml(proposal.after.keyPoint || '-')}</p>
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+        <div class="inline-actions stack-mobile ai-review-modal-actions">
+          <button class="primary-btn" id="ai-review-apply">AI 제안 적용</button>
+          <button class="ghost-btn" id="ai-review-cancel">기존 문구 유지</button>
+        </div>
+      </article>
+    </div>
   `;
 }
 
@@ -3392,10 +3926,14 @@ async function buildAiSummaryProposalForDraftItem(key) {
   }
 
   const result = await requestAiSummary(location.item);
-  const updates = buildAiSummaryUpdates(location.item, result);
+  return buildAiSummaryProposalFromResult(key, location.item, result);
+}
+
+function buildAiSummaryProposalFromResult(key, article, result) {
+  const updates = buildAiSummaryUpdates(article, result);
   return {
     updated: true,
-    proposal: buildAiReviewProposal(key, location.item, updates)
+    proposal: buildAiReviewProposal(key, article, updates)
   };
 }
 
@@ -3477,7 +4015,13 @@ async function summarizeReportDraftWithAi() {
     ...sections.major.map((article) => draftEntryKey('major', article)),
     ...sections.industry.map((article) => draftEntryKey('industry', article))
   ];
-  if (!entryKeys.length) {
+  const entries = entryKeys
+    .map((key) => {
+      const location = findDraftLocation(key);
+      return location ? { key, article: location.item } : null;
+    })
+    .filter(Boolean);
+  if (!entries.length) {
     showToast('리포트에 반영된 기사가 있을 때 사용할 수 있습니다.');
     return;
   }
@@ -3488,44 +4032,45 @@ async function summarizeReportDraftWithAi() {
     'builder-report-draft',
     'builder-ai',
     '리포트 전체 AI 정리 중',
-    `기사 ${formatNumber(entryKeys.length)}건의 문구를 다시 정리하고 있습니다.`
+    `기사 ${formatNumber(entries.length)}건의 문구를 한 번의 AI 요청으로 정리하고 있습니다.`
   );
   renderReportBuilder();
 
   let successCount = 0;
   let changedCount = 0;
   let failedCount = 0;
-  let lastError = null;
   const proposals = [];
 
   try {
-    for (const key of entryKeys) {
-      try {
-        const outcome = await buildAiSummaryProposalForDraftItem(key);
-        if (!outcome?.updated || !outcome?.proposal) {
-          continue;
-        }
-        successCount += 1;
-        proposals.push(outcome.proposal);
-        if (outcome.proposal.changed) {
-          changedCount += 1;
-        }
-        continue;
-        if (!outcome?.updated) {
-          continue;
-        }
-        successCount += 1;
-        if (outcome.changed) {
-          changedCount += 1;
-        }
-      } catch (error) {
+    const batchResult = await requestAiSummaryBatch(entries);
+    const resultByKey = new Map(
+      (Array.isArray(batchResult?.items) ? batchResult.items : [])
+        .map((item) => [String(item?.key || '').trim(), item])
+        .filter(([key]) => Boolean(key))
+    );
+
+    for (const entry of entries) {
+      const result = resultByKey.get(entry.key);
+      if (!result?.summaryLead || !result?.keyPoint) {
         failedCount += 1;
-        lastError = error;
+        continue;
+      }
+
+      const outcome = buildAiSummaryProposalFromResult(entry.key, entry.article, result);
+      if (!outcome?.updated || !outcome?.proposal) {
+        failedCount += 1;
+        continue;
+      }
+
+      successCount += 1;
+      proposals.push(outcome.proposal);
+      if (outcome.proposal.changed) {
+        changedCount += 1;
       }
     }
 
-    if (!successCount && lastError) {
-      throw lastError;
+    if (!successCount && failedCount) {
+      throw new Error('AI 일괄 정리 결과에서 적용 가능한 기사 문구를 찾지 못했습니다.');
     }
 
     if (!changedCount) {
@@ -3846,20 +4391,18 @@ function buildArticleAiInsight(article) {
   const sectionName = article?.section === 'industry' ? 'industry' : 'major';
   const focusLabel = directKakao ? '카카오' : industryPartnershipOrInvestment ? '산업 동향' : (keyword || '비우선 기사');
   const leadLabel = matchedThemes[0]?.label || (directKakao ? '카카오 사업' : '산업 동향');
-  const normalizedSummary = String(summary || '').replace(/\s+/g, ' ').trim();
-  const neutralKeyPoint = normalizedSummary && normalizeArticleMatchValue(normalizedSummary) !== normalizeArticleMatchValue(title)
-    ? normalizedSummary
-    : `${publisher} 보도, ${leadLabel} 관련 흐름`;
+  const prAngleLead = buildPrAngleLeadForArticle(article);
+  const prAngleKeyPoint = buildPrAngleKeyPointForArticle(article, prAngleLead);
   const draftTitle = truncateText(
-    `${focusLabel} ${leadLabel} 브리핑: ${title || summary || publisher}`,
+    `${focusLabel} ${leadLabel} 관점: ${prAngleLead || publisher}`,
     72
   );
   const summaryLead = truncateText(
-    title || normalizedSummary || `${focusLabel} ${leadLabel}`,
+    prAngleLead || `${focusLabel} ${leadLabel} 흐름`,
     78
   );
   const keyPoint = truncateText(
-    neutralKeyPoint,
+    prAngleKeyPoint || `${publisher} 보도 기준 ${leadLabel} 흐름 확인`,
     64
   );
   const intro = truncateText(
@@ -4312,6 +4855,52 @@ function renderAiCurationPickGroup(sectionName, title, picks, emptyText) {
   `;
 }
 
+function renderInboxAiCurationResultModal() {
+  const result = state.inboxAiCurationResult;
+  if (!state.inboxAiCurationModalOpen || !result) return '';
+
+  const providerLabel = result?.mode === 'local-preview'
+    ? '로컬 미리보기'
+    : (result?.provider || state.capabilities?.provider || 'AI');
+  const trustText = result?.mode === 'local-preview'
+    ? '로컬 규칙 미리보기입니다. 사업 성과·서비스·AI/인프라·MOU·투자 신호를 먼저 추립니다.'
+    : 'AI 응답입니다. 추천 이유는 기사 카드에서 확인하고 바로 빌더에 반영할 수 있습니다.';
+
+  return `
+    <div class="inbox-ai-curation-modal-backdrop" id="inbox-ai-curation-modal-backdrop" role="presentation">
+      <article
+        class="card inbox-ai-curation-modal"
+        id="inbox-ai-curation-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="inbox-ai-curation-modal-title"
+        tabindex="-1"
+      >
+        <div class="panel-heading inbox-ai-curation-modal-head">
+          <div>
+            <p class="panel-kicker">AI 추천</p>
+            <h3 id="inbox-ai-curation-modal-title">AI 기사 추천 결과</h3>
+            <p class="panel-note">주요 보도와 업계 보도 후보를 확인하고 바로 빌더에 추가할 수 있습니다.</p>
+          </div>
+          <button class="ghost-btn" type="button" id="inbox-ai-curation-modal-close">닫기</button>
+        </div>
+        <div class="ai-curation-summary">
+          <div class="ai-curation-summary-head">
+            <strong>${escapeHtml(providerLabel)}</strong>
+            <span>${escapeHtml(formatSavedTime(result.generatedAt) || '방금')}</span>
+          </div>
+          <p>${escapeHtml(result.summary || '추천 결과를 준비했습니다.')}</p>
+          <p class="ai-curation-trust">${escapeHtml(trustText)}</p>
+        </div>
+        <div class="ai-curation-grid inbox-ai-curation-modal-grid">
+          ${renderAiCurationPickGroup('major', '주요 보도 추천', result.kakaoPicks || [], '주요 보도 기준에 맞는 추천 기사가 없습니다.')}
+          ${renderAiCurationPickGroup('industry', '업계 보도 추천', result.industryPicks || [], '업계 보도 기준에 맞는 추천 기사가 없습니다.')}
+        </div>
+      </article>
+    </div>
+  `;
+}
+
 function renderInboxAiCurationCard(articles) {
   const totalArticles = Array.isArray(articles) ? articles.length : 0;
   const result = state.inboxAiCurationResult;
@@ -4330,9 +4919,6 @@ function renderInboxAiCurationCard(articles) {
   const summaryText = result
     ? `주요 보도 ${formatNumber((result.kakaoPicks || []).length)}건 · 업계 보도 ${formatNumber((result.industryPicks || []).length)}건`
     : `추천 전 · 주요/업계 후보 자동 분류`;
-  const trustText = result?.mode === 'local-preview'
-    ? '로컬 규칙 미리보기입니다. 사업 성과·서비스·AI/인프라·MOU·투자 신호를 먼저 추립니다.'
-    : 'AI 응답입니다. 추천 이유는 기사 카드에서 확인하고 바로 빌더에 반영할 수 있습니다.';
 
   return `
     <section class="inbox-ai-curation inbox-ai-recommendation ${expanded ? 'is-expanded' : 'is-collapsed'}">
@@ -4379,21 +4965,18 @@ function renderInboxAiCurationCard(articles) {
               : ''}
             <div class="inline-actions compact stack-mobile">
               <button class="primary-btn" type="button" id="inbox-ai-curation-run" ${state.inboxAiCurationBusy || !totalArticles ? 'disabled' : ''}>${escapeHtml(buttonLabel)}</button>
+              <button class="ghost-btn" type="button" id="inbox-ai-curation-open-modal" ${result ? '' : 'disabled'}>추천 결과 보기</button>
               <button class="ghost-btn" type="button" id="inbox-ai-curation-reset" ${state.inboxAiCurationBusy ? 'disabled' : ''}>기본 프롬프트</button>
             </div>
             ${result
               ? `
-                <div class="ai-curation-summary">
+                <div class="ai-curation-inline-summary">
                   <div class="ai-curation-summary-head">
                     <strong>${escapeHtml(providerLabel)}</strong>
                     <span>${escapeHtml(formatSavedTime(result.generatedAt) || '방금')}</span>
                   </div>
                   <p>${escapeHtml(result.summary || '추천 결과를 준비했습니다.')}</p>
-                  <p class="ai-curation-trust">${escapeHtml(trustText)}</p>
-                </div>
-                <div class="ai-curation-grid">
-                  ${renderAiCurationPickGroup('major', '주요 보도 추천', result.kakaoPicks || [], '주요 보도 기준에 맞는 추천 기사가 없습니다.')}
-                  ${renderAiCurationPickGroup('industry', '업계 보도 추천', result.industryPicks || [], '업계 보도 기준에 맞는 추천 기사가 없습니다.')}
+                  <p class="ai-curation-trust">추천 결과는 중앙 모달에서 확인하고 바로 추가할 수 있습니다.</p>
                 </div>
               `
               : `
@@ -4509,6 +5092,7 @@ async function curateInboxArticlesWithAi() {
   state.inboxAiCurationPrompt = prompt;
   state.inboxAiCurationOpen = true;
   state.inboxAiCurationBusy = true;
+  state.inboxAiCurationModalOpen = false;
   beginAiWorkStatus(
     'inbox-curation',
     'inbox-ai',
@@ -4534,6 +5118,7 @@ async function curateInboxArticlesWithAi() {
       }
       const payload = await requestAiArticleCuration(state.articles, prompt);
       state.inboxAiCurationResult = normalizeAiArticleCurationResult(payload, state.articles, prompt);
+      state.inboxAiCurationModalOpen = true;
       completeAiWorkStatus(
         'inbox-curation',
         'inbox-ai',
@@ -4546,6 +5131,7 @@ async function curateInboxArticlesWithAi() {
 
     usedFallback = true;
     state.inboxAiCurationResult = buildLocalAiArticleCuration(state.articles, prompt);
+    state.inboxAiCurationModalOpen = true;
     completeAiWorkStatus(
       'inbox-curation',
       'inbox-ai',
@@ -4556,6 +5142,7 @@ async function curateInboxArticlesWithAi() {
   } catch (error) {
     usedFallback = true;
     state.inboxAiCurationResult = buildLocalAiArticleCuration(state.articles, prompt);
+    state.inboxAiCurationModalOpen = true;
     completeAiWorkStatus(
       'inbox-curation',
       'inbox-ai',
@@ -4924,21 +5511,133 @@ function renderSettingsPolicyModal({ settingsPolicyRows, alertPolicy, deployment
   `;
 }
 
-function escapeRegExp(value) {
-  return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function isKeywordWordChar(char) {
+  return Boolean(char && /[\p{L}\p{N}]/u.test(char));
+}
+
+function startsWithKoreanPostposition(value) {
+  const source = String(value || '');
+  return [
+    '으로부터',
+    '으로써',
+    '으로서',
+    '에서',
+    '에게',
+    '까지',
+    '부터',
+    '처럼',
+    '보다',
+    '으로',
+    '라고',
+    '라며',
+    '이며',
+    '은',
+    '는',
+    '이',
+    '가',
+    '을',
+    '를',
+    '의',
+    '에',
+    '와',
+    '과',
+    '도',
+    '만',
+    '로'
+  ].some((postposition) => source.startsWith(postposition));
+}
+
+function isExactKeywordBoundary(source, start, end) {
+  const before = source[start - 1] || '';
+  const after = source[end] || '';
+  const beforeOk = !isKeywordWordChar(before);
+  const afterOk = !after || !isKeywordWordChar(after) || startsWithKoreanPostposition(source.slice(end));
+  return beforeOk && afterOk;
+}
+
+function keywordMatchRanges(text, keyword) {
+  const source = String(text || '');
+  const target = String(keyword || '').trim();
+  if (!source || !target) return [];
+
+  const lowerSource = source.toLocaleLowerCase('ko-KR');
+  const lowerTarget = target.toLocaleLowerCase('ko-KR');
+  const ranges = [];
+  let index = 0;
+
+  while (index <= lowerSource.length) {
+    const start = lowerSource.indexOf(lowerTarget, index);
+    if (start === -1) break;
+    const end = start + lowerTarget.length;
+    if (isExactKeywordBoundary(source, start, end)) {
+      ranges.push({ start, end, keyword: target });
+    }
+    index = Math.max(end, start + 1);
+  }
+
+  return ranges;
+}
+
+function articleDisplayKeywordSources(article) {
+  return [
+    article?.title,
+    article?.summary
+  ].map((value) => String(value || '').trim()).filter(Boolean);
+}
+
+function articleHasKeywordInDisplayText(article, keyword) {
+  const target = String(keyword || '').trim();
+  if (!target) return false;
+  return articleDisplayKeywordSources(article).some((source) => keywordMatchRanges(source, target).length > 0);
+}
+
+function articleMatchesInboxKeywordToken(article, token) {
+  const { sectionName, keyword } = parseInboxKeywordToken(token);
+  if (!sectionName || !keyword) return false;
+  if (String(article?.section || '') !== sectionName) return false;
+  return articleHasKeywordInDisplayText(article, keyword);
+}
+
+function activeInboxKeywordFiltersForArticle(article) {
+  return inboxKeywordFilterTokens()
+    .map((token) => parseInboxKeywordToken(token))
+    .filter(({ sectionName, keyword }) => sectionName === article?.section && keyword)
+    .map(({ keyword }) => keyword);
+}
+
+function collectKeywordHighlightRanges(text, keywords) {
+  const source = String(text || '');
+  const candidates = [...new Set(
+    keywords.map((keyword) => String(keyword || '').trim()).filter(Boolean)
+  )];
+  const ranges = candidates.flatMap((keyword) => keywordMatchRanges(source, keyword));
+
+  return ranges
+    .sort((left, right) => left.start - right.start || (right.end - right.start) - (left.end - left.start))
+    .reduce((acc, range) => {
+      const overlaps = acc.some((item) => range.start < item.end && range.end > item.start);
+      return overlaps ? acc : [...acc, range];
+    }, [])
+    .sort((left, right) => left.start - right.start);
 }
 
 function highlightKeywordsForText(text, article) {
   const source = String(text || '');
+  const activeKeywords = activeInboxKeywordFiltersForArticle(article)
+    .filter((keyword) => keywordMatchRanges(source, keyword).length > 0);
+  if (activeKeywords.length) {
+    return [...new Set(activeKeywords)].sort((a, b) => b.length - a.length);
+  }
+
   const candidates = [
     article?.keyword,
     ...keywordList().filter((keyword) => {
       const candidate = String(keyword || '').trim();
-      return candidate ? new RegExp(escapeRegExp(candidate), 'i').test(source) : false;
+      return candidate ? keywordMatchRanges(source, candidate).length > 0 : false;
     })
   ]
     .map((keyword) => String(keyword || '').trim())
-    .filter(Boolean);
+    .filter((keyword) => keyword && keywordMatchRanges(source, keyword).length > 0);
 
   return [...new Set(candidates)].sort((a, b) => b.length - a.length);
 }
@@ -4947,15 +5646,17 @@ function renderKeywordHighlights(text, keywords) {
   const source = String(text || '');
   if (keywords.length === 0) return escapeHtml(source);
 
-  const pattern = new RegExp(`(${keywords.map(escapeRegExp).join('|')})`, 'gi');
+  const ranges = collectKeywordHighlightRanges(source, keywords);
+  if (!ranges.length) return escapeHtml(source);
+
   let cursor = 0;
   let html = '';
 
-  for (const match of source.matchAll(pattern)) {
-    const start = match.index ?? 0;
-    const end = start + match[0].length;
+  for (const range of ranges) {
+    const start = range.start;
+    const end = range.end;
     html += escapeHtml(source.slice(cursor, start));
-    html += `<mark class="keyword-highlight">${escapeHtml(match[0])}</mark>`;
+    html += `<mark class="keyword-highlight">${escapeHtml(source.slice(start, end))}</mark>`;
     cursor = end;
   }
 
@@ -4978,18 +5679,19 @@ function highlightSummaryKeywords(summary, article, maxLength = 120) {
     return escapeHtml(text.length > maxLength ? `${text.slice(0, Math.max(maxLength - 1, 1)).trimEnd()}…` : text);
   }
 
-  const pattern = new RegExp(`(${keywords.map(escapeRegExp).join('|')})`, 'gi');
-  const firstMatch = pattern.exec(text);
+  const ranges = collectKeywordHighlightRanges(text, keywords);
+  const firstMatch = ranges[0];
   if (!firstMatch) {
     return renderKeywordHighlights(text.length > maxLength ? `${text.slice(0, Math.max(maxLength - 1, 1)).trimEnd()}…` : text, keywords);
   }
 
-  const firstIndex = firstMatch.index ?? 0;
+  const firstIndex = firstMatch.start;
+  const firstLength = firstMatch.end - firstMatch.start;
   const totalLength = text.length;
   let excerptStart = 0;
 
   if (totalLength > maxLength) {
-    const centeredStart = Math.max(0, firstIndex - Math.floor((maxLength - firstMatch[0].length) / 2));
+    const centeredStart = Math.max(0, firstIndex - Math.floor((maxLength - firstLength) / 2));
     excerptStart = Math.min(centeredStart, Math.max(totalLength - maxLength, 0));
   }
 
@@ -5550,7 +6252,7 @@ function filterInboxArticles({ ignoreStatusFilter = false, ignoreSearchQuery = f
       : state.articles.filter((article) => article.section === state.inboxSectionFilter);
   const activeKeywordTokens = inboxKeywordFilterTokens();
   const keywordFiltered = activeKeywordTokens.length
-    ? sectionFiltered.filter((article) => activeKeywordTokens.includes(articleKeywordFilterToken(article)))
+    ? sectionFiltered.filter((article) => activeKeywordTokens.some((token) => articleMatchesInboxKeywordToken(article, token)))
     : sectionFiltered;
 
   const searchQuery = ignoreSearchQuery ? '' : normalizedInboxSearchQuery();
@@ -6942,6 +7644,9 @@ renderInbox = function renderInboxOverride() {
   document.body.classList.toggle('has-mobile-selection-bar', selectedCount > 0);
   document.body.classList.toggle('has-mobile-preview-bar', Boolean(previewArticle) && !selectedCount);
   document.body.classList.toggle('has-mobile-preview-sheet', Boolean(previewArticle) && !selectedCount && state.inboxPreviewOpen);
+  const modalOpen = Boolean(state.inboxAiCurationModalOpen || state.inboxAiCurationBusy);
+  document.documentElement.classList.toggle('has-modal-open', modalOpen);
+  document.body.classList.toggle('has-modal-open', modalOpen);
 
   app.innerHTML = `
     <section class="page ${selectedCount ? 'has-mobile-selection-bar' : ''}" id="article-inbox-page">
@@ -7095,7 +7800,10 @@ renderInbox = function renderInboxOverride() {
               ? `<div class="keyword-band-list">
                   ${keywordGroups.map((group) => `
                     <div class="keyword-filter-band">
-                      <strong class="keyword-band-title">${escapeHtml(group.label)}</strong>
+                      <div class="keyword-band-heading">
+                        <strong class="keyword-band-title">${escapeHtml(group.label)}</strong>
+                        ${group.subLabel ? `<span>${escapeHtml(group.subLabel)}</span>` : ''}
+                      </div>
                       <div class="chip-group chip-group-inline">
                         <button class="filter-chip keyword-chip ${inboxKeywordFiltersForSection(group.key).length === 0 ? 'active' : ''}" data-clear-keyword-group="${escapeHtml(group.key)}" aria-pressed="${inboxKeywordFiltersForSection(group.key).length === 0}">
                           <strong>전체</strong>
@@ -7246,13 +7954,38 @@ renderInbox = function renderInboxOverride() {
         canOpenSelected
       })}
       ${renderMobilePreviewDock(previewArticle, { selectedCount })}
+      ${renderInboxAiBusyOverlay()}
+      ${renderInboxAiCurationResultModal()}
     </section>
   `;
+
+  if (state.inboxAiCurationModalOpen && state.inboxAiCurationResult) {
+    queueMicrotask(() => {
+      document.getElementById('inbox-ai-curation-modal')?.focus();
+    });
+  }
 
   bindWorkflowProgressActions();
 
   document.getElementById('inbox-ai-curation-toggle')?.addEventListener('click', () => {
     state.inboxAiCurationOpen = !state.inboxAiCurationOpen;
+    renderInbox();
+  });
+
+  document.getElementById('inbox-ai-curation-open-modal')?.addEventListener('click', () => {
+    if (!state.inboxAiCurationResult) return;
+    state.inboxAiCurationModalOpen = true;
+    renderInbox();
+  });
+
+  document.getElementById('inbox-ai-curation-modal-close')?.addEventListener('click', () => {
+    state.inboxAiCurationModalOpen = false;
+    renderInbox();
+  });
+
+  document.getElementById('inbox-ai-curation-modal-backdrop')?.addEventListener('click', (event) => {
+    if (event.target.id !== 'inbox-ai-curation-modal-backdrop') return;
+    state.inboxAiCurationModalOpen = false;
     renderInbox();
   });
 
@@ -7865,11 +8598,18 @@ renderReportBuilder = function renderReportBuilderOverride() {
             sections,
             canImportArticles
           })}
-          ${renderAiReviewCard()}
         </aside>
       </div>
+      ${renderBuilderAiBusyOverlay()}
+      ${renderAiReviewCard()}
     </section>
   `;
+
+  if (state.pendingAiReview?.proposals?.length) {
+    queueMicrotask(() => {
+      document.getElementById('builder-ai-review-card')?.focus();
+    });
+  }
 
   bindWorkflowProgressActions();
 
@@ -8466,6 +9206,27 @@ renderSettings = function renderSettingsOverride() {
       </div>
     `;
   };
+  const renderSettingsKeywordGroups = (groups) => `
+    <div class="settings-keyword-groups">
+      ${groups.map((group) => `
+        <div class="settings-keyword-group settings-keyword-group-${escapeHtml(group.key)}">
+          <div class="settings-keyword-group-head">
+            <div>
+              <strong>${escapeHtml(group.label)}</strong>
+              <span>${escapeHtml(group.subLabel)}</span>
+            </div>
+            <span class="panel-pill tone-neutral">${formatNumber(group.items.length)}개</span>
+          </div>
+          ${group.items.length
+            ? `<div class="settings-tag-list settings-tag-list-full">
+                ${group.items.map((item) => `<span class="settings-tag">${escapeHtml(item)}</span>`).join('')}
+              </div>`
+            : renderDataEmpty(`settings-empty-${group.key}-keywords`, `${group.label}가 없습니다`, 'config에 추가하면 표시됩니다.')}
+        </div>
+      `).join('')}
+    </div>
+  `;
+  const keywordGroups = groupedConfiguredKeywords(config);
 
   app.innerHTML = `
     <section class="page" id="settings-page">
@@ -8483,7 +9244,7 @@ renderSettings = function renderSettingsOverride() {
             </div>
             <span class="panel-pill">${formatNumber(keywordList().length)}개</span>
           </div>
-          ${renderTagList(keywordList(), '등록된 키워드가 없습니다', 'config에 추가하면 표시됩니다.')}
+          ${renderSettingsKeywordGroups(keywordGroups)}
         </article>
 
         <article class="card settings-card">
@@ -8590,12 +9351,14 @@ buildTrendItems = function buildTrendItemsOverride() {
   const buildItems = (sectionName, limit = 6) => {
     const source = state.articles.filter((article) => article.section === sectionName);
     const configuredKeywords = keywordList();
-    const fallbackKeywords = Array.from(new Set(source.map((article) => article.keyword).filter(Boolean)));
-    const candidates = configuredKeywords.length ? configuredKeywords : fallbackKeywords;
+    const fallbackKeywords = Array.from(new Set(source.map((article) => article.keyword).filter(Boolean)))
+      .filter((keyword) => keywordBelongsToSection(keyword, sectionName));
+    const candidates = (configuredKeywords.length ? configuredKeywords : fallbackKeywords)
+      .filter((keyword) => keywordBelongsToSection(keyword, sectionName));
     const items = candidates
       .map((keyword) => ({
         keyword,
-        count: source.filter((article) => article.title?.includes(keyword) || article.keyword === keyword).length
+        count: source.filter((article) => articleHasKeywordInDisplayText(article, keyword)).length
       }))
       .filter((item) => item.count > 0)
       .sort((left, right) => right.count - left.count || left.keyword.localeCompare(right.keyword, 'ko'))
@@ -9012,9 +9775,11 @@ function render(pageName) {
   state.activePage = pageName;
   document.body.dataset.page = pageName;
   if (pageName !== 'inbox') {
+    document.documentElement.classList.remove('has-modal-open');
     document.body.classList.remove('has-mobile-selection-bar');
     document.body.classList.remove('has-mobile-preview-bar');
     document.body.classList.remove('has-mobile-preview-sheet');
+    document.body.classList.remove('has-modal-open');
   }
   setActiveNav();
   updateShellMeta();

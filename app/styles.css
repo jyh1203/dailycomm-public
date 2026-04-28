@@ -53,6 +53,11 @@ body {
     linear-gradient(180deg, #f9fbfd 0%, #eef2f6 100%);
 }
 
+html.has-modal-open,
+body.has-modal-open {
+  overflow: hidden;
+}
+
 .skip-link {
   position: fixed;
   top: 12px;
@@ -2034,6 +2039,52 @@ main {
   font-size: 12px;
 }
 
+.settings-keyword-groups {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+.settings-keyword-group {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(15, 23, 39, 0.08);
+}
+
+.settings-keyword-group-industry {
+  background: rgba(244, 249, 255, 0.78);
+}
+
+.settings-keyword-group-head,
+.keyword-band-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
+.settings-keyword-group-head > div,
+.keyword-band-heading {
+  min-width: 0;
+}
+
+.settings-keyword-group-head strong,
+.keyword-band-heading strong {
+  color: var(--text);
+  font-size: 14px;
+}
+
+.settings-keyword-group-head span:not(.panel-pill),
+.keyword-band-heading span {
+  color: var(--text-soft);
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .settings-quick-actions {
   display: flex;
   align-items: center;
@@ -3239,6 +3290,127 @@ main {
   gap: 14px;
 }
 
+.ai-review-modal-backdrop,
+.builder-ai-busy-backdrop,
+.inbox-ai-curation-modal-backdrop,
+.inbox-ai-busy-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(15, 23, 39, 0.5);
+  backdrop-filter: blur(8px);
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+.builder-ai-busy-backdrop,
+.inbox-ai-busy-backdrop {
+  z-index: 68;
+}
+
+.ai-review-modal,
+.inbox-ai-curation-modal {
+  width: min(980px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  overflow: hidden;
+  overscroll-behavior: contain;
+  padding: 20px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(180deg, rgba(250, 252, 255, 0.99), rgba(255, 255, 255, 0.97));
+  box-shadow: 0 24px 80px rgba(15, 23, 39, 0.22);
+}
+
+.ai-review-modal-head,
+.inbox-ai-curation-modal-head {
+  align-items: flex-start;
+}
+
+.ai-review-modal .ai-review-list {
+  max-height: min(54vh, 560px);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.inbox-ai-curation-modal {
+  width: min(1100px, calc(100vw - 32px));
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  min-height: 0;
+}
+
+.inbox-ai-curation-modal-grid {
+  min-height: 0;
+  max-height: min(56vh, 620px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+}
+
+.inbox-ai-curation-modal .ai-curation-group {
+  max-height: none;
+}
+
+.ai-review-modal-actions {
+  justify-content: flex-end;
+}
+
+.builder-ai-busy-dialog,
+.inbox-ai-busy-dialog {
+  width: min(520px, calc(100vw - 32px));
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+  padding: 22px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: linear-gradient(180deg, rgba(250, 252, 255, 0.98), rgba(255, 255, 255, 0.96));
+  box-shadow: 0 24px 80px rgba(15, 23, 39, 0.24);
+}
+
+.builder-ai-busy-spinner,
+.inbox-ai-busy-spinner {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 4px solid rgba(13, 78, 179, 0.14);
+  border-top-color: var(--primary);
+  animation: ai-status-spin 0.8s linear infinite;
+}
+
+.builder-ai-busy-dialog > div,
+.inbox-ai-busy-dialog > div {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.builder-ai-busy-dialog span:not(.builder-ai-busy-spinner),
+.inbox-ai-busy-dialog span:not(.inbox-ai-busy-spinner) {
+  color: var(--text-soft);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.builder-ai-busy-dialog strong,
+.inbox-ai-busy-dialog strong {
+  font-size: 18px;
+  line-height: 1.4;
+}
+
+.builder-ai-busy-dialog p,
+.inbox-ai-busy-dialog p {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
 .ai-review-list {
   display: grid;
   gap: 12px;
@@ -3374,6 +3546,41 @@ main {
 @media (max-width: 1120px) {
   .ai-review-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .ai-review-modal-backdrop,
+  .builder-ai-busy-backdrop,
+  .inbox-ai-curation-modal-backdrop,
+  .inbox-ai-busy-backdrop {
+    padding: 12px;
+  }
+
+  .ai-review-modal,
+  .inbox-ai-curation-modal {
+    width: min(100%, calc(100vw - 24px));
+    max-height: calc(100vh - 24px);
+    padding: 16px;
+    border-radius: 20px;
+  }
+
+  .ai-review-modal .ai-review-list {
+    max-height: 52vh;
+  }
+
+  .inbox-ai-curation-modal-grid {
+    grid-template-columns: minmax(0, 1fr);
+    max-height: 54vh;
+  }
+
+  .builder-ai-busy-dialog,
+  .inbox-ai-busy-dialog {
+    width: min(100%, calc(100vw - 24px));
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    text-align: center;
+    padding: 20px;
   }
 }
 
@@ -3581,7 +3788,9 @@ main {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ai-work-status.is-busy .ai-work-status-icon {
+  .ai-work-status.is-busy .ai-work-status-icon,
+  .builder-ai-busy-spinner,
+  .inbox-ai-busy-spinner {
     animation: none;
   }
 }
@@ -6398,6 +6607,7 @@ main {
 }
 
 .ai-curation-summary,
+.ai-curation-inline-summary,
 .ai-curation-group,
 .ai-curation-empty {
   padding: 14px;
@@ -6431,6 +6641,7 @@ main {
 }
 
 .ai-curation-summary p,
+.ai-curation-inline-summary p,
 .ai-curation-pick p,
 .ai-curation-empty p {
   margin: 0;
