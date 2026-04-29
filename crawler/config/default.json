@@ -17,7 +17,8 @@
     "아마존",
     "테슬라",
     "삼성전자",
-    "하이닉스"
+    "하이닉스",
+    "네이버"
   ],
   "schedule": [
     "07:30",
@@ -50,7 +51,8 @@
     "카카오뱅크": "major",
     "카카오모빌리티": "major",
     "데이터센터": "industry",
-    "노란봉투법": "industry"
+    "노란봉투법": "industry",
+    "네이버": "industry"
   },
   "deployment": {
     "visibility": "public-readonly",
