@@ -3490,11 +3490,16 @@ function isAiLineTooCloseToSourceText(line, source, threshold = 0.8) {
   if (!normalizedLine || !normalizedSource) return false;
   if (normalizedLine === normalizedSource) return true;
 
+  const minLength = Math.min(normalizedLine.length, normalizedSource.length);
+  const maxLength = Math.max(normalizedLine.length, normalizedSource.length);
+  if (minLength >= 10 && (normalizedLine.includes(normalizedSource) || normalizedSource.includes(normalizedLine))) {
+    const containmentRatio = minLength / maxLength;
+    if (containmentRatio >= Math.min(threshold, 0.72) || minLength >= 14) return true;
+  }
+
   const similarity = aiTextSimilarityRatio(normalizedLine, normalizedSource);
   if (similarity >= threshold) return true;
 
-  const minLength = Math.min(normalizedLine.length, normalizedSource.length);
-  const maxLength = Math.max(normalizedLine.length, normalizedSource.length);
   if (minLength >= 10 && (normalizedLine.includes(normalizedSource) || normalizedSource.includes(normalizedLine))) {
     return minLength / maxLength >= threshold;
   }
@@ -3623,6 +3628,8 @@ function prAngleContext(article) {
     metadataText,
     themeKeys,
     directKakao,
+    hasDataCenterPowerDemand: /(AI|인공지능).{0,16}데이터센터|데이터센터/i.test(text)
+      && /(공급|수주|전력|전력기기|변압기|배전|전기|일렉트릭|목표가|증권)/i.test(text),
     hasAiEducation: /(AI|인공지능|생성형|LLM).{0,24}(교육|대학|인재|양성|교육부|대교협)|(교육|대학|인재|양성|교육부|대교협).{0,24}(AI|인공지능|생성형|LLM)/i.test(text),
     hasPartnership: /(MOU|업무협약|협약|제휴|파트너십|맞손|공동개발|협력|계약 체결)/i.test(text)
   };
@@ -3643,12 +3650,14 @@ function firstSafePrLine(candidates, article, maxLength = 80) {
 function buildPrAngleLeadForArticle(article) {
   const context = prAngleContext(article);
   const groundedDraft = buildGroundedDraftForArticle(article);
-  if (groundedDraft.summaryLead) {
+  if (groundedDraft.summaryLead && !isAiLineTooCloseToArticleSource(groundedDraft.summaryLead, article, 0.72)) {
     return groundedDraft.summaryLead;
   }
 
   const candidates = [];
-
+  if (context.hasDataCenterPowerDemand) {
+    candidates.unshift('AI 인프라 전력수요 성장성 부각');
+  }
   if (context.hasAiEducation && context.hasPartnership) {
     candidates.push('AI 인재 교육 민관학 협력체계 구축');
   }
@@ -3684,13 +3693,16 @@ function buildPrAngleLeadForArticle(article) {
 function buildPrAngleKeyPointForArticle(article, summaryLead) {
   const context = prAngleContext(article);
   const groundedKeyPoint = buildGroundedKeyPointForArticle(article, summaryLead);
-  if (groundedKeyPoint) {
+  if (groundedKeyPoint && !isAiLineTooCloseToArticleSource(groundedKeyPoint, article, 0.72)) {
     return groundedKeyPoint;
   }
 
   const candidates = [];
   const practicalPrefix = /실전형/i.test(context.text) ? '실전형 ' : '';
 
+  if (context.hasDataCenterPowerDemand) {
+    candidates.push('데이터센터 공급 확대·목표가 상향 반영');
+  }
   if (context.hasAiEducation && context.hasPartnership) {
     candidates.push(`${practicalPrefix}AI 인재 양성 프로그램 공동 개발·확산`);
   }
@@ -3768,7 +3780,7 @@ function buildAiSummaryUpdates(article, result) {
     isUnsupportedKakaoDraftLine(nextSummaryLead, article)
     || isAiLineTooCloseToArticleSource(nextSummaryLead, article, 0.8)
   ) {
-    nextSummaryLead = groundedDraft.summaryLead || buildPrAngleLeadForArticle(article);
+    nextSummaryLead = buildPrAngleLeadForArticle(article) || groundedDraft.summaryLead;
     sanitizedSummaryLead = true;
   }
 
@@ -3780,8 +3792,11 @@ function buildAiSummaryUpdates(article, result) {
     || areAiLinesTooSimilar(nextSummaryLead, nextKeyPoint)
     || isAiLineTooCloseToArticleSource(nextKeyPoint, article, 0.8)
   ) {
-    nextKeyPoint = groundedDraft.keyPoint
-      || buildPrAngleKeyPointForArticle(article, nextSummaryLead)
+    const groundedKeyPoint = !isAiLineTooCloseToArticleSource(groundedDraft.keyPoint, article, 0.72)
+      ? groundedDraft.keyPoint
+      : '';
+    nextKeyPoint = buildPrAngleKeyPointForArticle(article, nextSummaryLead)
+      || groundedKeyPoint
       || buildFallbackAiKeyPoint(article, nextSummaryLead)
       || nextKeyPoint;
   }

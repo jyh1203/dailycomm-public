@@ -3338,20 +3338,30 @@ main {
 .inbox-ai-curation-modal {
   width: min(1100px, calc(100vw - 32px));
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-rows: auto auto auto;
+  align-content: start;
   min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
 }
 
 .inbox-ai-curation-modal-grid {
   min-height: 0;
-  max-height: min(56vh, 620px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding-right: 4px;
+  max-height: none;
+  overflow: visible;
+  padding-right: 0;
 }
 
 .inbox-ai-curation-modal .ai-curation-group {
   max-height: none;
+  overflow: visible;
+  overscroll-behavior: auto;
+}
+
+.inbox-ai-curation-modal .ai-curation-group-head {
+  position: static;
 }
 
 .ai-review-modal-actions {
@@ -3571,7 +3581,8 @@ main {
 
   .inbox-ai-curation-modal-grid {
     grid-template-columns: minmax(0, 1fr);
-    max-height: 54vh;
+    max-height: none;
+    overflow: visible;
   }
 
   .builder-ai-busy-dialog,
