@@ -171,6 +171,8 @@ const DEFAULT_INBOX_AI_CURATION_PROMPT = [
   '정치, 사건/사고, 생활 정보, 단순 소비 혜택, 결제수단/채널만 스쳐 언급된 기사는 제외해줘.',
   '같은 발표·행사·MOU·실적·투자·서비스 출시처럼 동일한 내용을 다룬 기사가 여러 개 있으면 대표 기사 1건만 추천해줘.',
   '대표 기사는 원문성, 구체성, 최신성, 언론 신뢰도 기준으로 고르고 중복 기사는 추천에서 제외해줘.',
+  '업계 보도는 전략 관련성·구체성·최신성·매체 신뢰도를 기준으로 점수화한 뒤 점수가 높은 순서로 최대 10개까지만 추천해줘.',
+  '업계 보도 후보가 10개를 넘으면 10위 밖의 기사는 모두 제외하고, 개수를 채우기 위해 점수가 낮은 기사를 넣지 마.',
   '각 기사마다 짧은 추천 이유를 붙여줘.'
 ].join('\n');
 
@@ -205,7 +207,7 @@ let state = {
   inboxAiCurationResult: null,
   inboxKeywordFilter: [],
   inboxSearchQuery: '',
-  inboxSortKey: 'time',
+  inboxSortKey: 'score',
   inboxSortDirection: 'desc',
   inboxFiltersOpen: false,
   inboxPreviewOpen: false,
@@ -451,6 +453,7 @@ function compareArticleValues(left, right) {
 }
 
 function getInboxSortValue(article, sortKey) {
+  if (sortKey === 'score') return inboxArticleScore(article);
   if (sortKey === 'media') return mediaLabel(article);
   if (sortKey === 'title') return String(article?.title || '');
   if (sortKey === 'keyword') return String(article?.keyword || '');
@@ -463,7 +466,7 @@ function toggleInboxSort(sortKey) {
     return;
   }
   state.inboxSortKey = sortKey;
-  state.inboxSortDirection = sortKey === 'time' ? 'desc' : 'asc';
+  state.inboxSortDirection = sortKey === 'time' || sortKey === 'score' ? 'desc' : 'asc';
 }
 
 function renderInboxSortHeader(sortKey, label) {
@@ -1592,7 +1595,7 @@ function captureWorkspaceSnapshot() {
     inboxAiFilter: String(state.inboxAiFilter || 'all'),
     inboxKeywordFilter: [...inboxKeywordFilterTokens()],
     inboxSearchQuery: String(state.inboxSearchQuery || ''),
-    inboxSortKey: String(state.inboxSortKey || 'time'),
+    inboxSortKey: String(state.inboxSortKey || 'score'),
     inboxSortDirection: String(state.inboxSortDirection || 'desc'),
     builderImportOpen: Boolean(state.builderImportOpen),
     builderImportUrl: String(state.builderImportUrl || ''),
@@ -1617,7 +1620,7 @@ function restoreWorkspaceSnapshot(snapshot) {
   state.inboxAiFilter = String(snapshot.inboxAiFilter || 'all');
   state.inboxKeywordFilter = Array.isArray(snapshot.inboxKeywordFilter) ? [...snapshot.inboxKeywordFilter] : [];
   state.inboxSearchQuery = String(snapshot.inboxSearchQuery || '');
-  state.inboxSortKey = String(snapshot.inboxSortKey || 'time');
+  state.inboxSortKey = String(snapshot.inboxSortKey || 'score');
   state.inboxSortDirection = String(snapshot.inboxSortDirection || 'desc');
   state.builderImportOpen = Boolean(snapshot.builderImportOpen);
   state.builderImportUrl = String(snapshot.builderImportUrl || '');
@@ -4555,6 +4558,79 @@ function buildIndustryArticleAiInsight(article) {
   };
 }
 
+function normalizeInboxArticleScore(value) {
+  const score = Number(value);
+  return Number.isFinite(score) ? clampNumber(Math.round(score), 0, 100) : null;
+}
+
+function aiCurationScoreForPick(pick, sectionName) {
+  const explicitScore = normalizeInboxArticleScore(pick?.score);
+  if (explicitScore !== null) return explicitScore;
+
+  const insight = sectionName === 'industry'
+    ? buildIndustryArticleAiInsight(pick?.article)
+    : buildArticleAiInsight(pick?.article);
+  return normalizeInboxArticleScore(insight.score) ?? 0;
+}
+
+function aiCurationPriorityRank(band) {
+  return {
+    urgent: 3,
+    important: 2,
+    watch: 1,
+    skip: 0
+  }[band] ?? 0;
+}
+
+function limitAiCurationPicksByScore(picks, sectionName, maxCount) {
+  return (Array.isArray(picks) ? picks : [])
+    .map((pick, index) => ({
+      ...pick,
+      score: aiCurationScoreForPick(pick, sectionName),
+      sourceIndex: index
+    }))
+    .sort((left, right) => {
+      if (right.score !== left.score) return right.score - left.score;
+      const priorityCompare = aiCurationPriorityRank(right.band) - aiCurationPriorityRank(left.band);
+      if (priorityCompare !== 0) return priorityCompare;
+      return left.sourceIndex - right.sourceIndex;
+    })
+    .slice(0, maxCount)
+    .map(({ sourceIndex, ...pick }) => pick);
+}
+
+function pickInboxArticleInsight(article) {
+  const kakaoInsight = buildArticleAiInsight(article);
+  if (article?.section !== 'industry') {
+    return kakaoInsight;
+  }
+
+  const industryInsight = buildIndustryArticleAiInsight(article);
+  return normalizeInboxArticleScore(industryInsight.score) > normalizeInboxArticleScore(kakaoInsight.score)
+    ? industryInsight
+    : kakaoInsight;
+}
+
+function inboxArticleInsight(article) {
+  const explicitScore = normalizeInboxArticleScore(article?.score ?? article?.aiScore ?? article?.priorityScore);
+  const insight = pickInboxArticleInsight(article);
+  const score = explicitScore ?? normalizeInboxArticleScore(insight.score) ?? 0;
+  const band = explicitScore === null ? insight.band : articleAiBandFromScore(score);
+  const bandMeta = articleAiPriorityMeta(band);
+
+  return {
+    ...insight,
+    score,
+    band,
+    bandLabel: insight.bandLabel || bandMeta.label,
+    bandDescription: insight.bandDescription || bandMeta.description
+  };
+}
+
+function inboxArticleScore(article) {
+  return inboxArticleInsight(article).score;
+}
+
 function normalizeAiCurationBand(value, fallback = 'watch') {
   const normalized = String(value || '').trim().toLowerCase();
   if (normalized === 'urgent' || normalized === 'high' || normalized === '핵심') return 'urgent';
@@ -4578,7 +4654,8 @@ function normalizeAiCurationPicks(rawPicks, articleLookup, fallbackBand = 'watch
         articleId,
         article,
         reason: truncateText(String(pick?.reason || '').trim(), 140),
-        band: normalizeAiCurationBand(pick?.priority, fallbackBand)
+        band: normalizeAiCurationBand(pick?.priority, fallbackBand),
+        score: normalizeInboxArticleScore(pick?.score)
       };
     })
     .filter(Boolean);
@@ -4617,7 +4694,7 @@ function buildLocalAiArticleCuration(articles, prompt) {
     })
     .filter((item) => item.article && buildIndustryArticleAiInsight(item.article).qualified)
     .sort((left, right) => right.score - left.score)
-    .slice(0, 5);
+    .slice(0, 10);
 
   return {
     mode: 'local-preview',
@@ -4633,10 +4710,18 @@ function buildLocalAiArticleCuration(articles, prompt) {
 function normalizeAiArticleCurationResult(payload, articles, fallbackPrompt = '') {
   const articlePayload = buildAiCurationArticlePayload(articles);
   const articleLookup = new Map(articlePayload.map((item, index) => [item.articleId, articles[index]]));
-  const normalizedKakaoPicks = normalizeAiCurationPicks(payload?.kakaoPicks, articleLookup, 'important')
-    .filter((pick) => isKakaoAiRecommended(pick.article));
-  const normalizedIndustryPicks = normalizeAiCurationPicks(payload?.industryPicks, articleLookup, 'watch')
-    .filter((pick) => buildIndustryArticleAiInsight(pick.article).qualified);
+  const normalizedKakaoPicks = limitAiCurationPicksByScore(
+    normalizeAiCurationPicks(payload?.kakaoPicks, articleLookup, 'important')
+      .filter((pick) => isKakaoAiRecommended(pick.article)),
+    'major',
+    5
+  );
+  const normalizedIndustryPicks = limitAiCurationPicksByScore(
+    normalizeAiCurationPicks(payload?.industryPicks, articleLookup, 'watch')
+      .filter((pick) => buildIndustryArticleAiInsight(pick.article).qualified),
+    'industry',
+    10
+  );
 
   return {
     mode: String(payload?.mode || 'remote').trim() || 'remote',
@@ -4703,7 +4788,7 @@ function focusInboxArticleByKey(key) {
 }
 
 function renderAiPriorityPill(article, { compact = false } = {}) {
-  const insight = buildArticleAiInsight(article);
+  const insight = inboxArticleInsight(article);
   const scoreLabel = compact
     ? `${insight.bandLabel} ${formatNumber(insight.score)}`
     : `${insight.bandLabel} ${formatNumber(insight.score)}점`;
@@ -7890,6 +7975,7 @@ renderInbox = function renderInboxOverride() {
               <div class="table-head">
                 <span class="table-head-label table-head-label-center">선택</span>
                 ${renderInboxSortHeader('title', '기사')}
+                ${renderInboxSortHeader('score', '점수')}
                 <span class="table-head-label table-head-label-center">상태</span>
                 ${renderInboxSortHeader('media', '매체')}
                 ${renderInboxSortHeader('time', '발행')}
@@ -7908,6 +7994,7 @@ renderInbox = function renderInboxOverride() {
                     ? `${article.title || '기사'} ${sectionLabel(targetSection)}에 보도 추가`
                     : `${article.title || '기사'} 보도 반영 완료`;
                   const sourcePill = renderArticleSourcePill(article);
+                  const score = inboxArticleScore(article);
                   return `
                     <div class="table-row-wrap ${focused ? 'is-expanded' : ''}">
                       <div
@@ -7930,6 +8017,7 @@ renderInbox = function renderInboxOverride() {
                           <strong>${highlightTitleKeywords(article.title, article)}</strong>
                           <p>${highlightSummaryKeywords(article.summary, article)}</p>
                         </div>
+                        <div class="table-cell table-cell-score" data-label="점수"><strong>${formatNumber(score)}</strong><span>점</span></div>
                         <div class="table-cell table-cell-status" data-label="상태"><span class="status-badge status-${escapeHtml(status)}">${escapeHtml(statusLabel(status))}</span></div>
                         <div class="table-cell table-cell-media" data-label="매체">${escapeHtml(mediaLabel(article))}</div>
                         <div class="table-cell table-cell-time" data-label="발행">${escapeHtml(formatArticlePublishedTime(article))}</div>
