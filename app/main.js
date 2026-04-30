@@ -3628,6 +3628,7 @@ function prAngleContext(article) {
     metadataText,
     themeKeys,
     directKakao,
+    hasResearchAchievement: /(논문|학회|채택|ACL|CVPR|NeurIPS|ICLR|ICML|연구성과|기술성과)/i.test(text),
     hasDataCenterPowerDemand: /(AI|인공지능).{0,16}데이터센터|데이터센터/i.test(text)
       && /(공급|수주|전력|전력기기|변압기|배전|전기|일렉트릭|목표가|증권)/i.test(text),
     hasAiEducation: /(AI|인공지능|생성형|LLM).{0,24}(교육|대학|인재|양성|교육부|대교협)|(교육|대학|인재|양성|교육부|대교협).{0,24}(AI|인공지능|생성형|LLM)/i.test(text),
@@ -3655,6 +3656,9 @@ function buildPrAngleLeadForArticle(article) {
   }
 
   const candidates = [];
+  if (context.hasResearchAchievement) {
+    candidates.push(context.directKakao ? '카카오 AI 연구성과 대외 인정' : 'AI 기술 연구성과 대외 인정');
+  }
   if (context.hasDataCenterPowerDemand) {
     candidates.unshift('AI 인프라 전력수요 성장성 부각');
   }
@@ -3700,6 +3704,9 @@ function buildPrAngleKeyPointForArticle(article, summaryLead) {
   const candidates = [];
   const practicalPrefix = /실전형/i.test(context.text) ? '실전형 ' : '';
 
+  if (context.hasResearchAchievement) {
+    candidates.push(/ACL\s*2026/i.test(context.text) ? 'ACL 2026 논문 채택 성과 부각' : '주요 학회 논문 채택 성과 부각');
+  }
   if (context.hasDataCenterPowerDemand) {
     candidates.push('데이터센터 공급 확대·목표가 상향 반영');
   }
