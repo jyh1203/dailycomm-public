@@ -4126,6 +4126,26 @@ async function buildAiSummaryProposalForDraftItem(key) {
     };
   }
 
+  if (location.item?.importMode === 'manual-fallback' && state.capabilities?.aiSummarize && location.item?.url) {
+    try {
+      const importedArticle = await importBuilderArticleByUrl(location.item.url);
+      if (importedArticle && importedArticle.importMode !== 'manual-fallback') {
+        const refreshedArticle = {
+          ...location.item,
+          ...importedArticle,
+          section: location.sectionName,
+          importMode: 'api-refresh'
+        };
+        updateDraftItem(key, refreshedArticle);
+        const refreshedKey = draftEntryKey(location.sectionName, refreshedArticle);
+        const result = await requestAiSummary(refreshedArticle);
+        return buildAiSummaryProposalFromResult(refreshedKey, refreshedArticle, result);
+      }
+    } catch {
+      // Fall back to the local manual-link preview below.
+    }
+  }
+
   if (location.item?.importMode === 'manual-fallback' || !state.capabilities?.aiSummarize) {
     return buildLocalAiSummaryProposalForDraftItem(key);
   }
@@ -4167,18 +4187,23 @@ function buildLocalAiSummaryProposalForDraftItem(key) {
   if (!location) {
     return {
       updated: false,
-      proposal: null
+      proposal: null,
+      mode: 'local-preview'
     };
   }
 
-  return buildAiSummaryProposalFromResult(key, location.item, buildLocalAiSummaryResult(location.item));
+  return {
+    ...buildAiSummaryProposalFromResult(key, location.item, buildLocalAiSummaryResult(location.item)),
+    mode: 'local-preview'
+  };
 }
 
 function buildAiSummaryProposalFromResult(key, article, result) {
   const updates = buildAiSummaryUpdates(article, result);
   return {
     updated: true,
-    proposal: buildAiReviewProposal(key, article, updates)
+    proposal: buildAiReviewProposal(key, article, updates),
+    mode: result?.provider === 'local-preview' ? 'local-preview' : 'remote-ai'
   };
 }
 
@@ -4199,9 +4224,8 @@ async function summarizeDraftItemWithAi(key) {
   renderReportBuilder();
 
   try {
-    const location = findDraftLocation(key);
-    const usingLocalPreview = location?.item?.importMode === 'manual-fallback' || !state.capabilities?.aiSummarize;
     const outcome = await buildAiSummaryProposalForDraftItem(key);
+    const usingLocalPreview = outcome?.mode === 'local-preview';
     if (!outcome?.updated || !outcome?.proposal) {
       completeAiWorkStatus(
         'builder-single-summary',
