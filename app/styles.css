@@ -451,6 +451,30 @@ main,
   font-weight: 700;
 }
 
+.runtime-ai-status {
+  margin: -4px 0 0;
+  padding: 9px 11px;
+  border-radius: 14px;
+  background: rgba(15, 23, 39, 0.04);
+  color: var(--text-soft);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.runtime-ai-status strong {
+  color: var(--text);
+}
+
+.runtime-ai-status.tone-selected {
+  background: rgba(22, 136, 85, 0.1);
+  color: #176342;
+}
+
+.runtime-ai-status.tone-warning {
+  background: rgba(180, 58, 69, 0.08);
+  color: #6c2130;
+}
+
 .runtime-status {
   margin: 0;
   padding: 12px 14px;

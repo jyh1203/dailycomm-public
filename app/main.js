@@ -1,3 +1,4 @@
+import { describeAiConnection, importModeBadge, normalizeAiCapabilities } from './ai-state.js';
 import { readJsonStorage, removeStorageItem, writeJsonStorage } from './storage.js';
 
 const app = document.getElementById('app');
@@ -17,6 +18,7 @@ const chrome = {
   runtimeUsable: document.getElementById('runtime-usable'),
   runtimeReport: document.getElementById('runtime-report'),
   runtimeSegments: document.getElementById('runtime-segments'),
+  runtimeAiStatus: document.getElementById('runtime-ai-status'),
   runtimeStatus: document.getElementById('runtime-status'),
   openReport: document.getElementById('header-open-report'),
   runCrawl: document.getElementById('header-run-crawl')
@@ -211,6 +213,11 @@ let state = {
     provider: '',
     model: '',
     requiresToken: false
+  },
+  aiConnection: {
+    status: 'idle',
+    error: '',
+    checkedAt: ''
   },
   aiBusyKey: '',
   aiWorkStatus: null,
@@ -873,6 +880,14 @@ function getStoredAiToken() {
   }
 }
 
+function setAiConnectionStatus(status, error = '') {
+  state.aiConnection = {
+    status,
+    error: String(error || '').trim(),
+    checkedAt: new Date().toISOString()
+  };
+}
+
 function setStoredAiToken(value) {
   try {
     if (value) {
@@ -1021,17 +1036,18 @@ async function connectRemoteAiAccess() {
 
   let capabilitiesPayload;
   try {
+    setAiConnectionStatus('checking');
+    updateShellMeta();
     capabilitiesPayload = await fetchAiCapabilities(state.config, { throwOnError: true });
   } catch (error) {
+    setAiConnectionStatus('error', normalizeAiRequestError(error));
+    updateShellMeta();
     showToast(normalizeAiRequestError(error));
     return false;
   }
-  state.capabilities = {
-    aiSummarize: Boolean(capabilitiesPayload?.aiSummarize),
-    provider: String(capabilitiesPayload?.provider || ''),
-    model: String(capabilitiesPayload?.model || ''),
-    requiresToken: Boolean(capabilitiesPayload?.requiresToken)
-  };
+  state.capabilities = normalizeAiCapabilities(capabilitiesPayload);
+  setAiConnectionStatus(state.capabilities.aiSummarize ? 'ready' : 'error', state.capabilities.aiSummarize ? '' : 'AI 요약 기능이 비활성 상태입니다.');
+  updateShellMeta();
 
   if (!state.capabilities.aiSummarize) {
     showToast('AI 연결을 확인해주세요.');
@@ -1918,11 +1934,7 @@ function renderBuilderItemMeta(article) {
     { label: '매체', value: mediaLabel(article) }
   ];
   const importMode = String(article?.importMode || '').trim();
-  const importBadge = importMode === 'manual-fallback'
-    ? { tone: 'warning', label: '수동 링크' }
-    : importMode
-      ? { tone: 'neutral', label: 'API 추가' }
-      : null;
+  const importBadge = importModeBadge(importMode);
 
   return `
     <div class="builder-item-meta" aria-label="기사 메타 정보">
@@ -5460,12 +5472,8 @@ async function curateInboxArticlesWithAi() {
 
   try {
     const capabilitiesPayload = await fetchAiCapabilities(state.config);
-    state.capabilities = {
-      aiSummarize: Boolean(capabilitiesPayload?.aiSummarize),
-      provider: String(capabilitiesPayload?.provider || ''),
-      model: String(capabilitiesPayload?.model || ''),
-      requiresToken: Boolean(capabilitiesPayload?.requiresToken)
-    };
+    state.capabilities = normalizeAiCapabilities(capabilitiesPayload);
+    setAiConnectionStatus(state.capabilities.aiSummarize ? 'ready' : 'idle');
 
     if (state.capabilities.aiSummarize) {
       if (state.capabilities.requiresToken && !getStoredAiToken()) {
@@ -6096,6 +6104,18 @@ function updateShellMeta() {
   }
   chrome.runtimeReport.textContent = `${formatNumber(majorCount)}/${formatNumber(industryCount)}`;
   chrome.runtimeSegments.textContent = `${formatNumber(segmentCount)}개`;
+  if (chrome.runtimeAiStatus) {
+    const aiStatus = describeAiConnection({
+      capabilities: state.capabilities,
+      hasRemote: hasRemoteAiConfigured(),
+      hasToken: Boolean(getStoredAiToken()),
+      status: state.aiConnection?.status,
+      error: state.aiConnection?.error
+    });
+    chrome.runtimeAiStatus.hidden = false;
+    chrome.runtimeAiStatus.className = `runtime-ai-status tone-${escapeHtml(aiStatus.tone)}`;
+    chrome.runtimeAiStatus.innerHTML = `<strong>${escapeHtml(aiStatus.label)}</strong> · ${escapeHtml(aiStatus.detail)}`;
+  }
 
   if (state.loading) {
     chrome.runtimeStatus.hidden = false;
@@ -10281,12 +10301,11 @@ async function loadData() {
   state.report = reportPayload || { sections: { major: [], industry: [] } };
   state.segments = Array.isArray(segmentsPayload) ? segmentsPayload : [];
   state.config = configPayload || {};
-  state.capabilities = {
-    aiSummarize: Boolean(capabilitiesPayload?.aiSummarize),
-    provider: String(capabilitiesPayload?.provider || ''),
-    model: String(capabilitiesPayload?.model || ''),
-    requiresToken: Boolean(capabilitiesPayload?.requiresToken)
-  };
+  state.capabilities = normalizeAiCapabilities(capabilitiesPayload);
+  setAiConnectionStatus(
+    state.capabilities.aiSummarize ? 'ready' : (hasRemoteAiConfigured(state.config) ? 'idle' : 'disabled'),
+    ''
+  );
   const restoredDraft = initializeReportDraft();
   normalizeInboxKeywordFilter();
   state.loading = false;
