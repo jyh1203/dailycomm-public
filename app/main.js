@@ -4126,8 +4126,34 @@ async function buildAiSummaryProposalForDraftItem(key) {
     };
   }
 
+  if (!state.capabilities?.aiSummarize) {
+    return buildLocalAiSummaryProposalForDraftItem(key);
+  }
+
   const result = await requestAiSummary(location.item);
   return buildAiSummaryProposalFromResult(key, location.item, result);
+}
+
+function buildLocalAiSummaryResult(article) {
+  const insight = buildArticleAiInsight(article);
+  return {
+    summaryLead: insight.draft.summaryLead,
+    keyPoint: insight.draft.keyPoint,
+    provider: 'local-preview',
+    model: 'browser-rules'
+  };
+}
+
+function buildLocalAiSummaryProposalForDraftItem(key) {
+  const location = findDraftLocation(key);
+  if (!location) {
+    return {
+      updated: false,
+      proposal: null
+    };
+  }
+
+  return buildAiSummaryProposalFromResult(key, location.item, buildLocalAiSummaryResult(location.item));
 }
 
 function buildAiSummaryProposalFromResult(key, article, result) {
@@ -4155,6 +4181,7 @@ async function summarizeDraftItemWithAi(key) {
   renderReportBuilder();
 
   try {
+    const usingLocalPreview = !state.capabilities?.aiSummarize;
     const outcome = await buildAiSummaryProposalForDraftItem(key);
     if (!outcome?.updated || !outcome?.proposal) {
       completeAiWorkStatus(
@@ -4179,8 +4206,10 @@ async function summarizeDraftItemWithAi(key) {
     }
     setPendingAiReview({
       mode: 'single',
-      title: 'AI 문구 비교',
-      description: '선택한 기사 1건의 기존 문구와 AI 제안을 먼저 비교할 수 있습니다.',
+      title: usingLocalPreview ? '로컬 미리보기 문구 비교' : 'AI 문구 비교',
+      description: usingLocalPreview
+        ? '원격 AI API를 사용할 수 없어 브라우저 로컬 기준으로 문구 제안을 준비했습니다.'
+        : '선택한 기사 1건의 기존 문구와 AI 제안을 먼저 비교할 수 있습니다.',
       proposals: [outcome.proposal],
       changedCount: 1,
       failedCount: 0
@@ -4188,12 +4217,34 @@ async function summarizeDraftItemWithAi(key) {
     completeAiWorkStatus(
       'builder-single-summary',
       'builder-ai',
-      'AI 정리 완료',
-      '비교 화면에서 기존 문구와 AI 제안을 확인할 수 있습니다.'
+      usingLocalPreview ? '로컬 미리보기 완료' : 'AI 정리 완료',
+      usingLocalPreview
+        ? '비교 화면에서 로컬 기준 제안을 확인할 수 있습니다.'
+        : '비교 화면에서 기존 문구와 AI 제안을 확인할 수 있습니다.'
     );
-    showToast('AI 제안을 비교 화면에 준비했습니다.');
+    showToast(usingLocalPreview ? '로컬 미리보기 제안을 준비했습니다.' : 'AI 제안을 비교 화면에 준비했습니다.');
     return;
   } catch (error) {
+    const fallback = buildLocalAiSummaryProposalForDraftItem(key);
+    if (fallback?.updated && fallback?.proposal?.changed) {
+      setPendingAiReview({
+        mode: 'single',
+        title: '로컬 미리보기 문구 비교',
+        description: '원격 AI API 연결에 실패해 브라우저 로컬 기준으로 문구 제안을 준비했습니다.',
+        proposals: [fallback.proposal],
+        changedCount: 1,
+        failedCount: 0
+      });
+      completeAiWorkStatus(
+        'builder-single-summary',
+        'builder-ai',
+        '로컬 미리보기 완료',
+        `${error instanceof Error ? error.message : 'AI 정리에 실패했습니다.'} 로컬 기준으로 비교 제안을 준비했습니다.`
+      );
+      showToast('원격 AI 대신 로컬 미리보기 제안을 준비했습니다.');
+      return;
+    }
+
     completeAiWorkStatus(
       'builder-single-summary',
       'builder-ai',
@@ -4206,6 +4257,33 @@ async function summarizeDraftItemWithAi(key) {
     state.aiBusyKey = '';
     renderReportBuilder();
   }
+}
+
+function buildLocalAiSummaryBatchProposals(entries) {
+  let successCount = 0;
+  let changedCount = 0;
+  const proposals = [];
+
+  for (const entry of entries) {
+    const outcome = buildAiSummaryProposalFromResult(
+      entry.key,
+      entry.article,
+      buildLocalAiSummaryResult(entry.article)
+    );
+    if (!outcome?.updated || !outcome?.proposal) continue;
+    successCount += 1;
+    proposals.push(outcome.proposal);
+    if (outcome.proposal.changed) {
+      changedCount += 1;
+    }
+  }
+
+  return {
+    successCount,
+    changedCount,
+    failedCount: Math.max(entries.length - successCount, 0),
+    proposals
+  };
 }
 
 async function summarizeReportDraftWithAi() {
@@ -4243,31 +4321,40 @@ async function summarizeReportDraftWithAi() {
   const proposals = [];
 
   try {
-    const batchResult = await requestAiSummaryBatch(entries);
-    const resultByKey = new Map(
-      (Array.isArray(batchResult?.items) ? batchResult.items : [])
-        .map((item) => [String(item?.key || '').trim(), item])
-        .filter(([key]) => Boolean(key))
-    );
+    const usingLocalPreview = !state.capabilities?.aiSummarize;
+    if (state.capabilities?.aiSummarize) {
+      const batchResult = await requestAiSummaryBatch(entries);
+      const resultByKey = new Map(
+        (Array.isArray(batchResult?.items) ? batchResult.items : [])
+          .map((item) => [String(item?.key || '').trim(), item])
+          .filter(([key]) => Boolean(key))
+      );
 
-    for (const entry of entries) {
-      const result = resultByKey.get(entry.key);
-      if (!result?.summaryLead || !result?.keyPoint) {
-        failedCount += 1;
-        continue;
-      }
+      for (const entry of entries) {
+        const result = resultByKey.get(entry.key);
+        if (!result?.summaryLead || !result?.keyPoint) {
+          failedCount += 1;
+          continue;
+        }
 
-      const outcome = buildAiSummaryProposalFromResult(entry.key, entry.article, result);
-      if (!outcome?.updated || !outcome?.proposal) {
-        failedCount += 1;
-        continue;
-      }
+        const outcome = buildAiSummaryProposalFromResult(entry.key, entry.article, result);
+        if (!outcome?.updated || !outcome?.proposal) {
+          failedCount += 1;
+          continue;
+        }
 
-      successCount += 1;
-      proposals.push(outcome.proposal);
-      if (outcome.proposal.changed) {
-        changedCount += 1;
+        successCount += 1;
+        proposals.push(outcome.proposal);
+        if (outcome.proposal.changed) {
+          changedCount += 1;
+        }
       }
+    } else {
+      const localResult = buildLocalAiSummaryBatchProposals(entries);
+      successCount = localResult.successCount;
+      changedCount = localResult.changedCount;
+      failedCount = localResult.failedCount;
+      proposals.push(...localResult.proposals);
     }
 
     if (!successCount && failedCount) {
@@ -4298,8 +4385,10 @@ async function summarizeReportDraftWithAi() {
 
     setPendingAiReview({
       mode: 'batch',
-      title: 'AI 일괄 제안 비교',
-      description: `기사 ${formatNumber(changedCount)}건의 문구를 AI가 다시 정리했습니다. 적용 전에 변경 내용을 확인해 보세요.`,
+      title: usingLocalPreview ? '로컬 미리보기 일괄 제안 비교' : 'AI 일괄 제안 비교',
+      description: usingLocalPreview
+        ? `원격 AI API를 사용할 수 없어 기사 ${formatNumber(changedCount)}건의 문구를 로컬 기준으로 준비했습니다.`
+        : `기사 ${formatNumber(changedCount)}건의 문구를 AI가 다시 정리했습니다. 적용 전에 변경 내용을 확인해 보세요.`,
       proposals: proposals.filter((proposal) => proposal.changed),
       changedCount,
       failedCount
@@ -4307,12 +4396,34 @@ async function summarizeReportDraftWithAi() {
     completeAiWorkStatus(
       'builder-report-draft',
       'builder-ai',
-      'AI 일괄 정리 완료',
+      usingLocalPreview ? '로컬 미리보기 완료' : 'AI 일괄 정리 완료',
       `변경 후보 ${formatNumber(changedCount)}건을 비교 화면에 준비했습니다.`
     );
-    showToast(`AI 제안 ${changedCount}건을 비교 화면에 준비했습니다.`);
+    showToast(usingLocalPreview
+      ? `로컬 미리보기 제안 ${changedCount}건을 준비했습니다.`
+      : `AI 제안 ${changedCount}건을 비교 화면에 준비했습니다.`);
     return;
   } catch (error) {
+    const localResult = buildLocalAiSummaryBatchProposals(entries);
+    if (localResult.changedCount) {
+      setPendingAiReview({
+        mode: 'batch',
+        title: '로컬 미리보기 일괄 제안 비교',
+        description: `원격 AI API 연결에 실패해 기사 ${formatNumber(localResult.changedCount)}건의 문구를 로컬 기준으로 준비했습니다.`,
+        proposals: localResult.proposals.filter((proposal) => proposal.changed),
+        changedCount: localResult.changedCount,
+        failedCount: localResult.failedCount
+      });
+      completeAiWorkStatus(
+        'builder-report-draft',
+        'builder-ai',
+        '로컬 미리보기 완료',
+        `${error instanceof Error ? error.message : 'AI 정리에 실패했습니다.'} 로컬 기준으로 비교 제안을 준비했습니다.`
+      );
+      showToast('원격 AI 대신 로컬 미리보기 일괄 제안을 준비했습니다.');
+      return;
+    }
+
     completeAiWorkStatus(
       'builder-report-draft',
       'builder-ai',
@@ -7247,12 +7358,11 @@ function renderReportBuilder() {
     button.addEventListener('click', async (event) => {
       event.stopPropagation();
       if (!state.capabilities?.aiSummarize) {
-        const connected = await connectRemoteAiAccess();
-        if (!connected) return;
+        await connectRemoteAiAccess();
         renderReportBuilder();
       }
 
-      if (state.capabilities?.requiresToken && !getStoredAiToken()) {
+      if (state.capabilities?.aiSummarize && state.capabilities?.requiresToken && !getStoredAiToken()) {
         showToast('AI 접근 토큰을 먼저 입력해주세요.');
         return;
       }
@@ -8893,13 +9003,11 @@ renderReportBuilder = function renderReportBuilderOverride() {
     button.addEventListener('click', async (event) => {
       event.stopPropagation();
       if (!state.capabilities?.aiSummarize) {
-        const connected = await connectRemoteAiAccess();
-        if (!connected) return;
+        await connectRemoteAiAccess();
         renderReportBuilder();
-        return;
       }
 
-      if (state.capabilities?.requiresToken && !getStoredAiToken()) {
+      if (state.capabilities?.aiSummarize && state.capabilities?.requiresToken && !getStoredAiToken()) {
         showToast('AI 접근 토큰을 먼저 입력해주세요.');
         return;
       }
