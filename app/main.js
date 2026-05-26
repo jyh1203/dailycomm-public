@@ -4126,7 +4126,7 @@ async function buildAiSummaryProposalForDraftItem(key) {
     };
   }
 
-  if (!state.capabilities?.aiSummarize) {
+  if (location.item?.importMode === 'manual-fallback' || !state.capabilities?.aiSummarize) {
     return buildLocalAiSummaryProposalForDraftItem(key);
   }
 
@@ -4135,6 +4135,24 @@ async function buildAiSummaryProposalForDraftItem(key) {
 }
 
 function buildLocalAiSummaryResult(article) {
+  if (article?.importMode === 'manual-fallback') {
+    const publisher = mediaLabel(article) && mediaLabel(article) !== '-' ? mediaLabel(article) : '수동 링크';
+    const title = String(article?.title || '').trim();
+    const hasAdjustedTitle = title && !/링크 기사/u.test(title);
+    const summaryLead = hasAdjustedTitle
+      ? `${title} 중심으로 원문 확인 필요`
+      : `${publisher} 원문 링크 기준 기사 내용 보정 필요`;
+    const keyPoint = String(article?.url || '').trim()
+      ? '원격 기사 API 복구 후 본문 기반 AI 요약 가능'
+      : '제목과 요약을 보정한 뒤 카카오 프리뷰 반영';
+    return {
+      summaryLead,
+      keyPoint,
+      provider: 'local-preview',
+      model: 'manual-link-rules'
+    };
+  }
+
   const insight = buildArticleAiInsight(article);
   return {
     summaryLead: insight.draft.summaryLead,
@@ -4181,7 +4199,8 @@ async function summarizeDraftItemWithAi(key) {
   renderReportBuilder();
 
   try {
-    const usingLocalPreview = !state.capabilities?.aiSummarize;
+    const location = findDraftLocation(key);
+    const usingLocalPreview = location?.item?.importMode === 'manual-fallback' || !state.capabilities?.aiSummarize;
     const outcome = await buildAiSummaryProposalForDraftItem(key);
     if (!outcome?.updated || !outcome?.proposal) {
       completeAiWorkStatus(
