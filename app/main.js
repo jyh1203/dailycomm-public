@@ -1,4 +1,5 @@
 import { describeAiConnection, importModeBadge, normalizeAiCapabilities } from './ai-state.js';
+import { buildPublishCheckItems, summarizePublishCheck } from './publish-check.js';
 import { readJsonStorage, removeStorageItem, writeJsonStorage } from './storage.js';
 
 const app = document.getElementById('app');
@@ -3353,50 +3354,25 @@ function renderBuilderDraftPanel({ reportText, reportItemCount, totalDraftChars,
   const segmentCount = reportItemCount ? buildKakaoPreviewSegments().length : 0;
   const draftEdited = reportItemCount ? hasReportDraftChanged(buildKakaoPreviewText(), reportText) : false;
   const readinessItems = reportItemCount
-    ? [
-        {
-          state: sections.major.length ? 'complete' : 'pending',
-          title: '주요 보도 확보',
-          detail: sections.major.length
-            ? `주요 보도 ${formatNumber(sections.major.length)}건이 포함되어 있습니다.`
-            : '최소 1건은 넣어야 메시지 중심이 또렷해집니다.'
-        },
-        {
-          state: sections.industry.length ? 'complete' : 'pending',
-          title: '업계 보도 균형',
-          detail: sections.industry.length
-            ? `업계 보도 ${formatNumber(sections.industry.length)}건이 포함되어 있습니다.`
-            : '업계 보도 1건 이상이 있으면 리포트 균형이 좋아집니다.'
-        },
-        {
-          state: reportItemCount >= 2 ? 'complete' : 'pending',
-          title: '전송 분량',
-          detail: reportItemCount >= 2
-            ? `기사 ${formatNumber(reportItemCount)}건, 초안 ${formatNumber(totalDraftChars)}자입니다.`
-            : '기사 2건 이상이면 카카오 메시지 뼈대가 더 안정적입니다.'
-        },
-        {
-          state: segmentCount > 0 ? (segmentCount <= 3 ? 'complete' : 'watch') : 'pending',
-          title: '카카오 파트 수',
-          detail: segmentCount
-            ? `현재 ${formatNumber(segmentCount)}개 파트로 나뉩니다.`
-            : '초안을 만들면 예상 파트 수를 바로 계산합니다.'
-        },
-        {
-          state: draftEdited ? 'complete' : 'watch',
-          title: '최종 문구 다듬기',
-          detail: draftEdited
-            ? '자동 생성 문구에서 한 번 더 다듬은 상태입니다.'
-            : '카드 문구나 보고서 초안을 한 번 더 다듬으면 전달력이 좋아집니다.'
-        }
-      ]
+    ? buildPublishCheckItems({
+        majorCount: sections.major.length,
+        industryCount: sections.industry.length,
+        reportItemCount,
+        totalDraftChars,
+        segmentCount,
+        draftEdited,
+        articles: [...sections.major, ...sections.industry],
+        formatNumber
+      })
     : [];
   const suggestionAvailable = Boolean(findDraftLocation(state.builderFocusKey));
   const activeDraftTab = state.builderDraftTab === 'suggestion' && suggestionAvailable ? 'suggestion' : 'draft';
   if (state.builderDraftTab !== activeDraftTab) {
     state.builderDraftTab = activeDraftTab;
   }
-  const readyCount = readinessItems.filter((item) => item.state === 'complete').length;
+  const publishCheckSummary = summarizePublishCheck(readinessItems);
+  const readyCount = publishCheckSummary.readyCount;
+  const watchSuffix = publishCheckSummary.watchCount ? ` · 확인 ${formatNumber(publishCheckSummary.watchCount)}` : '';
   const renderDraftTabButton = (tab, label, disabled = false) => `
     <button
       class="${activeDraftTab === tab ? 'active' : ''}"
@@ -3482,7 +3458,7 @@ function renderBuilderDraftPanel({ reportText, reportItemCount, totalDraftChars,
                 <p class="panel-kicker">Publish Check</p>
                 <h3>전송 전 체크</h3>
               </div>
-              <span class="panel-pill tone-neutral">${formatNumber(readyCount)}개 준비</span>
+              <span class="panel-pill tone-neutral">${formatNumber(readyCount)}개 준비${watchSuffix}</span>
             </div>
             <div class="builder-readiness-chip-row">
               ${readinessItems.map((item) => `
