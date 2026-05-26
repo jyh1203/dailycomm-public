@@ -1939,14 +1939,26 @@ function renderBuilderItemMeta(article) {
     { label: '키워드', value: article?.keyword || '-' },
     { label: '매체', value: mediaLabel(article) }
   ];
+  const importMode = String(article?.importMode || '').trim();
+  const importBadge = importMode === 'manual-fallback'
+    ? { tone: 'warning', label: '수동 링크' }
+    : importMode
+      ? { tone: 'neutral', label: 'API 추가' }
+      : null;
 
   return `
     <div class="builder-item-meta" aria-label="기사 메타 정보">
       <div class="builder-item-meta-main">
+        ${importBadge
+          ? `<span class="builder-item-meta-chip tone-${escapeHtml(importBadge.tone)}">
+              <strong>추가 상태</strong>
+              <span>${escapeHtml(importBadge.label)}</span>
+            </span>`
+          : ''}
         ${rows.map((row) => `
           <span class="builder-item-meta-chip">
             <strong>${escapeHtml(row.label)}</strong>
-            <span>${escapeHtml(row.value || '-')}</span>
+            <span ${row.label === '매체' ? 'data-builder-media-value' : ''}>${escapeHtml(row.value || '-')}</span>
           </span>
         `).join('')}
       </div>
@@ -2851,6 +2863,14 @@ function syncBuilderCardPreview(key) {
   const nextOneLine = articleBuilderOneLine(location.item) || '한줄 요약을 아직 입력하지 않았습니다.';
   document.querySelectorAll('[data-builder-focus]').forEach((node) => {
     if (node.dataset.builderFocus !== key) return;
+    const titleValue = node.querySelector('[data-builder-title-value]');
+    if (titleValue) {
+      titleValue.textContent = location.item.title || '';
+    }
+    const mediaValue = node.querySelector('[data-builder-media-value]');
+    if (mediaValue) {
+      mediaValue.textContent = mediaLabel(location.item);
+    }
     const summaryValue = node.querySelector('[data-builder-summary-value]');
     if (summaryValue) {
       summaryValue.textContent = nextSummary;
@@ -3283,12 +3303,31 @@ function renderInboxPaginationControls({ maxPage, mode = 'bottom' }) {
 }
 
 function renderBuilderInlineEditor(sectionName, article, entryKey) {
+  const isManualFallback = article?.importMode === 'manual-fallback';
   return `
     <div class="builder-inline-editor" data-builder-inline-editor="${escapeHtml(entryKey)}">
       <div class="detail-guide">
-        <strong>바로 편집</strong>
+        <strong>${isManualFallback ? '수동 링크 보정' : '바로 편집'}</strong>
       </div>
       <div class="builder-inline-fields">
+        ${isManualFallback
+          ? `<label class="detail-field">
+              <span>기사 제목</span>
+              <input
+                type="text"
+                data-builder-title-input="${escapeHtml(entryKey)}"
+                value="${escapeHtml(article.title || '')}"
+              />
+            </label>
+            <label class="detail-field">
+              <span>매체/출처</span>
+              <input
+                type="text"
+                data-builder-publisher-input="${escapeHtml(entryKey)}"
+                value="${escapeHtml(mediaLabel(article) === '-' ? '' : mediaLabel(article))}"
+              />
+            </label>`
+          : ''}
         <label class="detail-field">
           <span>기사 요약 및 결론 (30자 내외)</span>
           <input
@@ -8684,7 +8723,7 @@ renderBuilderColumn = function renderBuilderColumnOverride(sectionName, items) {
               <div class="builder-item ${active ? 'active is-expanded' : ''}" data-builder-focus="${escapeHtml(entryKey)}">
                 <div class="builder-item-head">
                   <div class="builder-item-head-copy">
-                    <strong>${escapeHtml(article.title)}</strong>
+                    <strong data-builder-title-value>${escapeHtml(article.title)}</strong>
                     <p class="builder-item-subcopy">${escapeHtml(mediaLabel(article))} · ${escapeHtml(article.keyword || '-')}</p>
                   </div>
                   <span class="panel-pill tone-neutral">${active ? '편집 중' : '카드 선택'}</span>
@@ -8935,6 +8974,28 @@ renderReportBuilder = function renderReportBuilderOverride() {
         oneLine: event.target.value
       });
       syncBuilderCardPreview(event.target.dataset.builderKeypointInput);
+      syncBuilderReportTextArea();
+    });
+  });
+
+  app.querySelectorAll('[data-builder-title-input]').forEach((input) => {
+    input.addEventListener('input', (event) => {
+      updateDraftItem(event.target.dataset.builderTitleInput, {
+        title: event.target.value
+      });
+      syncBuilderCardPreview(event.target.dataset.builderTitleInput);
+      syncBuilderReportTextArea();
+    });
+  });
+
+  app.querySelectorAll('[data-builder-publisher-input]').forEach((input) => {
+    input.addEventListener('input', (event) => {
+      updateDraftItem(event.target.dataset.builderPublisherInput, {
+        publisher: event.target.value,
+        media: event.target.value,
+        source: event.target.value
+      });
+      syncBuilderCardPreview(event.target.dataset.builderPublisherInput);
       syncBuilderReportTextArea();
     });
   });
