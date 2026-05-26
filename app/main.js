@@ -1,3 +1,5 @@
+import { readJsonStorage, removeStorageItem, writeJsonStorage } from './storage.js';
+
 const app = document.getElementById('app');
 const pageButtons = Array.from(document.querySelectorAll('nav button[data-page]'));
 const skipLink = document.querySelector('.skip-link');
@@ -27,30 +29,6 @@ const BUILDER_DRAFT_STORAGE_PREFIX = 'dailycomm.builderDraft.v1';
 const ACTIVITY_LOG_STORAGE_KEY = 'dailycomm.activityLog.v1';
 const UNDO_TOAST_DURATION = 4200;
 const MAX_ACTIVITY_LOG_ITEMS = 12;
-
-function readJsonStorage(key, fallback) {
-  try {
-    const raw = window.localStorage.getItem(key);
-    if (!raw) return fallback;
-    return JSON.parse(raw);
-  } catch {
-    return fallback;
-  }
-}
-
-function writeJsonStorage(key, value) {
-  try {
-    window.localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-  }
-}
-
-function removeStorageItem(key) {
-  try {
-    window.localStorage.removeItem(key);
-  } catch {
-  }
-}
 
 function loadStoredInboxPresets() {
   return readJsonStorage(INBOX_PRESET_STORAGE_KEY, [])
