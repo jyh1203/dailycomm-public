@@ -209,6 +209,9 @@ let state = {
   settingsPolicyModalOpen: false,
   settingsAlertTestBusy: false,
   settingsAlertTestResult: null,
+  opsActionBusy: false,
+  opsActionResult: null,
+  opsActionStatus: null,
   capabilities: {
     aiSummarize: false,
     provider: '',
@@ -956,6 +959,52 @@ function buildApiJsonHeaders() {
     headers.Authorization = `Bearer ${token}`;
   }
   return headers;
+}
+
+async function fetchOpsStatus() {
+  const apiUrls = buildOperatorApiUrls('/ops/status');
+  if (!apiUrls.length) return null;
+
+  for (const apiUrl of apiUrls) {
+    try {
+      const response = await fetch(apiUrl, {
+        cache: 'no-store',
+        headers: buildApiJsonHeaders()
+      });
+      const payload = await response.json().catch(() => null);
+      if (response.ok) return payload;
+    } catch {
+      // Try the next local candidate if one exists.
+    }
+  }
+  return null;
+}
+
+async function requestOpsAction(action) {
+  const apiUrls = buildOperatorApiUrls(`/ops/${action}`);
+  if (!apiUrls.length) {
+    throw new Error('로컬 운영 API에서만 실행할 수 있습니다.');
+  }
+
+  let lastError = null;
+  for (const apiUrl of apiUrls) {
+    try {
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: buildApiJsonHeaders(),
+        body: JSON.stringify({})
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(payload?.error || '운영 작업에 실패했습니다.');
+      }
+      return payload;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError || new Error('운영 작업에 실패했습니다.');
 }
 
 function normalizeAiRequestError(error, fallback = 'AI 연결을 확인해주세요.') {
@@ -7743,6 +7792,7 @@ function renderSettings() {
       </div>
 
       <div class="settings-grid">
+        ${renderOpsActionCard('settings')}
         <article class="card settings-card">
           ${renderAnnotation('SCR-SET-KEY-001')}
           <div class="panel-heading">
@@ -9688,6 +9738,7 @@ renderSettings = function renderSettingsOverride() {
   document.getElementById('settings-to-builder').addEventListener('click', () => {
     render('builder');
   });
+  bindOpsActionButtons();
   document.getElementById('open-settings-policy-modal')?.addEventListener('click', () => {
     state.settingsPolicyModalOpen = true;
     renderSettings();
@@ -9954,6 +10005,145 @@ function renderOperationalMicroPolicyCard(context = 'dashboard') {
   `;
 }
 
+function opsActionLabel(action) {
+  return {
+    crawl: '오늘 데이터 재수집',
+    publish: '공개 페이지 배포',
+    'crawl-and-publish': '재수집 후 바로 배포'
+  }[action] || action || '운영 작업';
+}
+
+function opsRunStatusMeta(run) {
+  if (!run) return '실행 기록 없음';
+  if (run.status === 'running') return '실행 중';
+  if (run.status === 'success') return `완료 · ${formatDateTime(run.finishedAt)}`;
+  if (run.status === 'failed') return `실패 · ${formatDateTime(run.finishedAt)}`;
+  return run.status || '대기';
+}
+
+function renderOpsActionResult(run) {
+  if (!run) {
+    return '<p class="panel-note">아직 실행한 운영 작업이 없습니다.</p>';
+  }
+
+  const summary = run.summary || {};
+  const localLatest = summary.localLatest || {};
+  const publicLatest = summary.publicLatest || {};
+  const steps = Array.isArray(run.steps) ? run.steps : [];
+  return `
+    <div class="ops-action-result is-${escapeHtml(run.status || 'idle')}">
+      <div class="ops-action-result-head">
+        <span class="status-badge status-${run.status === 'failed' ? 'failed' : run.status === 'success' ? 'selected' : 'reported'}">${escapeHtml(run.status === 'success' ? '완료' : run.status === 'failed' ? '실패' : '실행')}</span>
+        <strong>${escapeHtml(opsActionLabel(run.action))}</strong>
+        <span>${escapeHtml(opsRunStatusMeta(run))}</span>
+      </div>
+      ${run.error ? `<p class="ops-action-error">${escapeHtml(run.error)}</p>` : ''}
+      <div class="ops-action-metrics">
+        <div><span>로컬 기준일</span><strong>${escapeHtml(localLatest.date || '-')}</strong></div>
+        <div><span>공개 기준일</span><strong>${escapeHtml(publicLatest.date || '-')}</strong></div>
+        <div><span>실행 단계</span><strong>${formatNumber(steps.length)}</strong></div>
+      </div>
+      ${steps.length
+        ? `<div class="ops-step-list">
+            ${steps.map((step) => `
+              <div class="ops-step-row">
+                <span class="status-badge status-${step.code === 0 ? 'selected' : 'failed'}">${step.code === 0 ? 'OK' : 'FAIL'}</span>
+                <div>
+                  <strong>${escapeHtml(step.step || step.command || 'step')}</strong>
+                  <p>${escapeHtml(step.stderr || step.stdout || step.command || '')}</p>
+                </div>
+              </div>
+            `).join('')}
+          </div>`
+        : ''}
+    </div>
+  `;
+}
+
+function renderOpsActionCard(context = 'dashboard') {
+  const dashboardMode = context === 'dashboard';
+  const wrapperClass = dashboardMode
+    ? 'card panel-card dashboard-card dashboard-card-ops'
+    : 'card settings-card settings-ops-action-card';
+  const busy = state.opsActionBusy;
+  const result = state.opsActionResult || state.opsActionStatus?.last || null;
+  const canRun = isLocalUiRuntime();
+
+  return `
+    <article class="${wrapperClass}">
+      <div class="panel-heading dashboard-panel-heading">
+        <div>
+          <p class="panel-kicker">One Click Ops</p>
+          <h3>재수집과 공개 배포</h3>
+        </div>
+        <span class="panel-pill ${busy ? 'tone-main' : 'tone-neutral'}">${busy ? '실행 중' : canRun ? '로컬 실행' : '확인 전용'}</span>
+      </div>
+      <p class="panel-note ops-policy-note">로컬 서버에서 크롤링, 데이터 검증, public repo 배포, 공개 페이지 검증을 순차 실행합니다.</p>
+      <div class="ops-action-buttons">
+        <button class="primary-btn" type="button" data-ops-action="crawl-and-publish" ${busy || !canRun ? 'disabled' : ''}>재수집 후 바로 배포</button>
+        <button class="ghost-btn" type="button" data-ops-action="crawl" ${busy || !canRun ? 'disabled' : ''}>오늘 데이터 재수집</button>
+        <button class="ghost-btn" type="button" data-ops-action="publish" ${busy || !canRun ? 'disabled' : ''}>공개 페이지 배포</button>
+      </div>
+      ${canRun
+        ? renderOpsActionResult(result)
+        : '<p class="panel-note">공개 페이지에서는 실행할 수 없습니다. 로컬 운영 화면에서 사용하세요.</p>'}
+    </article>
+  `;
+}
+
+async function handleOpsAction(action) {
+  if (state.opsActionBusy) return;
+  state.opsActionBusy = true;
+  state.opsActionResult = {
+    action,
+    status: 'running',
+    startedAt: new Date().toISOString(),
+    steps: [],
+    summary: null
+  };
+  render(state.activePage);
+
+  try {
+    const result = await requestOpsAction(action);
+    state.opsActionResult = result;
+    pushActivityLog({
+      title: opsActionLabel(action),
+      detail: result?.summary?.publicLatest?.date
+        ? `공개 기준일 ${result.summary.publicLatest.date}까지 반영했습니다.`
+        : '운영 작업을 완료했습니다.',
+      tone: 'reported',
+      page: 'settings'
+    });
+    showToast(`${opsActionLabel(action)} 완료`);
+    if (action === 'crawl' || action === 'crawl-and-publish') {
+      await loadData();
+      return;
+    }
+  } catch (error) {
+    state.opsActionResult = {
+      action,
+      status: 'failed',
+      startedAt: state.opsActionResult?.startedAt || new Date().toISOString(),
+      finishedAt: new Date().toISOString(),
+      steps: [],
+      summary: null,
+      error: error instanceof Error ? error.message : String(error)
+    };
+    showToast(state.opsActionResult.error || '운영 작업에 실패했습니다.');
+  } finally {
+    state.opsActionBusy = false;
+    render(state.activePage);
+  }
+}
+
+function bindOpsActionButtons() {
+  app.querySelectorAll('[data-ops-action]').forEach((button) => {
+    button.addEventListener('click', () => {
+      void handleOpsAction(button.dataset.opsAction || '');
+    });
+  });
+}
+
 buildRunLogs = function buildRunLogsOverride() {
   const stats = getStats();
   const stamp = state.articleMeta?.generatedAt || state.report?.generatedAt || new Date().toISOString();
@@ -10020,6 +10210,7 @@ renderDashboard = function renderDashboardOverride() {
       ${renderDashboardPriorityStrip({ total, pending, reported, failed, coverageRatio })}
 
       <div class="dashboard-grid">
+        ${renderOpsActionCard('dashboard')}
         <article class="card panel-card dashboard-card dashboard-card-trend">
           ${renderAnnotation('SCR-DASH-TREND-001')}
           <div class="panel-heading dashboard-panel-heading">
@@ -10157,6 +10348,7 @@ renderDashboard = function renderDashboardOverride() {
       if (article?.url) window.open(article.url, '_blank', 'noopener,noreferrer');
     });
   });
+  bindOpsActionButtons();
 };
 
 function render(pageName) {
@@ -10265,6 +10457,7 @@ async function loadData() {
         aiSummarize: false,
         requiresToken: false
       };
+  const opsActionStatusPayload = isLocalUiRuntime() ? await fetchOpsStatus() : null;
 
   state.loadingPhase = 'ready';
   state.loadingMessage = '화면을 준비 중입니다.';
@@ -10278,6 +10471,7 @@ async function loadData() {
   state.segments = Array.isArray(segmentsPayload) ? segmentsPayload : [];
   state.config = configPayload || {};
   state.capabilities = normalizeAiCapabilities(capabilitiesPayload);
+  state.opsActionStatus = opsActionStatusPayload;
   setAiConnectionStatus(
     state.capabilities.aiSummarize ? 'ready' : (hasRemoteAiConfigured(state.config) ? 'idle' : 'disabled'),
     ''
@@ -10319,7 +10513,7 @@ if (chrome.openReport) {
 
 if (chrome.runCrawl) {
   chrome.runCrawl.addEventListener('click', () => {
-    showToast('크롤링 실행은 현재 UI에서 비활성화되어 있습니다.');
+    void handleOpsAction('crawl-and-publish');
   });
 }
 
