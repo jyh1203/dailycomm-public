@@ -874,7 +874,7 @@ function shouldAutoFetchAiCapabilities(config = state.config) {
 }
 
 function isPublicReadonlyRuntime(config = state.config) {
-  return deploymentConfig(config).visibility === 'public-readonly' && !isLocalUiRuntime();
+  return deploymentConfig(config).visibility === 'public-readonly';
 }
 
 function isOperatorRuntime(config = state.config) {
@@ -6208,12 +6208,6 @@ function updateWorkspaceActions() {
   }
 
   if (!chrome.openReport) return;
-  if (state.publicMode) {
-    chrome.openReport.classList.add('hidden');
-    chrome.openReport.disabled = true;
-    delete chrome.openReport.dataset.targetPage;
-    return;
-  }
 
   const actionByPage = {
     dashboard: { label: '기사 선택하기', targetPage: 'inbox', ariaLabel: 'Select Articles' },
@@ -6240,9 +6234,7 @@ function updateWorkspaceActions() {
 
 function setActiveNav() {
   pageButtons.forEach((button) => {
-    const page = button.dataset.page || '';
-    const operatorOnly = ['builder', 'kakao', 'settings'].includes(page);
-    button.hidden = state.publicMode && operatorOnly;
+    button.hidden = false;
     const active = button.dataset.page === state.activePage;
     button.classList.toggle('active', active);
     if (active) {
@@ -10510,9 +10502,7 @@ renderDashboard = function renderDashboardOverride() {
 };
 
 function render(pageName) {
-  const requestedPage = state.publicMode && ['builder', 'kakao', 'settings'].includes(pageName)
-    ? 'dashboard'
-    : pageName;
+  const requestedPage = pageName;
   const currentPage = state.activePage;
   if (currentPage) {
     state.pageScrollPositions[currentPage] = window.scrollY;

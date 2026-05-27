@@ -2208,7 +2208,7 @@ main {
 
 .ops-action-result-head {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 10px;
   align-items: center;
 }
@@ -2222,7 +2222,8 @@ main {
   color: var(--text-soft);
   font-size: 12px;
   font-weight: 700;
-  white-space: nowrap;
+  grid-column: 2;
+  white-space: normal;
 }
 
 .ops-action-error {
@@ -2239,6 +2240,7 @@ main {
 }
 
 .ops-action-metrics div {
+  min-width: 0;
   display: grid;
   gap: 4px;
   padding: 10px 12px;
@@ -2253,7 +2255,9 @@ main {
 }
 
 .ops-action-metrics strong {
-  font-size: 16px;
+  min-width: 0;
+  font-size: 15px;
+  overflow-wrap: anywhere;
 }
 
 .ops-step-list {
@@ -2295,6 +2299,14 @@ main {
   margin-bottom: 14px;
 }
 
+.dashboard-today-card .panel-heading {
+  align-items: start;
+}
+
+.dashboard-today-card .ops-action-metrics {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .dashboard-today-card.is-error {
   border-color: rgba(176, 45, 45, 0.22);
 }
@@ -2303,10 +2315,8 @@ main {
   border-color: rgba(161, 116, 18, 0.22);
 }
 
-body[data-mode="public"] .side-nav button[hidden],
-body[data-mode="public"] .side-nav button[data-page="builder"],
-body[data-mode="public"] .side-nav button[data-page="kakao"],
-body[data-mode="public"] .side-nav button[data-page="settings"],
+body[data-mode="public"] [data-ops-action],
+body[data-mode="public"] .settings-ops-action-card,
 body[data-mode="public"] .hidden {
   display: none !important;
 }
@@ -2322,7 +2332,8 @@ body[data-mode="public"] .hidden {
 
 @media (max-width: 720px) {
   .ops-action-buttons,
-  .ops-action-metrics {
+  .ops-action-metrics,
+  .dashboard-today-card .ops-action-metrics {
     grid-template-columns: 1fr;
   }
 }
