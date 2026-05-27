@@ -2327,13 +2327,65 @@ body[data-mode="public"] .hidden {
 }
 
 .public-dashboard-grid {
+  grid-template-areas:
+    "trend media"
+    "articles articles";
   align-items: start;
+}
+
+.public-article-card {
+  grid-area: articles;
+  grid-column: 1 / -1;
+}
+
+.public-article-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.public-article-item {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px 10px;
+  align-items: center;
+  padding: 13px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 39, 0.08);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.public-article-item strong,
+.public-article-item span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.public-article-item span:last-child {
+  grid-column: 2;
+  color: var(--text-soft);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 @media (max-width: 720px) {
   .ops-action-buttons,
   .ops-action-metrics,
   .dashboard-today-card .ops-action-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .public-dashboard-grid {
+    grid-template-areas:
+      "trend"
+      "media"
+      "articles";
+  }
+
+  .public-article-list {
     grid-template-columns: 1fr;
   }
 }

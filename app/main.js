@@ -10255,25 +10255,6 @@ function renderPublicDashboard() {
         <article class="card panel-card dashboard-card dashboard-card-trend">
           <div class="panel-heading dashboard-panel-heading">
             <div>
-              <p class="panel-kicker">Public</p>
-              <h3>공개 기사 현황</h3>
-            </div>
-            <span class="panel-pill">최종 업데이트 ${escapeHtml(formatDateTime(state.articleMeta?.generatedAt || state.report?.generatedAt))}</span>
-          </div>
-          <div class="spotlight-list">
-            ${latestArticles.length
-              ? latestArticles.map((article) => `
-                <a class="spotlight-item" href="${escapeHtml(article.url || '#')}" target="_blank" rel="noopener noreferrer">
-                  <span class="spotlight-tag ${sectionBadgeClass(article.section)}">${escapeHtml(sectionLabel(article.section))}</span>
-                  <strong>${escapeHtml(article.title)}</strong>
-                </a>
-              `).join('')
-              : renderDataEmpty('public-empty', '공개할 기사가 없습니다', '오늘 데이터가 생성되면 공개 화면에 표시됩니다.')}
-          </div>
-        </article>
-        <article class="card panel-card dashboard-card dashboard-card-trend">
-          <div class="panel-heading dashboard-panel-heading">
-            <div>
               <p class="panel-kicker">트렌드</p>
               <h3>키워드 트렌드</h3>
             </div>
@@ -10326,6 +10307,26 @@ function renderPublicDashboard() {
                 </div>
               `).join('')
               : renderDataEmpty('public-media-empty', '매체 분포가 없습니다', '집계할 출처가 없습니다.')}
+          </div>
+        </article>
+        <article class="card panel-card dashboard-card public-article-card">
+          <div class="panel-heading dashboard-panel-heading">
+            <div>
+              <p class="panel-kicker">Public</p>
+              <h3>공개 기사 현황</h3>
+            </div>
+            <span class="panel-pill">최종 업데이트 ${escapeHtml(formatDateTime(state.articleMeta?.generatedAt || state.report?.generatedAt))}</span>
+          </div>
+          <div class="public-article-list">
+            ${latestArticles.length
+              ? latestArticles.map((article) => `
+                <a class="public-article-item" href="${escapeHtml(article.url || '#')}" target="_blank" rel="noopener noreferrer">
+                  <span class="spotlight-tag ${sectionBadgeClass(article.section)}">${escapeHtml(sectionLabel(article.section))}</span>
+                  <strong>${escapeHtml(article.title)}</strong>
+                  <span>${escapeHtml(mediaLabel(article))} · ${escapeHtml(formatArticlePublishedTime(article))}</span>
+                </a>
+              `).join('')
+              : renderDataEmpty('public-empty', '공개할 기사가 없습니다', '오늘 데이터가 생성되면 공개 화면에 표시됩니다.')}
           </div>
         </article>
       </div>
