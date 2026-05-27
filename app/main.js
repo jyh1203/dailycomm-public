@@ -1,3 +1,7 @@
+import { describeAiConnection, importModeBadge, normalizeAiCapabilities } from './ai-state.js';
+import { buildPublishCheckItems, summarizePublishCheck } from './publish-check.js';
+import { readJsonStorage, removeStorageItem, writeJsonStorage } from './storage.js';
+
 const app = document.getElementById('app');
 const pageButtons = Array.from(document.querySelectorAll('nav button[data-page]'));
 const skipLink = document.querySelector('.skip-link');
@@ -15,6 +19,7 @@ const chrome = {
   runtimeUsable: document.getElementById('runtime-usable'),
   runtimeReport: document.getElementById('runtime-report'),
   runtimeSegments: document.getElementById('runtime-segments'),
+  runtimeAiStatus: document.getElementById('runtime-ai-status'),
   runtimeStatus: document.getElementById('runtime-status'),
   openReport: document.getElementById('header-open-report'),
   runCrawl: document.getElementById('header-run-crawl')
@@ -27,30 +32,6 @@ const BUILDER_DRAFT_STORAGE_PREFIX = 'dailycomm.builderDraft.v1';
 const ACTIVITY_LOG_STORAGE_KEY = 'dailycomm.activityLog.v1';
 const UNDO_TOAST_DURATION = 4200;
 const MAX_ACTIVITY_LOG_ITEMS = 12;
-
-function readJsonStorage(key, fallback) {
-  try {
-    const raw = window.localStorage.getItem(key);
-    if (!raw) return fallback;
-    return JSON.parse(raw);
-  } catch {
-    return fallback;
-  }
-}
-
-function writeJsonStorage(key, value) {
-  try {
-    window.localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-  }
-}
-
-function removeStorageItem(key) {
-  try {
-    window.localStorage.removeItem(key);
-  } catch {
-  }
-}
 
 function loadStoredInboxPresets() {
   return readJsonStorage(INBOX_PRESET_STORAGE_KEY, [])
@@ -171,8 +152,6 @@ const DEFAULT_INBOX_AI_CURATION_PROMPT = [
   '정치, 사건/사고, 생활 정보, 단순 소비 혜택, 결제수단/채널만 스쳐 언급된 기사는 제외해줘.',
   '같은 발표·행사·MOU·실적·투자·서비스 출시처럼 동일한 내용을 다룬 기사가 여러 개 있으면 대표 기사 1건만 추천해줘.',
   '대표 기사는 원문성, 구체성, 최신성, 언론 신뢰도 기준으로 고르고 중복 기사는 추천에서 제외해줘.',
-  '업계 보도는 전략 관련성·구체성·최신성·매체 신뢰도를 기준으로 점수화한 뒤 점수가 높은 순서로 최대 10개까지만 추천해줘.',
-  '업계 보도 후보가 10개를 넘으면 10위 밖의 기사는 모두 제외하고, 개수를 채우기 위해 점수가 낮은 기사를 넣지 마.',
   '각 기사마다 짧은 추천 이유를 붙여줘.'
 ].join('\n');
 
@@ -182,6 +161,7 @@ let state = {
   loadingPhase: 'source',
   loadingMessage: '오늘 데이터를 확인 중입니다.',
   loadError: '',
+  loadWarnings: [],
   articleMeta: null,
   articles: [],
   report: null,
@@ -207,7 +187,7 @@ let state = {
   inboxAiCurationResult: null,
   inboxKeywordFilter: [],
   inboxSearchQuery: '',
-  inboxSortKey: 'score',
+  inboxSortKey: 'time',
   inboxSortDirection: 'desc',
   inboxFiltersOpen: false,
   inboxPreviewOpen: false,
@@ -234,6 +214,11 @@ let state = {
     provider: '',
     model: '',
     requiresToken: false
+  },
+  aiConnection: {
+    status: 'idle',
+    error: '',
+    checkedAt: ''
   },
   aiBusyKey: '',
   aiWorkStatus: null,
@@ -378,11 +363,44 @@ function getSeoulDateParts(value) {
   };
 }
 
-async function fetchDateArtifacts(date) {
+function reportFetchJsonIssue(options, issue) {
+  if (typeof options.onError !== 'function') return;
+  options.onError(issue);
+}
+
+function fetchJsonIssueMessage(issue) {
+  const label = issue.label || issue.url || '데이터';
+  if (issue.reason === 'http') {
+    return `${label} 요청 실패: HTTP ${issue.status}`;
+  }
+  if (issue.reason === 'invalid-json') {
+    return `${label} JSON 형식 오류`;
+  }
+  return `${label} 연결 실패`;
+}
+
+function createLoadIssueCollector(issues, label, { warnOnNotFound = true } = {}) {
+  return (issue) => {
+    if (!warnOnNotFound && issue.reason === 'http' && issue.status === 404) return;
+    const message = fetchJsonIssueMessage({ ...issue, label });
+    if (!issues.includes(message)) {
+      issues.push(message);
+    }
+  };
+}
+
+async function fetchDateArtifacts(date, options = {}) {
+  const issues = Array.isArray(options.issues) ? options.issues : null;
   const [articlePayload, reportPayload, segmentsPayload] = await Promise.all([
-    fetchJson(`../data/articles/${date}.json`, null),
-    fetchJson(`../data/reports/${date}.json`, null),
-    fetchJson(`../data/reports/${date}.segments.json`, [])
+    fetchJson(`../data/articles/${date}.json`, null, issues
+      ? { onError: createLoadIssueCollector(issues, `articles/${date}.json`, { warnOnNotFound: options.warnOnMissingArticle !== false }) }
+      : {}),
+    fetchJson(`../data/reports/${date}.json`, null, issues
+      ? { onError: createLoadIssueCollector(issues, `reports/${date}.json`) }
+      : {}),
+    fetchJson(`../data/reports/${date}.segments.json`, [], issues
+      ? { onError: createLoadIssueCollector(issues, `reports/${date}.segments.json`) }
+      : {})
   ]);
 
   return { articlePayload, reportPayload, segmentsPayload };
@@ -453,7 +471,6 @@ function compareArticleValues(left, right) {
 }
 
 function getInboxSortValue(article, sortKey) {
-  if (sortKey === 'score') return inboxArticleScore(article);
   if (sortKey === 'media') return mediaLabel(article);
   if (sortKey === 'title') return String(article?.title || '');
   if (sortKey === 'keyword') return String(article?.keyword || '');
@@ -466,7 +483,7 @@ function toggleInboxSort(sortKey) {
     return;
   }
   state.inboxSortKey = sortKey;
-  state.inboxSortDirection = sortKey === 'time' || sortKey === 'score' ? 'desc' : 'asc';
+  state.inboxSortDirection = sortKey === 'time' ? 'desc' : 'asc';
 }
 
 function renderInboxSortHeader(sortKey, label) {
@@ -769,16 +786,64 @@ function formatApiHostLabel(value) {
   }
 }
 
-function fetchJson(url, fallback, options = {}) {
+function describeApiEndpointOrigin(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '서버';
+  try {
+    return new URL(raw).host || '서버';
+  } catch {
+    return formatApiHostLabel(raw) || '서버';
+  }
+}
+
+function missingApiRouteMessage(apiUrl, featureLabel = 'API') {
+  return `${featureLabel}가 서버에 배포되지 않았습니다. ${describeApiEndpointOrigin(apiUrl)} 설정을 확인해주세요.`;
+}
+
+function invalidApiPayloadMessage(apiUrl, featureLabel = 'API') {
+  return `${featureLabel} 응답이 올바르지 않습니다. ${describeApiEndpointOrigin(apiUrl)} 서버 라우팅을 확인해주세요.`;
+}
+
+async function fetchJson(url, fallback, options = {}) {
   const finalUrl = options.cacheBust
     ? `${url}${url.includes('?') ? '&' : '?'}ts=${Date.now()}`
     : url;
 
-  return fetch(finalUrl, {
-    cache: options.noStore ? 'no-store' : 'default'
-  })
-    .then((response) => (response.ok ? response.json() : fallback))
-    .catch(() => fallback);
+  try {
+    const response = await fetch(finalUrl, {
+      cache: options.noStore ? 'no-store' : 'default'
+    });
+
+    if (!response.ok) {
+      reportFetchJsonIssue(options, {
+        url,
+        finalUrl,
+        status: response.status,
+        reason: 'http'
+      });
+      return fallback;
+    }
+
+    try {
+      return await response.json();
+    } catch (error) {
+      reportFetchJsonIssue(options, {
+        url,
+        finalUrl,
+        reason: 'invalid-json',
+        error
+      });
+      return fallback;
+    }
+  } catch (error) {
+    reportFetchJsonIssue(options, {
+      url,
+      finalUrl,
+      reason: 'network',
+      error
+    });
+    return fallback;
+  }
 }
 
 function deploymentConfig(config = state.config) {
@@ -814,6 +879,14 @@ function getStoredAiToken() {
   } catch {
     return '';
   }
+}
+
+function setAiConnectionStatus(status, error = '') {
+  state.aiConnection = {
+    status,
+    error: String(error || '').trim(),
+    checkedAt: new Date().toISOString()
+  };
 }
 
 function setStoredAiToken(value) {
@@ -964,17 +1037,18 @@ async function connectRemoteAiAccess() {
 
   let capabilitiesPayload;
   try {
+    setAiConnectionStatus('checking');
+    updateShellMeta();
     capabilitiesPayload = await fetchAiCapabilities(state.config, { throwOnError: true });
   } catch (error) {
+    setAiConnectionStatus('error', normalizeAiRequestError(error));
+    updateShellMeta();
     showToast(normalizeAiRequestError(error));
     return false;
   }
-  state.capabilities = {
-    aiSummarize: Boolean(capabilitiesPayload?.aiSummarize),
-    provider: String(capabilitiesPayload?.provider || ''),
-    model: String(capabilitiesPayload?.model || ''),
-    requiresToken: Boolean(capabilitiesPayload?.requiresToken)
-  };
+  state.capabilities = normalizeAiCapabilities(capabilitiesPayload);
+  setAiConnectionStatus(state.capabilities.aiSummarize ? 'ready' : 'error', state.capabilities.aiSummarize ? '' : 'AI 요약 기능이 비활성 상태입니다.');
+  updateShellMeta();
 
   if (!state.capabilities.aiSummarize) {
     showToast('AI 연결을 확인해주세요.');
@@ -1476,6 +1550,62 @@ function inferConfiguredKeyword(article) {
   return matched ? String(matched).trim() : '';
 }
 
+function deriveManualImportPublisher(parsedUrl) {
+  const hostname = parsedUrl.hostname.replace(/^www\./i, '').toLowerCase();
+  if (hostname.includes('naver.com')) return '네이버';
+  if (hostname.includes('daum.net')) return '다음';
+
+  const firstSegment = hostname.split('.').find(Boolean) || hostname;
+  return firstSegment
+    ? firstSegment.charAt(0).toUpperCase() + firstSegment.slice(1)
+    : '수동 추가';
+}
+
+function buildManualImportedArticle(rawUrl, reason = '') {
+  const normalizedUrl = String(rawUrl || '').trim();
+  let parsedUrl = null;
+  try {
+    parsedUrl = new URL(normalizedUrl);
+  } catch {
+    return null;
+  }
+
+  if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') return null;
+
+  const publisher = deriveManualImportPublisher(parsedUrl);
+  const pathLabel = decodeURIComponent(parsedUrl.pathname || '')
+    .split('/')
+    .filter(Boolean)
+    .slice(-2)
+    .join(' / ');
+  const title = pathLabel
+    ? `${publisher} 링크 기사 - ${pathLabel}`
+    : `${publisher} 링크 기사`;
+  const summary = reason
+    ? `기사 추가 API가 응답하지 않아 링크만 수동 카드로 추가했습니다. 빌더에서 제목과 요약을 확인해 주세요. (${reason})`
+    : '기사 추가 API가 응답하지 않아 링크만 수동 카드로 추가했습니다. 빌더에서 제목과 요약을 확인해 주세요.';
+
+  return {
+    title,
+    summary,
+    publisher,
+    media: publisher,
+    source: parsedUrl.hostname.replace(/^www\./i, '').toLowerCase(),
+    url: parsedUrl.toString(),
+    publishedAt: new Date().toISOString(),
+    recencyText: '수동 추가',
+    recencyScore: 0,
+    importMode: 'manual-fallback',
+    keyword: inferConfiguredKeyword({ title, summary, publisher })
+  };
+}
+
+function shouldFallbackToManualImport(error, status = 0) {
+  if ([404, 405, 500, 502, 503, 504].includes(Number(status))) return true;
+  const message = String(error?.message || '').trim();
+  return /기사 추가 API에 연결하지 못했습니다|기사 추가 API가 서버에 배포되지 않았습니다|기사 링크에 연결할 수 없습니다|기사 링크 응답 시간이 초과되었습니다|호스트를 확인할 수 없습니다|failed to fetch|networkerror|load failed/i.test(message);
+}
+
 async function importBuilderArticleByUrl(rawUrl) {
   const apiUrls = buildArticleImportApiUrls();
   if (!apiUrls.length) {
@@ -1483,9 +1613,11 @@ async function importBuilderArticleByUrl(rawUrl) {
   }
 
   let lastError = null;
+  let canUseManualFallback = false;
 
   for (const [index, apiUrl] of apiUrls.entries()) {
     let response;
+    let payload = null;
     try {
       response = await fetch(apiUrl, {
         method: 'POST',
@@ -1496,28 +1628,45 @@ async function importBuilderArticleByUrl(rawUrl) {
       });
     } catch (error) {
       lastError = new Error(normalizeArticleImportError(error));
+      canUseManualFallback = canUseManualFallback || shouldFallbackToManualImport(lastError);
       if (index < apiUrls.length - 1) {
         continue;
       }
-      throw lastError;
+      break;
     }
 
-    const payload = await response.json().catch(() => null);
+    payload = await response.json().catch(() => null);
     if (response.status === 401) {
       setStoredAiToken('');
       throw new Error(payload?.error || 'AI \uC811\uADFC \uD1A0\uD070\uC744 \uB2E4\uC2DC \uC785\uB825\uD574\uC8FC\uC138\uC694.');
     }
 
     if (!response.ok) {
-      lastError = new Error(payload?.error || '\uAE30\uC0AC \uB9C1\uD06C\uB97C \uAC00\uC838\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.');
+      const fallbackMessage = response.status === 404 || response.status === 405
+        ? missingApiRouteMessage(apiUrl, '기사 추가 API')
+        : '\uAE30\uC0AC \uB9C1\uD06C\uB97C \uAC00\uC838\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.';
+      lastError = new Error(payload?.error || fallbackMessage);
+      canUseManualFallback = canUseManualFallback || shouldFallbackToManualImport(lastError, response.status);
       if (index < apiUrls.length - 1 && [404, 405, 500, 502, 503].includes(response.status)) {
         continue;
+      }
+      if (canUseManualFallback) {
+        break;
       }
       throw lastError;
     }
 
     if (!payload?.article || typeof payload.article !== 'object') {
-      lastError = new Error('\uAE30\uC0AC \uC815\uBCF4\uB97C \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.');
+      const payloadError = payload?.error ? new Error(String(payload.error)) : null;
+      if (payloadError && shouldFallbackToManualImport(payloadError)) {
+        const manualArticle = buildManualImportedArticle(rawUrl, payloadError.message);
+        if (manualArticle) return manualArticle;
+      }
+      lastError = new Error(
+        payload
+          ? '\uAE30\uC0AC \uC815\uBCF4\uB97C \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.'
+          : invalidApiPayloadMessage(apiUrl, '기사 추가 API')
+      );
       if (index < apiUrls.length - 1) {
         continue;
       }
@@ -1528,6 +1677,11 @@ async function importBuilderArticleByUrl(rawUrl) {
       ...payload.article,
       keyword: payload.article.keyword || inferConfiguredKeyword(payload.article)
     };
+  }
+
+  if (canUseManualFallback) {
+    const manualArticle = buildManualImportedArticle(rawUrl, lastError?.message || '');
+    if (manualArticle) return manualArticle;
   }
 
   throw lastError || new Error('\uAE30\uC0AC \uB9C1\uD06C\uB97C \uAC00\uC838\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.');
@@ -1595,7 +1749,7 @@ function captureWorkspaceSnapshot() {
     inboxAiFilter: String(state.inboxAiFilter || 'all'),
     inboxKeywordFilter: [...inboxKeywordFilterTokens()],
     inboxSearchQuery: String(state.inboxSearchQuery || ''),
-    inboxSortKey: String(state.inboxSortKey || 'score'),
+    inboxSortKey: String(state.inboxSortKey || 'time'),
     inboxSortDirection: String(state.inboxSortDirection || 'desc'),
     builderImportOpen: Boolean(state.builderImportOpen),
     builderImportUrl: String(state.builderImportUrl || ''),
@@ -1620,7 +1774,7 @@ function restoreWorkspaceSnapshot(snapshot) {
   state.inboxAiFilter = String(snapshot.inboxAiFilter || 'all');
   state.inboxKeywordFilter = Array.isArray(snapshot.inboxKeywordFilter) ? [...snapshot.inboxKeywordFilter] : [];
   state.inboxSearchQuery = String(snapshot.inboxSearchQuery || '');
-  state.inboxSortKey = String(snapshot.inboxSortKey || 'score');
+  state.inboxSortKey = String(snapshot.inboxSortKey || 'time');
   state.inboxSortDirection = String(snapshot.inboxSortDirection || 'desc');
   state.builderImportOpen = Boolean(snapshot.builderImportOpen);
   state.builderImportUrl = String(snapshot.builderImportUrl || '');
@@ -1780,14 +1934,22 @@ function renderBuilderItemMeta(article) {
     { label: '키워드', value: article?.keyword || '-' },
     { label: '매체', value: mediaLabel(article) }
   ];
+  const importMode = String(article?.importMode || '').trim();
+  const importBadge = importModeBadge(importMode);
 
   return `
     <div class="builder-item-meta" aria-label="기사 메타 정보">
       <div class="builder-item-meta-main">
+        ${importBadge
+          ? `<span class="builder-item-meta-chip tone-${escapeHtml(importBadge.tone)}">
+              <strong>추가 상태</strong>
+              <span>${escapeHtml(importBadge.label)}</span>
+            </span>`
+          : ''}
         ${rows.map((row) => `
           <span class="builder-item-meta-chip">
             <strong>${escapeHtml(row.label)}</strong>
-            <span>${escapeHtml(row.value || '-')}</span>
+            <span ${row.label === '매체' ? 'data-builder-media-value' : ''}>${escapeHtml(row.value || '-')}</span>
           </span>
         `).join('')}
       </div>
@@ -2692,6 +2854,14 @@ function syncBuilderCardPreview(key) {
   const nextOneLine = articleBuilderOneLine(location.item) || '한줄 요약을 아직 입력하지 않았습니다.';
   document.querySelectorAll('[data-builder-focus]').forEach((node) => {
     if (node.dataset.builderFocus !== key) return;
+    const titleValue = node.querySelector('[data-builder-title-value]');
+    if (titleValue) {
+      titleValue.textContent = location.item.title || '';
+    }
+    const mediaValue = node.querySelector('[data-builder-media-value]');
+    if (mediaValue) {
+      mediaValue.textContent = mediaLabel(location.item);
+    }
     const summaryValue = node.querySelector('[data-builder-summary-value]');
     if (summaryValue) {
       summaryValue.textContent = nextSummary;
@@ -3124,12 +3294,31 @@ function renderInboxPaginationControls({ maxPage, mode = 'bottom' }) {
 }
 
 function renderBuilderInlineEditor(sectionName, article, entryKey) {
+  const isManualFallback = article?.importMode === 'manual-fallback';
   return `
     <div class="builder-inline-editor" data-builder-inline-editor="${escapeHtml(entryKey)}">
       <div class="detail-guide">
-        <strong>바로 편집</strong>
+        <strong>${isManualFallback ? '수동 링크 보정' : '바로 편집'}</strong>
       </div>
       <div class="builder-inline-fields">
+        ${isManualFallback
+          ? `<label class="detail-field">
+              <span>기사 제목</span>
+              <input
+                type="text"
+                data-builder-title-input="${escapeHtml(entryKey)}"
+                value="${escapeHtml(article.title || '')}"
+              />
+            </label>
+            <label class="detail-field">
+              <span>매체/출처</span>
+              <input
+                type="text"
+                data-builder-publisher-input="${escapeHtml(entryKey)}"
+                value="${escapeHtml(mediaLabel(article) === '-' ? '' : mediaLabel(article))}"
+              />
+            </label>`
+          : ''}
         <label class="detail-field">
           <span>기사 요약 및 결론 (30자 내외)</span>
           <input
@@ -3165,50 +3354,25 @@ function renderBuilderDraftPanel({ reportText, reportItemCount, totalDraftChars,
   const segmentCount = reportItemCount ? buildKakaoPreviewSegments().length : 0;
   const draftEdited = reportItemCount ? hasReportDraftChanged(buildKakaoPreviewText(), reportText) : false;
   const readinessItems = reportItemCount
-    ? [
-        {
-          state: sections.major.length ? 'complete' : 'pending',
-          title: '주요 보도 확보',
-          detail: sections.major.length
-            ? `주요 보도 ${formatNumber(sections.major.length)}건이 포함되어 있습니다.`
-            : '최소 1건은 넣어야 메시지 중심이 또렷해집니다.'
-        },
-        {
-          state: sections.industry.length ? 'complete' : 'pending',
-          title: '업계 보도 균형',
-          detail: sections.industry.length
-            ? `업계 보도 ${formatNumber(sections.industry.length)}건이 포함되어 있습니다.`
-            : '업계 보도 1건 이상이 있으면 리포트 균형이 좋아집니다.'
-        },
-        {
-          state: reportItemCount >= 2 ? 'complete' : 'pending',
-          title: '전송 분량',
-          detail: reportItemCount >= 2
-            ? `기사 ${formatNumber(reportItemCount)}건, 초안 ${formatNumber(totalDraftChars)}자입니다.`
-            : '기사 2건 이상이면 카카오 메시지 뼈대가 더 안정적입니다.'
-        },
-        {
-          state: segmentCount > 0 ? (segmentCount <= 3 ? 'complete' : 'watch') : 'pending',
-          title: '카카오 파트 수',
-          detail: segmentCount
-            ? `현재 ${formatNumber(segmentCount)}개 파트로 나뉩니다.`
-            : '초안을 만들면 예상 파트 수를 바로 계산합니다.'
-        },
-        {
-          state: draftEdited ? 'complete' : 'watch',
-          title: '최종 문구 다듬기',
-          detail: draftEdited
-            ? '자동 생성 문구에서 한 번 더 다듬은 상태입니다.'
-            : '카드 문구나 보고서 초안을 한 번 더 다듬으면 전달력이 좋아집니다.'
-        }
-      ]
+    ? buildPublishCheckItems({
+        majorCount: sections.major.length,
+        industryCount: sections.industry.length,
+        reportItemCount,
+        totalDraftChars,
+        segmentCount,
+        draftEdited,
+        articles: [...sections.major, ...sections.industry],
+        formatNumber
+      })
     : [];
   const suggestionAvailable = Boolean(findDraftLocation(state.builderFocusKey));
   const activeDraftTab = state.builderDraftTab === 'suggestion' && suggestionAvailable ? 'suggestion' : 'draft';
   if (state.builderDraftTab !== activeDraftTab) {
     state.builderDraftTab = activeDraftTab;
   }
-  const readyCount = readinessItems.filter((item) => item.state === 'complete').length;
+  const publishCheckSummary = summarizePublishCheck(readinessItems);
+  const readyCount = publishCheckSummary.readyCount;
+  const watchSuffix = publishCheckSummary.watchCount ? ` · 확인 ${formatNumber(publishCheckSummary.watchCount)}` : '';
   const renderDraftTabButton = (tab, label, disabled = false) => `
     <button
       class="${activeDraftTab === tab ? 'active' : ''}"
@@ -3294,7 +3458,7 @@ function renderBuilderDraftPanel({ reportText, reportItemCount, totalDraftChars,
                 <p class="panel-kicker">Publish Check</p>
                 <h3>전송 전 체크</h3>
               </div>
-              <span class="panel-pill tone-neutral">${formatNumber(readyCount)}개 준비</span>
+              <span class="panel-pill tone-neutral">${formatNumber(readyCount)}개 준비${watchSuffix}</span>
             </div>
             <div class="builder-readiness-chip-row">
               ${readinessItems.map((item) => `
@@ -3950,15 +4114,84 @@ async function buildAiSummaryProposalForDraftItem(key) {
     };
   }
 
+  if (location.item?.importMode === 'manual-fallback' && state.capabilities?.aiSummarize && location.item?.url) {
+    try {
+      const importedArticle = await importBuilderArticleByUrl(location.item.url);
+      if (importedArticle && importedArticle.importMode !== 'manual-fallback') {
+        const refreshedArticle = {
+          ...location.item,
+          ...importedArticle,
+          section: location.sectionName,
+          importMode: 'api-refresh'
+        };
+        updateDraftItem(key, refreshedArticle);
+        const refreshedKey = draftEntryKey(location.sectionName, refreshedArticle);
+        const result = await requestAiSummary(refreshedArticle);
+        return buildAiSummaryProposalFromResult(refreshedKey, refreshedArticle, result);
+      }
+    } catch {
+      // Fall back to the local manual-link preview below.
+    }
+  }
+
+  if (location.item?.importMode === 'manual-fallback' || !state.capabilities?.aiSummarize) {
+    return buildLocalAiSummaryProposalForDraftItem(key);
+  }
+
   const result = await requestAiSummary(location.item);
   return buildAiSummaryProposalFromResult(key, location.item, result);
+}
+
+function buildLocalAiSummaryResult(article) {
+  if (article?.importMode === 'manual-fallback') {
+    const publisher = mediaLabel(article) && mediaLabel(article) !== '-' ? mediaLabel(article) : '수동 링크';
+    const title = String(article?.title || '').trim();
+    const hasAdjustedTitle = title && !/링크 기사/u.test(title);
+    const summaryLead = hasAdjustedTitle
+      ? `${title} 중심으로 원문 확인 필요`
+      : `${publisher} 원문 링크 기준 기사 내용 보정 필요`;
+    const keyPoint = String(article?.url || '').trim()
+      ? '원격 기사 API 복구 후 본문 기반 AI 요약 가능'
+      : '제목과 요약을 보정한 뒤 카카오 프리뷰 반영';
+    return {
+      summaryLead,
+      keyPoint,
+      provider: 'local-preview',
+      model: 'manual-link-rules'
+    };
+  }
+
+  const insight = buildArticleAiInsight(article);
+  return {
+    summaryLead: insight.draft.summaryLead,
+    keyPoint: insight.draft.keyPoint,
+    provider: 'local-preview',
+    model: 'browser-rules'
+  };
+}
+
+function buildLocalAiSummaryProposalForDraftItem(key) {
+  const location = findDraftLocation(key);
+  if (!location) {
+    return {
+      updated: false,
+      proposal: null,
+      mode: 'local-preview'
+    };
+  }
+
+  return {
+    ...buildAiSummaryProposalFromResult(key, location.item, buildLocalAiSummaryResult(location.item)),
+    mode: 'local-preview'
+  };
 }
 
 function buildAiSummaryProposalFromResult(key, article, result) {
   const updates = buildAiSummaryUpdates(article, result);
   return {
     updated: true,
-    proposal: buildAiReviewProposal(key, article, updates)
+    proposal: buildAiReviewProposal(key, article, updates),
+    mode: result?.provider === 'local-preview' ? 'local-preview' : 'remote-ai'
   };
 }
 
@@ -3980,6 +4213,7 @@ async function summarizeDraftItemWithAi(key) {
 
   try {
     const outcome = await buildAiSummaryProposalForDraftItem(key);
+    const usingLocalPreview = outcome?.mode === 'local-preview';
     if (!outcome?.updated || !outcome?.proposal) {
       completeAiWorkStatus(
         'builder-single-summary',
@@ -4003,8 +4237,10 @@ async function summarizeDraftItemWithAi(key) {
     }
     setPendingAiReview({
       mode: 'single',
-      title: 'AI 문구 비교',
-      description: '선택한 기사 1건의 기존 문구와 AI 제안을 먼저 비교할 수 있습니다.',
+      title: usingLocalPreview ? '로컬 미리보기 문구 비교' : 'AI 문구 비교',
+      description: usingLocalPreview
+        ? '원격 AI API를 사용할 수 없어 브라우저 로컬 기준으로 문구 제안을 준비했습니다.'
+        : '선택한 기사 1건의 기존 문구와 AI 제안을 먼저 비교할 수 있습니다.',
       proposals: [outcome.proposal],
       changedCount: 1,
       failedCount: 0
@@ -4012,12 +4248,34 @@ async function summarizeDraftItemWithAi(key) {
     completeAiWorkStatus(
       'builder-single-summary',
       'builder-ai',
-      'AI 정리 완료',
-      '비교 화면에서 기존 문구와 AI 제안을 확인할 수 있습니다.'
+      usingLocalPreview ? '로컬 미리보기 완료' : 'AI 정리 완료',
+      usingLocalPreview
+        ? '비교 화면에서 로컬 기준 제안을 확인할 수 있습니다.'
+        : '비교 화면에서 기존 문구와 AI 제안을 확인할 수 있습니다.'
     );
-    showToast('AI 제안을 비교 화면에 준비했습니다.');
+    showToast(usingLocalPreview ? '로컬 미리보기 제안을 준비했습니다.' : 'AI 제안을 비교 화면에 준비했습니다.');
     return;
   } catch (error) {
+    const fallback = buildLocalAiSummaryProposalForDraftItem(key);
+    if (fallback?.updated && fallback?.proposal?.changed) {
+      setPendingAiReview({
+        mode: 'single',
+        title: '로컬 미리보기 문구 비교',
+        description: '원격 AI API 연결에 실패해 브라우저 로컬 기준으로 문구 제안을 준비했습니다.',
+        proposals: [fallback.proposal],
+        changedCount: 1,
+        failedCount: 0
+      });
+      completeAiWorkStatus(
+        'builder-single-summary',
+        'builder-ai',
+        '로컬 미리보기 완료',
+        `${error instanceof Error ? error.message : 'AI 정리에 실패했습니다.'} 로컬 기준으로 비교 제안을 준비했습니다.`
+      );
+      showToast('원격 AI 대신 로컬 미리보기 제안을 준비했습니다.');
+      return;
+    }
+
     completeAiWorkStatus(
       'builder-single-summary',
       'builder-ai',
@@ -4030,6 +4288,33 @@ async function summarizeDraftItemWithAi(key) {
     state.aiBusyKey = '';
     renderReportBuilder();
   }
+}
+
+function buildLocalAiSummaryBatchProposals(entries) {
+  let successCount = 0;
+  let changedCount = 0;
+  const proposals = [];
+
+  for (const entry of entries) {
+    const outcome = buildAiSummaryProposalFromResult(
+      entry.key,
+      entry.article,
+      buildLocalAiSummaryResult(entry.article)
+    );
+    if (!outcome?.updated || !outcome?.proposal) continue;
+    successCount += 1;
+    proposals.push(outcome.proposal);
+    if (outcome.proposal.changed) {
+      changedCount += 1;
+    }
+  }
+
+  return {
+    successCount,
+    changedCount,
+    failedCount: Math.max(entries.length - successCount, 0),
+    proposals
+  };
 }
 
 async function summarizeReportDraftWithAi() {
@@ -4067,31 +4352,40 @@ async function summarizeReportDraftWithAi() {
   const proposals = [];
 
   try {
-    const batchResult = await requestAiSummaryBatch(entries);
-    const resultByKey = new Map(
-      (Array.isArray(batchResult?.items) ? batchResult.items : [])
-        .map((item) => [String(item?.key || '').trim(), item])
-        .filter(([key]) => Boolean(key))
-    );
+    const usingLocalPreview = !state.capabilities?.aiSummarize;
+    if (state.capabilities?.aiSummarize) {
+      const batchResult = await requestAiSummaryBatch(entries);
+      const resultByKey = new Map(
+        (Array.isArray(batchResult?.items) ? batchResult.items : [])
+          .map((item) => [String(item?.key || '').trim(), item])
+          .filter(([key]) => Boolean(key))
+      );
 
-    for (const entry of entries) {
-      const result = resultByKey.get(entry.key);
-      if (!result?.summaryLead || !result?.keyPoint) {
-        failedCount += 1;
-        continue;
-      }
+      for (const entry of entries) {
+        const result = resultByKey.get(entry.key);
+        if (!result?.summaryLead || !result?.keyPoint) {
+          failedCount += 1;
+          continue;
+        }
 
-      const outcome = buildAiSummaryProposalFromResult(entry.key, entry.article, result);
-      if (!outcome?.updated || !outcome?.proposal) {
-        failedCount += 1;
-        continue;
-      }
+        const outcome = buildAiSummaryProposalFromResult(entry.key, entry.article, result);
+        if (!outcome?.updated || !outcome?.proposal) {
+          failedCount += 1;
+          continue;
+        }
 
-      successCount += 1;
-      proposals.push(outcome.proposal);
-      if (outcome.proposal.changed) {
-        changedCount += 1;
+        successCount += 1;
+        proposals.push(outcome.proposal);
+        if (outcome.proposal.changed) {
+          changedCount += 1;
+        }
       }
+    } else {
+      const localResult = buildLocalAiSummaryBatchProposals(entries);
+      successCount = localResult.successCount;
+      changedCount = localResult.changedCount;
+      failedCount = localResult.failedCount;
+      proposals.push(...localResult.proposals);
     }
 
     if (!successCount && failedCount) {
@@ -4122,8 +4416,10 @@ async function summarizeReportDraftWithAi() {
 
     setPendingAiReview({
       mode: 'batch',
-      title: 'AI 일괄 제안 비교',
-      description: `기사 ${formatNumber(changedCount)}건의 문구를 AI가 다시 정리했습니다. 적용 전에 변경 내용을 확인해 보세요.`,
+      title: usingLocalPreview ? '로컬 미리보기 일괄 제안 비교' : 'AI 일괄 제안 비교',
+      description: usingLocalPreview
+        ? `원격 AI API를 사용할 수 없어 기사 ${formatNumber(changedCount)}건의 문구를 로컬 기준으로 준비했습니다.`
+        : `기사 ${formatNumber(changedCount)}건의 문구를 AI가 다시 정리했습니다. 적용 전에 변경 내용을 확인해 보세요.`,
       proposals: proposals.filter((proposal) => proposal.changed),
       changedCount,
       failedCount
@@ -4131,12 +4427,34 @@ async function summarizeReportDraftWithAi() {
     completeAiWorkStatus(
       'builder-report-draft',
       'builder-ai',
-      'AI 일괄 정리 완료',
+      usingLocalPreview ? '로컬 미리보기 완료' : 'AI 일괄 정리 완료',
       `변경 후보 ${formatNumber(changedCount)}건을 비교 화면에 준비했습니다.`
     );
-    showToast(`AI 제안 ${changedCount}건을 비교 화면에 준비했습니다.`);
+    showToast(usingLocalPreview
+      ? `로컬 미리보기 제안 ${changedCount}건을 준비했습니다.`
+      : `AI 제안 ${changedCount}건을 비교 화면에 준비했습니다.`);
     return;
   } catch (error) {
+    const localResult = buildLocalAiSummaryBatchProposals(entries);
+    if (localResult.changedCount) {
+      setPendingAiReview({
+        mode: 'batch',
+        title: '로컬 미리보기 일괄 제안 비교',
+        description: `원격 AI API 연결에 실패해 기사 ${formatNumber(localResult.changedCount)}건의 문구를 로컬 기준으로 준비했습니다.`,
+        proposals: localResult.proposals.filter((proposal) => proposal.changed),
+        changedCount: localResult.changedCount,
+        failedCount: localResult.failedCount
+      });
+      completeAiWorkStatus(
+        'builder-report-draft',
+        'builder-ai',
+        '로컬 미리보기 완료',
+        `${error instanceof Error ? error.message : 'AI 정리에 실패했습니다.'} 로컬 기준으로 비교 제안을 준비했습니다.`
+      );
+      showToast('원격 AI 대신 로컬 미리보기 일괄 제안을 준비했습니다.');
+      return;
+    }
+
     completeAiWorkStatus(
       'builder-report-draft',
       'builder-ai',
@@ -4558,79 +4876,6 @@ function buildIndustryArticleAiInsight(article) {
   };
 }
 
-function normalizeInboxArticleScore(value) {
-  const score = Number(value);
-  return Number.isFinite(score) ? clampNumber(Math.round(score), 0, 100) : null;
-}
-
-function aiCurationScoreForPick(pick, sectionName) {
-  const explicitScore = normalizeInboxArticleScore(pick?.score);
-  if (explicitScore !== null) return explicitScore;
-
-  const insight = sectionName === 'industry'
-    ? buildIndustryArticleAiInsight(pick?.article)
-    : buildArticleAiInsight(pick?.article);
-  return normalizeInboxArticleScore(insight.score) ?? 0;
-}
-
-function aiCurationPriorityRank(band) {
-  return {
-    urgent: 3,
-    important: 2,
-    watch: 1,
-    skip: 0
-  }[band] ?? 0;
-}
-
-function limitAiCurationPicksByScore(picks, sectionName, maxCount) {
-  return (Array.isArray(picks) ? picks : [])
-    .map((pick, index) => ({
-      ...pick,
-      score: aiCurationScoreForPick(pick, sectionName),
-      sourceIndex: index
-    }))
-    .sort((left, right) => {
-      if (right.score !== left.score) return right.score - left.score;
-      const priorityCompare = aiCurationPriorityRank(right.band) - aiCurationPriorityRank(left.band);
-      if (priorityCompare !== 0) return priorityCompare;
-      return left.sourceIndex - right.sourceIndex;
-    })
-    .slice(0, maxCount)
-    .map(({ sourceIndex, ...pick }) => pick);
-}
-
-function pickInboxArticleInsight(article) {
-  const kakaoInsight = buildArticleAiInsight(article);
-  if (article?.section !== 'industry') {
-    return kakaoInsight;
-  }
-
-  const industryInsight = buildIndustryArticleAiInsight(article);
-  return normalizeInboxArticleScore(industryInsight.score) > normalizeInboxArticleScore(kakaoInsight.score)
-    ? industryInsight
-    : kakaoInsight;
-}
-
-function inboxArticleInsight(article) {
-  const explicitScore = normalizeInboxArticleScore(article?.score ?? article?.aiScore ?? article?.priorityScore);
-  const insight = pickInboxArticleInsight(article);
-  const score = explicitScore ?? normalizeInboxArticleScore(insight.score) ?? 0;
-  const band = explicitScore === null ? insight.band : articleAiBandFromScore(score);
-  const bandMeta = articleAiPriorityMeta(band);
-
-  return {
-    ...insight,
-    score,
-    band,
-    bandLabel: insight.bandLabel || bandMeta.label,
-    bandDescription: insight.bandDescription || bandMeta.description
-  };
-}
-
-function inboxArticleScore(article) {
-  return inboxArticleInsight(article).score;
-}
-
 function normalizeAiCurationBand(value, fallback = 'watch') {
   const normalized = String(value || '').trim().toLowerCase();
   if (normalized === 'urgent' || normalized === 'high' || normalized === '핵심') return 'urgent';
@@ -4654,8 +4899,7 @@ function normalizeAiCurationPicks(rawPicks, articleLookup, fallbackBand = 'watch
         articleId,
         article,
         reason: truncateText(String(pick?.reason || '').trim(), 140),
-        band: normalizeAiCurationBand(pick?.priority, fallbackBand),
-        score: normalizeInboxArticleScore(pick?.score)
+        band: normalizeAiCurationBand(pick?.priority, fallbackBand)
       };
     })
     .filter(Boolean);
@@ -4694,7 +4938,7 @@ function buildLocalAiArticleCuration(articles, prompt) {
     })
     .filter((item) => item.article && buildIndustryArticleAiInsight(item.article).qualified)
     .sort((left, right) => right.score - left.score)
-    .slice(0, 10);
+    .slice(0, 5);
 
   return {
     mode: 'local-preview',
@@ -4710,18 +4954,10 @@ function buildLocalAiArticleCuration(articles, prompt) {
 function normalizeAiArticleCurationResult(payload, articles, fallbackPrompt = '') {
   const articlePayload = buildAiCurationArticlePayload(articles);
   const articleLookup = new Map(articlePayload.map((item, index) => [item.articleId, articles[index]]));
-  const normalizedKakaoPicks = limitAiCurationPicksByScore(
-    normalizeAiCurationPicks(payload?.kakaoPicks, articleLookup, 'important')
-      .filter((pick) => isKakaoAiRecommended(pick.article)),
-    'major',
-    5
-  );
-  const normalizedIndustryPicks = limitAiCurationPicksByScore(
-    normalizeAiCurationPicks(payload?.industryPicks, articleLookup, 'watch')
-      .filter((pick) => buildIndustryArticleAiInsight(pick.article).qualified),
-    'industry',
-    10
-  );
+  const normalizedKakaoPicks = normalizeAiCurationPicks(payload?.kakaoPicks, articleLookup, 'important')
+    .filter((pick) => isKakaoAiRecommended(pick.article));
+  const normalizedIndustryPicks = normalizeAiCurationPicks(payload?.industryPicks, articleLookup, 'watch')
+    .filter((pick) => buildIndustryArticleAiInsight(pick.article).qualified);
 
   return {
     mode: String(payload?.mode || 'remote').trim() || 'remote',
@@ -4788,7 +5024,7 @@ function focusInboxArticleByKey(key) {
 }
 
 function renderAiPriorityPill(article, { compact = false } = {}) {
-  const insight = inboxArticleInsight(article);
+  const insight = buildArticleAiInsight(article);
   const scoreLabel = compact
     ? `${insight.bandLabel} ${formatNumber(insight.score)}`
     : `${insight.bandLabel} ${formatNumber(insight.score)}점`;
@@ -5212,12 +5448,8 @@ async function curateInboxArticlesWithAi() {
 
   try {
     const capabilitiesPayload = await fetchAiCapabilities(state.config);
-    state.capabilities = {
-      aiSummarize: Boolean(capabilitiesPayload?.aiSummarize),
-      provider: String(capabilitiesPayload?.provider || ''),
-      model: String(capabilitiesPayload?.model || ''),
-      requiresToken: Boolean(capabilitiesPayload?.requiresToken)
-    };
+    state.capabilities = normalizeAiCapabilities(capabilitiesPayload);
+    setAiConnectionStatus(state.capabilities.aiSummarize ? 'ready' : 'idle');
 
     if (state.capabilities.aiSummarize) {
       if (state.capabilities.requiresToken && !getStoredAiToken()) {
@@ -5848,6 +6080,18 @@ function updateShellMeta() {
   }
   chrome.runtimeReport.textContent = `${formatNumber(majorCount)}/${formatNumber(industryCount)}`;
   chrome.runtimeSegments.textContent = `${formatNumber(segmentCount)}개`;
+  if (chrome.runtimeAiStatus) {
+    const aiStatus = describeAiConnection({
+      capabilities: state.capabilities,
+      hasRemote: hasRemoteAiConfigured(),
+      hasToken: Boolean(getStoredAiToken()),
+      status: state.aiConnection?.status,
+      error: state.aiConnection?.error
+    });
+    chrome.runtimeAiStatus.hidden = false;
+    chrome.runtimeAiStatus.className = `runtime-ai-status tone-${escapeHtml(aiStatus.tone)}`;
+    chrome.runtimeAiStatus.innerHTML = `<strong>${escapeHtml(aiStatus.label)}</strong> · ${escapeHtml(aiStatus.detail)}`;
+  }
 
   if (state.loading) {
     chrome.runtimeStatus.hidden = false;
@@ -6086,6 +6330,28 @@ function renderFreshnessBanner() {
       <p>${escapeHtml(freshness.runtimeLabel)}</p>
     </article>
   `;
+}
+
+function renderLoadWarningBanner() {
+  if (!state.loadWarnings.length) return '';
+
+  return `
+    <article class="card freshness-banner load-warning-banner">
+      <div>
+        <p class="panel-kicker">데이터 경고</p>
+        <h3>일부 아티팩트를 확인해야 합니다</h3>
+      </div>
+      <div>
+        <p>${escapeHtml(state.loadWarnings.slice(0, 3).join(' · '))}</p>
+      </div>
+    </article>
+  `;
+}
+
+function mountGlobalLoadWarningBanner() {
+  if (!state.loadWarnings.length || state.loading || state.loadError) return;
+  if (app.querySelector('.load-warning-banner')) return;
+  app.insertAdjacentHTML('afterbegin', renderLoadWarningBanner());
 }
 
 function mountGlobalFreshnessBanner() {
@@ -7131,12 +7397,11 @@ function renderReportBuilder() {
     button.addEventListener('click', async (event) => {
       event.stopPropagation();
       if (!state.capabilities?.aiSummarize) {
-        const connected = await connectRemoteAiAccess();
-        if (!connected) return;
+        await connectRemoteAiAccess();
         renderReportBuilder();
       }
 
-      if (state.capabilities?.requiresToken && !getStoredAiToken()) {
+      if (state.capabilities?.aiSummarize && state.capabilities?.requiresToken && !getStoredAiToken()) {
         showToast('AI 접근 토큰을 먼저 입력해주세요.');
         return;
       }
@@ -7975,7 +8240,6 @@ renderInbox = function renderInboxOverride() {
               <div class="table-head">
                 <span class="table-head-label table-head-label-center">선택</span>
                 ${renderInboxSortHeader('title', '기사')}
-                ${renderInboxSortHeader('score', '점수')}
                 <span class="table-head-label table-head-label-center">상태</span>
                 ${renderInboxSortHeader('media', '매체')}
                 ${renderInboxSortHeader('time', '발행')}
@@ -7994,7 +8258,6 @@ renderInbox = function renderInboxOverride() {
                     ? `${article.title || '기사'} ${sectionLabel(targetSection)}에 보도 추가`
                     : `${article.title || '기사'} 보도 반영 완료`;
                   const sourcePill = renderArticleSourcePill(article);
-                  const score = inboxArticleScore(article);
                   return `
                     <div class="table-row-wrap ${focused ? 'is-expanded' : ''}">
                       <div
@@ -8017,7 +8280,6 @@ renderInbox = function renderInboxOverride() {
                           <strong>${highlightTitleKeywords(article.title, article)}</strong>
                           <p>${highlightSummaryKeywords(article.summary, article)}</p>
                         </div>
-                        <div class="table-cell table-cell-score" data-label="점수"><strong>${formatNumber(score)}</strong><span>점</span></div>
                         <div class="table-cell table-cell-status" data-label="상태"><span class="status-badge status-${escapeHtml(status)}">${escapeHtml(statusLabel(status))}</span></div>
                         <div class="table-cell table-cell-media" data-label="매체">${escapeHtml(mediaLabel(article))}</div>
                         <div class="table-cell table-cell-time" data-label="발행">${escapeHtml(formatArticlePublishedTime(article))}</div>
@@ -8588,7 +8850,7 @@ renderBuilderColumn = function renderBuilderColumnOverride(sectionName, items) {
               <div class="builder-item ${active ? 'active is-expanded' : ''}" data-builder-focus="${escapeHtml(entryKey)}">
                 <div class="builder-item-head">
                   <div class="builder-item-head-copy">
-                    <strong>${escapeHtml(article.title)}</strong>
+                    <strong data-builder-title-value>${escapeHtml(article.title)}</strong>
                     <p class="builder-item-subcopy">${escapeHtml(mediaLabel(article))} · ${escapeHtml(article.keyword || '-')}</p>
                   </div>
                   <span class="panel-pill tone-neutral">${active ? '편집 중' : '카드 선택'}</span>
@@ -8780,13 +9042,11 @@ renderReportBuilder = function renderReportBuilderOverride() {
     button.addEventListener('click', async (event) => {
       event.stopPropagation();
       if (!state.capabilities?.aiSummarize) {
-        const connected = await connectRemoteAiAccess();
-        if (!connected) return;
+        await connectRemoteAiAccess();
         renderReportBuilder();
-        return;
       }
 
-      if (state.capabilities?.requiresToken && !getStoredAiToken()) {
+      if (state.capabilities?.aiSummarize && state.capabilities?.requiresToken && !getStoredAiToken()) {
         showToast('AI 접근 토큰을 먼저 입력해주세요.');
         return;
       }
@@ -8839,6 +9099,28 @@ renderReportBuilder = function renderReportBuilderOverride() {
         oneLine: event.target.value
       });
       syncBuilderCardPreview(event.target.dataset.builderKeypointInput);
+      syncBuilderReportTextArea();
+    });
+  });
+
+  app.querySelectorAll('[data-builder-title-input]').forEach((input) => {
+    input.addEventListener('input', (event) => {
+      updateDraftItem(event.target.dataset.builderTitleInput, {
+        title: event.target.value
+      });
+      syncBuilderCardPreview(event.target.dataset.builderTitleInput);
+      syncBuilderReportTextArea();
+    });
+  });
+
+  app.querySelectorAll('[data-builder-publisher-input]').forEach((input) => {
+    input.addEventListener('input', (event) => {
+      updateDraftItem(event.target.dataset.builderPublisherInput, {
+        publisher: event.target.value,
+        media: event.target.value,
+        source: event.target.value
+      });
+      syncBuilderCardPreview(event.target.dataset.builderPublisherInput);
       syncBuilderReportTextArea();
     });
   });
@@ -9909,6 +10191,7 @@ function render(pageName) {
   if (pageName === 'builder') renderReportBuilder();
   if (pageName === 'kakao') renderKakaoPreview();
   if (pageName === 'settings') renderSettings();
+  mountGlobalLoadWarningBanner();
   mountGlobalFreshnessBanner();
 
   const nextScrollTop = state.pageScrollPositions[pageName] ?? 0;
@@ -9922,23 +10205,39 @@ async function loadData() {
   state.loadingPhase = 'source';
   state.loadingMessage = '오늘 데이터를 확인 중입니다.';
   state.loadError = '';
+  state.loadWarnings = [];
   render(state.activePage);
 
-  const configPromise = fetchJson('../crawler/config/default.json', null, { cacheBust: true, noStore: true });
+  const loadIssues = [];
+  const configPromise = fetchJson('../crawler/config/default.json', null, {
+    cacheBust: true,
+    noStore: true,
+    onError: createLoadIssueCollector(loadIssues, 'crawler/config/default.json')
+  });
   let resolvedDate = state.date;
-  let { articlePayload, reportPayload, segmentsPayload } = await fetchDateArtifacts(resolvedDate);
+  let { articlePayload, reportPayload, segmentsPayload } = await fetchDateArtifacts(resolvedDate, {
+    issues: loadIssues,
+    warnOnMissingArticle: false
+  });
 
   if (!articlePayload) {
     state.loadingMessage = '최신 발행일을 찾는 중입니다.';
     render(state.activePage);
-    const latestPayload = await fetchJson('../data/latest.json', null, { cacheBust: true, noStore: true });
+    const latestPayload = await fetchJson('../data/latest.json', null, {
+      cacheBust: true,
+      noStore: true,
+      onError: createLoadIssueCollector(loadIssues, 'data/latest.json')
+    });
     const fallbackDate = typeof latestPayload?.date === 'string' ? latestPayload.date : '';
 
     if (fallbackDate && fallbackDate !== resolvedDate) {
       state.loadingMessage = `${formatDateLabel(fallbackDate)} 데이터를 불러오는 중입니다.`;
       render(state.activePage);
       resolvedDate = fallbackDate;
-      ({ articlePayload, reportPayload, segmentsPayload } = await fetchDateArtifacts(resolvedDate));
+      ({ articlePayload, reportPayload, segmentsPayload } = await fetchDateArtifacts(resolvedDate, {
+        issues: loadIssues,
+        warnOnMissingArticle: true
+      }));
     }
   }
 
@@ -9946,6 +10245,7 @@ async function loadData() {
     state.loading = false;
     state.loadingPhase = '';
     state.loadingMessage = '';
+    state.loadWarnings = loadIssues;
     state.loadError = `기사 파일을 찾을 수 없습니다: data/articles/${resolvedDate}.json`;
     render(state.activePage);
     return;
@@ -9977,17 +10277,17 @@ async function loadData() {
   state.report = reportPayload || { sections: { major: [], industry: [] } };
   state.segments = Array.isArray(segmentsPayload) ? segmentsPayload : [];
   state.config = configPayload || {};
-  state.capabilities = {
-    aiSummarize: Boolean(capabilitiesPayload?.aiSummarize),
-    provider: String(capabilitiesPayload?.provider || ''),
-    model: String(capabilitiesPayload?.model || ''),
-    requiresToken: Boolean(capabilitiesPayload?.requiresToken)
-  };
+  state.capabilities = normalizeAiCapabilities(capabilitiesPayload);
+  setAiConnectionStatus(
+    state.capabilities.aiSummarize ? 'ready' : (hasRemoteAiConfigured(state.config) ? 'idle' : 'disabled'),
+    ''
+  );
   const restoredDraft = initializeReportDraft();
   normalizeInboxKeywordFilter();
   state.loading = false;
   state.loadingPhase = '';
   state.loadingMessage = '';
+  state.loadWarnings = loadIssues;
   state.selectedArticle = state.articles[0] || null;
   state.selectedArticleUrls = [];
   state.previewMode = 'summary';

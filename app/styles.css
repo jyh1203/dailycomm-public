@@ -451,6 +451,30 @@ main,
   font-weight: 700;
 }
 
+.runtime-ai-status {
+  margin: -4px 0 0;
+  padding: 9px 11px;
+  border-radius: 14px;
+  background: rgba(15, 23, 39, 0.04);
+  color: var(--text-soft);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.runtime-ai-status strong {
+  color: var(--text);
+}
+
+.runtime-ai-status.tone-selected {
+  background: rgba(22, 136, 85, 0.1);
+  color: #176342;
+}
+
+.runtime-ai-status.tone-warning {
+  background: rgba(180, 58, 69, 0.08);
+  color: #6c2130;
+}
+
 .runtime-status {
   margin: 0;
   padding: 12px 14px;
@@ -2331,7 +2355,6 @@ main {
 
 .table-sort-media,
 .table-sort-keyword,
-.table-sort-score,
 .table-sort-time {
   justify-self: start;
 }
@@ -2365,7 +2388,6 @@ main {
 .table-cell-status,
 .table-cell-media,
 .table-cell-keyword,
-.table-cell-score,
 .table-cell-time {
   color: var(--text-soft);
   font-size: 13px;
@@ -2373,23 +2395,6 @@ main {
   align-items: center;
   justify-content: center;
   text-align: center;
-}
-
-.table-cell-score {
-  color: var(--primary-strong);
-  gap: 2px;
-  font-weight: 800;
-  white-space: nowrap;
-}
-
-.table-cell-score strong {
-  font-variant-numeric: tabular-nums;
-}
-
-.table-cell-score span {
-  color: var(--text-faint);
-  font-size: 11px;
-  font-weight: 700;
 }
 
 .table-cell-actions {
@@ -5920,8 +5925,8 @@ main {
     grid-template-areas:
       "select title open"
       "select title time"
-      "select score status"
-      "select media status";
+      "select media status"
+      "select keyword status";
     gap: 8px 10px;
     padding: 14px;
     border-radius: 20px;
@@ -5965,12 +5970,6 @@ main {
     grid-area: title;
   }
 
-  .table-cell-score {
-    grid-area: score;
-    justify-self: start;
-    justify-content: flex-start;
-  }
-
   .table-row > div:nth-child(3),
   .table-row > div:nth-child(5) {
     display: flex;
@@ -5978,7 +5977,6 @@ main {
 
   .table-cell-media,
   .table-cell-keyword,
-  .table-cell-score,
   .table-cell-time {
     display: flex;
     flex-wrap: wrap;
@@ -6012,7 +6010,6 @@ main {
 
   .table-cell-media::before,
   .table-cell-keyword::before,
-  .table-cell-score::before,
   .table-cell-time::before {
     content: attr(data-label);
     color: var(--text-faint);
@@ -6412,8 +6409,8 @@ main {
     grid-template-areas:
       "select title actions"
       "select title actions"
-      "select score status"
-      "select media time";
+      "select media status"
+      "select time status";
     gap: 7px 8px;
   }
 
@@ -6424,11 +6421,6 @@ main {
   .table-cell-status {
     grid-area: status;
     justify-self: end;
-  }
-
-  .table-cell-score {
-    grid-area: score;
-    justify-self: start;
   }
 
   .table-cell-media {
@@ -6482,7 +6474,7 @@ main {
 /* Inbox row guardrails: keep actions, status, and time from colliding. */
 .table-head,
 .table-row {
-  grid-template-columns: 44px minmax(160px, 1fr) 64px 70px 78px 78px 184px;
+  grid-template-columns: 44px minmax(160px, 1fr) 70px 78px 78px 184px;
   gap: 8px;
 }
 
@@ -6528,7 +6520,7 @@ main {
 @media (max-width: 1280px) {
   .table-head,
   .table-row {
-    grid-template-columns: 44px minmax(145px, 1fr) 56px 68px 76px 74px 92px;
+    grid-template-columns: 44px minmax(150px, 1fr) 68px 76px 74px 92px;
   }
 
   .table-card .icon-action-label {
@@ -6551,7 +6543,7 @@ main {
 @media (max-width: 980px) {
   .table-head,
   .table-row {
-    grid-template-columns: 42px minmax(132px, 1fr) 54px 64px 76px 74px 92px;
+    grid-template-columns: 42px minmax(140px, 1fr) 64px 76px 74px 92px;
     gap: 8px;
   }
 }
@@ -6562,14 +6554,8 @@ main {
     grid-template-areas:
       "select title actions"
       "select title actions"
-      "select score status"
-      "select media time";
-  }
-
-  .table-cell-score {
-    grid-area: score;
-    justify-self: start;
-    justify-content: flex-start;
+      "select media status"
+      "select time status";
   }
 
   .table-cell-status {
