@@ -212,6 +212,7 @@ let state = {
   opsActionBusy: false,
   opsActionResult: null,
   opsActionStatus: null,
+  publicMode: false,
   capabilities: {
     aiSummarize: false,
     provider: '',
@@ -872,6 +873,14 @@ function shouldAutoFetchAiCapabilities(config = state.config) {
   return deployment.visibility !== 'public-readonly';
 }
 
+function isPublicReadonlyRuntime(config = state.config) {
+  return deploymentConfig(config).visibility === 'public-readonly' && !isLocalUiRuntime();
+}
+
+function isOperatorRuntime(config = state.config) {
+  return isLocalUiRuntime() && deploymentConfig(config).visibility !== 'public-readonly';
+}
+
 function getStoredAiToken() {
   try {
     return String(
@@ -925,7 +934,7 @@ function buildLocalOperatorApiUrl(pathname) {
 
 function buildOperatorApiUrls(pathname) {
   const candidateUrls = [];
-  if (isLocalUiRuntime()) {
+  if (isOperatorRuntime()) {
     candidateUrls.push(buildLocalOperatorApiUrl(pathname));
   }
   return [...new Set(candidateUrls)];
@@ -6195,10 +6204,16 @@ window.addEventListener('resize', () => {
 
 function updateWorkspaceActions() {
   if (chrome.runCrawl) {
-    chrome.runCrawl.classList.add('hidden');
+    chrome.runCrawl.classList.toggle('hidden', !isOperatorRuntime());
   }
 
   if (!chrome.openReport) return;
+  if (state.publicMode) {
+    chrome.openReport.classList.add('hidden');
+    chrome.openReport.disabled = true;
+    delete chrome.openReport.dataset.targetPage;
+    return;
+  }
 
   const actionByPage = {
     dashboard: { label: '기사 선택하기', targetPage: 'inbox', ariaLabel: 'Select Articles' },
@@ -6225,6 +6240,9 @@ function updateWorkspaceActions() {
 
 function setActiveNav() {
   pageButtons.forEach((button) => {
+    const page = button.dataset.page || '';
+    const operatorOnly = ['builder', 'kakao', 'settings'].includes(page);
+    button.hidden = state.publicMode && operatorOnly;
     const active = button.dataset.page === state.activePage;
     button.classList.toggle('active', active);
     if (active) {
@@ -9677,6 +9695,7 @@ renderSettings = function renderSettingsOverride() {
         <button class="ghost-btn" id="settings-to-builder">초안 만들기</button>
       </div>
       <div class="settings-grid">
+        ${isOperatorRuntime() ? renderOpsActionCard('settings') : ''}
         <article class="card settings-card">
           ${renderAnnotation('SCR-SET-KEY-001')}
           <div class="panel-heading">
@@ -10067,7 +10086,7 @@ function renderOpsActionCard(context = 'dashboard') {
     : 'card settings-card settings-ops-action-card';
   const busy = state.opsActionBusy;
   const result = state.opsActionResult || state.opsActionStatus?.last || null;
-  const canRun = isLocalUiRuntime();
+  const canRun = isOperatorRuntime();
 
   return `
     <article class="${wrapperClass}">
@@ -10188,7 +10207,145 @@ function renderRecentActivityLog(limit = 6) {
   `;
 }
 
+function renderTodayStatusCard() {
+  const freshness = getDataFreshnessState();
+  const quality = state.opsActionStatus?.summary?.quality || null;
+  const severity = quality?.severity || (freshness.isLagging ? 'warning' : 'ok');
+  const issueCount = Array.isArray(quality?.issues) ? quality.issues.length : 0;
+  const lastRun = state.opsActionResult || state.opsActionStatus?.last || null;
+  const lastRunLabel = lastRun?.finishedAt || lastRun?.startedAt
+    ? formatDateTime(lastRun.finishedAt || lastRun.startedAt)
+    : '-';
+
+  return `
+    <article class="card panel-card dashboard-card dashboard-today-card is-${escapeHtml(severity)}">
+      <div class="panel-heading dashboard-panel-heading">
+        <div>
+          <p class="panel-kicker">Today</p>
+          <h3>오늘 데이터 상태</h3>
+        </div>
+        <span class="status-badge status-${severity === 'error' ? 'failed' : severity === 'warning' ? 'warning' : 'selected'}">
+          ${escapeHtml(severity === 'error' ? '확인 필요' : severity === 'warning' ? '주의' : '정상')}
+        </span>
+      </div>
+      <div class="ops-action-metrics">
+        <div><span>오늘</span><strong>${escapeHtml(formatDateLabel(freshness.currentDateKey))}</strong></div>
+        <div><span>기준일</span><strong>${escapeHtml(formatDateLabel(state.date))}</strong></div>
+        <div><span>최종 작업</span><strong>${escapeHtml(lastRunLabel)}</strong></div>
+      </div>
+      ${issueCount
+        ? `<div class="ops-step-list">
+            ${quality.issues.slice(0, 5).map((issue) => `
+              <div class="ops-step-row">
+                <span class="status-badge status-${issue.level === 'error' ? 'failed' : 'warning'}">${escapeHtml(issue.level === 'error' ? '오류' : '주의')}</span>
+                <div>
+                  <strong>${escapeHtml(issue.title)}</strong>
+                  <p>${escapeHtml(issue.detail || issue.code || '')}</p>
+                </div>
+              </div>
+            `).join('')}
+          </div>`
+        : `<p class="panel-note">latest.json, manifest.json, 날짜별 산출물이 현재 기준과 일치합니다.</p>`}
+    </article>
+  `;
+}
+
+function renderPublicDashboard() {
+  const trendItems = buildTrendItems();
+  const mediaItems = buildMediaDistribution();
+  const latestArticles = state.articles.slice(0, 8);
+
+  app.innerHTML = `
+    <section class="page public-page" id="dashboard-page">
+      ${renderFreshnessBanner()}
+      ${renderTodayStatusCard()}
+      <div class="dashboard-grid public-dashboard-grid">
+        <article class="card panel-card dashboard-card dashboard-card-trend">
+          <div class="panel-heading dashboard-panel-heading">
+            <div>
+              <p class="panel-kicker">Public</p>
+              <h3>공개 기사 현황</h3>
+            </div>
+            <span class="panel-pill">최종 업데이트 ${escapeHtml(formatDateTime(state.articleMeta?.generatedAt || state.report?.generatedAt))}</span>
+          </div>
+          <div class="spotlight-list">
+            ${latestArticles.length
+              ? latestArticles.map((article) => `
+                <a class="spotlight-item" href="${escapeHtml(article.url || '#')}" target="_blank" rel="noopener noreferrer">
+                  <span class="spotlight-tag ${sectionBadgeClass(article.section)}">${escapeHtml(sectionLabel(article.section))}</span>
+                  <strong>${escapeHtml(article.title)}</strong>
+                </a>
+              `).join('')
+              : renderDataEmpty('public-empty', '공개할 기사가 없습니다', '오늘 데이터가 생성되면 공개 화면에 표시됩니다.')}
+          </div>
+        </article>
+        <article class="card panel-card dashboard-card dashboard-card-trend">
+          <div class="panel-heading dashboard-panel-heading">
+            <div>
+              <p class="panel-kicker">트렌드</p>
+              <h3>키워드 트렌드</h3>
+            </div>
+            <span class="panel-pill">${formatNumber(state.articles.length)}건</span>
+          </div>
+          <div class="trend-section-list">
+            ${[
+              ['major', '주요 보도', trendItems.major],
+              ['industry', '업계 보도', trendItems.industry]
+            ].map(([sectionKey, sectionTitle, items]) => `
+              <div class="trend-section" data-trend-section="${escapeHtml(sectionKey)}">
+                <div class="trend-section-head">
+                  <strong>${escapeHtml(sectionTitle)}</strong>
+                  <span>${formatNumber(items.length)}개 키워드</span>
+                </div>
+                ${items.length
+                  ? `<div class="trend-list">
+                      ${items.map((item) => `
+                        <div class="trend-row">
+                          <div class="trend-labels">
+                            <strong>${escapeHtml(item.keyword)}</strong>
+                            <span>${formatNumber(item.count)}건</span>
+                          </div>
+                          <div class="trend-track"><span style="width:${item.percent}%"></span></div>
+                        </div>
+                      `).join('')}
+                    </div>`
+                  : renderDataEmpty(`public-trend-empty-${escapeHtml(sectionKey)}`, `${escapeHtml(sectionTitle)} 키워드가 없습니다`, '공개 데이터에 해당 키워드가 없습니다.')}
+              </div>
+            `).join('')}
+          </div>
+        </article>
+        <article class="card panel-card dashboard-card dashboard-card-media">
+          <div class="panel-heading dashboard-panel-heading">
+            <div>
+              <p class="panel-kicker">분포</p>
+              <h3>매체 분포</h3>
+            </div>
+            <span class="panel-pill">상위 ${formatNumber(mediaItems.length)}개</span>
+          </div>
+          <div class="distribution-list">
+            ${mediaItems.length
+              ? mediaItems.map((item) => `
+                <div class="distribution-row">
+                  <div class="distribution-labels">
+                    <strong>${escapeHtml(item.name)}</strong>
+                    <span>${formatNumber(item.count)}건 / ${formatNumber(item.percent)}%</span>
+                  </div>
+                  <div class="distribution-track"><span style="width:${item.widthPercent}%"></span></div>
+                </div>
+              `).join('')
+              : renderDataEmpty('public-media-empty', '매체 분포가 없습니다', '집계할 출처가 없습니다.')}
+          </div>
+        </article>
+      </div>
+    </section>
+  `;
+}
+
 renderDashboard = function renderDashboardOverride() {
+  if (state.publicMode) {
+    renderPublicDashboard();
+    return;
+  }
   const stats = getStats();
   const sections = getReportSections();
   const reported = sections.major.length + sections.industry.length;
@@ -10206,6 +10363,7 @@ renderDashboard = function renderDashboardOverride() {
   app.innerHTML = `
     <section class="page" id="dashboard-page">
       ${renderFreshnessBanner()}
+      ${renderTodayStatusCard()}
       ${renderDashboardFlowCard(flow)}
       ${renderDashboardPriorityStrip({ total, pending, reported, failed, coverageRatio })}
 
@@ -10352,13 +10510,17 @@ renderDashboard = function renderDashboardOverride() {
 };
 
 function render(pageName) {
+  const requestedPage = state.publicMode && ['builder', 'kakao', 'settings'].includes(pageName)
+    ? 'dashboard'
+    : pageName;
   const currentPage = state.activePage;
   if (currentPage) {
     state.pageScrollPositions[currentPage] = window.scrollY;
   }
-  state.activePage = pageName;
-  document.body.dataset.page = pageName;
-  if (pageName !== 'inbox') {
+  state.activePage = requestedPage;
+  document.body.dataset.page = requestedPage;
+  document.body.dataset.mode = state.publicMode ? 'public' : 'operator';
+  if (requestedPage !== 'inbox') {
     document.documentElement.classList.remove('has-modal-open');
     document.body.classList.remove('has-mobile-selection-bar');
     document.body.classList.remove('has-mobile-preview-bar');
@@ -10378,15 +10540,15 @@ function render(pageName) {
     return;
   }
 
-  if (pageName === 'dashboard') renderDashboard();
-  if (pageName === 'inbox') renderInbox();
-  if (pageName === 'builder') renderReportBuilder();
-  if (pageName === 'kakao') renderKakaoPreview();
-  if (pageName === 'settings') renderSettings();
+  if (requestedPage === 'dashboard') renderDashboard();
+  if (requestedPage === 'inbox') renderInbox();
+  if (requestedPage === 'builder') renderReportBuilder();
+  if (requestedPage === 'kakao') renderKakaoPreview();
+  if (requestedPage === 'settings') renderSettings();
   mountGlobalLoadWarningBanner();
   mountGlobalFreshnessBanner();
 
-  const nextScrollTop = state.pageScrollPositions[pageName] ?? 0;
+  const nextScrollTop = state.pageScrollPositions[requestedPage] ?? 0;
   requestAnimationFrame(() => {
     window.scrollTo({ top: nextScrollTop, left: 0, behavior: 'auto' });
   });
@@ -10457,7 +10619,7 @@ async function loadData() {
         aiSummarize: false,
         requiresToken: false
       };
-  const opsActionStatusPayload = isLocalUiRuntime() ? await fetchOpsStatus() : null;
+  const opsActionStatusPayload = isOperatorRuntime(configPayload || {}) ? await fetchOpsStatus() : null;
 
   state.loadingPhase = 'ready';
   state.loadingMessage = '화면을 준비 중입니다.';
@@ -10470,6 +10632,7 @@ async function loadData() {
   state.report = reportPayload || { sections: { major: [], industry: [] } };
   state.segments = Array.isArray(segmentsPayload) ? segmentsPayload : [];
   state.config = configPayload || {};
+  state.publicMode = isPublicReadonlyRuntime(state.config);
   state.capabilities = normalizeAiCapabilities(capabilitiesPayload);
   state.opsActionStatus = opsActionStatusPayload;
   setAiConnectionStatus(
@@ -10499,7 +10662,7 @@ async function loadData() {
 }
 
 pageButtons.forEach((button) => {
-  button.addEventListener('click', () => render(button.dataset.page));
+  button.addEventListener('click', () => render(button.dataset.page || 'dashboard'));
 });
 
 if (chrome.openReport) {
@@ -10513,6 +10676,7 @@ if (chrome.openReport) {
 
 if (chrome.runCrawl) {
   chrome.runCrawl.addEventListener('click', () => {
+    if (!isOperatorRuntime()) return;
     void handleOpsAction('crawl-and-publish');
   });
 }
