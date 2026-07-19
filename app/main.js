@@ -1,7 +1,3 @@
-import { describeAiConnection, importModeBadge, normalizeAiCapabilities } from './ai-state.js';
-import { buildPublishCheckItems, summarizePublishCheck } from './publish-check.js';
-import { readJsonStorage, removeStorageItem, writeJsonStorage } from './storage.js';
-
 const app = document.getElementById('app');
 const pageButtons = Array.from(document.querySelectorAll('nav button[data-page]'));
 const skipLink = document.querySelector('.skip-link');
@@ -19,7 +15,6 @@ const chrome = {
   runtimeUsable: document.getElementById('runtime-usable'),
   runtimeReport: document.getElementById('runtime-report'),
   runtimeSegments: document.getElementById('runtime-segments'),
-  runtimeAiStatus: document.getElementById('runtime-ai-status'),
   runtimeStatus: document.getElementById('runtime-status'),
   openReport: document.getElementById('header-open-report'),
   runCrawl: document.getElementById('header-run-crawl')
@@ -32,6 +27,30 @@ const BUILDER_DRAFT_STORAGE_PREFIX = 'dailycomm.builderDraft.v1';
 const ACTIVITY_LOG_STORAGE_KEY = 'dailycomm.activityLog.v1';
 const UNDO_TOAST_DURATION = 4200;
 const MAX_ACTIVITY_LOG_ITEMS = 12;
+
+function readJsonStorage(key, fallback) {
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return fallback;
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+}
+
+function writeJsonStorage(key, value) {
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+  }
+}
+
+function removeStorageItem(key) {
+  try {
+    window.localStorage.removeItem(key);
+  } catch {
+  }
+}
 
 function loadStoredInboxPresets() {
   return readJsonStorage(INBOX_PRESET_STORAGE_KEY, [])
@@ -152,6 +171,8 @@ const DEFAULT_INBOX_AI_CURATION_PROMPT = [
   '정치, 사건/사고, 생활 정보, 단순 소비 혜택, 결제수단/채널만 스쳐 언급된 기사는 제외해줘.',
   '같은 발표·행사·MOU·실적·투자·서비스 출시처럼 동일한 내용을 다룬 기사가 여러 개 있으면 대표 기사 1건만 추천해줘.',
   '대표 기사는 원문성, 구체성, 최신성, 언론 신뢰도 기준으로 고르고 중복 기사는 추천에서 제외해줘.',
+  '업계 보도는 전략 관련성·구체성·최신성·매체 신뢰도를 기준으로 점수화한 뒤 점수가 높은 순서로 최대 10개까지만 추천해줘.',
+  '업계 보도 후보가 10개를 넘으면 10위 밖의 기사는 모두 제외하고, 개수를 채우기 위해 점수가 낮은 기사를 넣지 마.',
   '각 기사마다 짧은 추천 이유를 붙여줘.'
 ].join('\n');
 
@@ -161,7 +182,6 @@ let state = {
   loadingPhase: 'source',
   loadingMessage: '오늘 데이터를 확인 중입니다.',
   loadError: '',
-  loadWarnings: [],
   articleMeta: null,
   articles: [],
   report: null,
@@ -187,7 +207,7 @@ let state = {
   inboxAiCurationResult: null,
   inboxKeywordFilter: [],
   inboxSearchQuery: '',
-  inboxSortKey: 'time',
+  inboxSortKey: 'score',
   inboxSortDirection: 'desc',
   inboxFiltersOpen: false,
   inboxPreviewOpen: false,
@@ -209,20 +229,11 @@ let state = {
   settingsPolicyModalOpen: false,
   settingsAlertTestBusy: false,
   settingsAlertTestResult: null,
-  opsActionBusy: false,
-  opsActionResult: null,
-  opsActionStatus: null,
-  publicMode: false,
   capabilities: {
     aiSummarize: false,
     provider: '',
     model: '',
     requiresToken: false
-  },
-  aiConnection: {
-    status: 'idle',
-    error: '',
-    checkedAt: ''
   },
   aiBusyKey: '',
   aiWorkStatus: null,
@@ -367,44 +378,11 @@ function getSeoulDateParts(value) {
   };
 }
 
-function reportFetchJsonIssue(options, issue) {
-  if (typeof options.onError !== 'function') return;
-  options.onError(issue);
-}
-
-function fetchJsonIssueMessage(issue) {
-  const label = issue.label || issue.url || '데이터';
-  if (issue.reason === 'http') {
-    return `${label} 요청 실패: HTTP ${issue.status}`;
-  }
-  if (issue.reason === 'invalid-json') {
-    return `${label} JSON 형식 오류`;
-  }
-  return `${label} 연결 실패`;
-}
-
-function createLoadIssueCollector(issues, label, { warnOnNotFound = true } = {}) {
-  return (issue) => {
-    if (!warnOnNotFound && issue.reason === 'http' && issue.status === 404) return;
-    const message = fetchJsonIssueMessage({ ...issue, label });
-    if (!issues.includes(message)) {
-      issues.push(message);
-    }
-  };
-}
-
-async function fetchDateArtifacts(date, options = {}) {
-  const issues = Array.isArray(options.issues) ? options.issues : null;
+async function fetchDateArtifacts(date) {
   const [articlePayload, reportPayload, segmentsPayload] = await Promise.all([
-    fetchJson(`../data/articles/${date}.json`, null, issues
-      ? { onError: createLoadIssueCollector(issues, `articles/${date}.json`, { warnOnNotFound: options.warnOnMissingArticle !== false }) }
-      : {}),
-    fetchJson(`../data/reports/${date}.json`, null, issues
-      ? { onError: createLoadIssueCollector(issues, `reports/${date}.json`) }
-      : {}),
-    fetchJson(`../data/reports/${date}.segments.json`, [], issues
-      ? { onError: createLoadIssueCollector(issues, `reports/${date}.segments.json`) }
-      : {})
+    fetchJson(`../data/articles/${date}.json`, null),
+    fetchJson(`../data/reports/${date}.json`, null),
+    fetchJson(`../data/reports/${date}.segments.json`, [])
   ]);
 
   return { articlePayload, reportPayload, segmentsPayload };
@@ -475,6 +453,7 @@ function compareArticleValues(left, right) {
 }
 
 function getInboxSortValue(article, sortKey) {
+  if (sortKey === 'score') return inboxArticleScore(article);
   if (sortKey === 'media') return mediaLabel(article);
   if (sortKey === 'title') return String(article?.title || '');
   if (sortKey === 'keyword') return String(article?.keyword || '');
@@ -487,7 +466,7 @@ function toggleInboxSort(sortKey) {
     return;
   }
   state.inboxSortKey = sortKey;
-  state.inboxSortDirection = sortKey === 'time' ? 'desc' : 'asc';
+  state.inboxSortDirection = sortKey === 'time' || sortKey === 'score' ? 'desc' : 'asc';
 }
 
 function renderInboxSortHeader(sortKey, label) {
@@ -790,64 +769,16 @@ function formatApiHostLabel(value) {
   }
 }
 
-function describeApiEndpointOrigin(value) {
-  const raw = String(value || '').trim();
-  if (!raw) return '서버';
-  try {
-    return new URL(raw).host || '서버';
-  } catch {
-    return formatApiHostLabel(raw) || '서버';
-  }
-}
-
-function missingApiRouteMessage(apiUrl, featureLabel = 'API') {
-  return `${featureLabel}가 서버에 배포되지 않았습니다. ${describeApiEndpointOrigin(apiUrl)} 설정을 확인해주세요.`;
-}
-
-function invalidApiPayloadMessage(apiUrl, featureLabel = 'API') {
-  return `${featureLabel} 응답이 올바르지 않습니다. ${describeApiEndpointOrigin(apiUrl)} 서버 라우팅을 확인해주세요.`;
-}
-
-async function fetchJson(url, fallback, options = {}) {
+function fetchJson(url, fallback, options = {}) {
   const finalUrl = options.cacheBust
     ? `${url}${url.includes('?') ? '&' : '?'}ts=${Date.now()}`
     : url;
 
-  try {
-    const response = await fetch(finalUrl, {
-      cache: options.noStore ? 'no-store' : 'default'
-    });
-
-    if (!response.ok) {
-      reportFetchJsonIssue(options, {
-        url,
-        finalUrl,
-        status: response.status,
-        reason: 'http'
-      });
-      return fallback;
-    }
-
-    try {
-      return await response.json();
-    } catch (error) {
-      reportFetchJsonIssue(options, {
-        url,
-        finalUrl,
-        reason: 'invalid-json',
-        error
-      });
-      return fallback;
-    }
-  } catch (error) {
-    reportFetchJsonIssue(options, {
-      url,
-      finalUrl,
-      reason: 'network',
-      error
-    });
-    return fallback;
-  }
+  return fetch(finalUrl, {
+    cache: options.noStore ? 'no-store' : 'default'
+  })
+    .then((response) => (response.ok ? response.json() : fallback))
+    .catch(() => fallback);
 }
 
 function deploymentConfig(config = state.config) {
@@ -873,14 +804,6 @@ function shouldAutoFetchAiCapabilities(config = state.config) {
   return deployment.visibility !== 'public-readonly';
 }
 
-function isPublicReadonlyRuntime(config = state.config) {
-  return deploymentConfig(config).visibility === 'public-readonly';
-}
-
-function isOperatorRuntime(config = state.config) {
-  return isLocalUiRuntime() && deploymentConfig(config).visibility !== 'public-readonly';
-}
-
 function getStoredAiToken() {
   try {
     return String(
@@ -891,14 +814,6 @@ function getStoredAiToken() {
   } catch {
     return '';
   }
-}
-
-function setAiConnectionStatus(status, error = '') {
-  state.aiConnection = {
-    status,
-    error: String(error || '').trim(),
-    checkedAt: new Date().toISOString()
-  };
 }
 
 function setStoredAiToken(value) {
@@ -934,7 +849,7 @@ function buildLocalOperatorApiUrl(pathname) {
 
 function buildOperatorApiUrls(pathname) {
   const candidateUrls = [];
-  if (isOperatorRuntime()) {
+  if (isLocalUiRuntime()) {
     candidateUrls.push(buildLocalOperatorApiUrl(pathname));
   }
   return [...new Set(candidateUrls)];
@@ -968,52 +883,6 @@ function buildApiJsonHeaders() {
     headers.Authorization = `Bearer ${token}`;
   }
   return headers;
-}
-
-async function fetchOpsStatus() {
-  const apiUrls = buildOperatorApiUrls('/ops/status');
-  if (!apiUrls.length) return null;
-
-  for (const apiUrl of apiUrls) {
-    try {
-      const response = await fetch(apiUrl, {
-        cache: 'no-store',
-        headers: buildApiJsonHeaders()
-      });
-      const payload = await response.json().catch(() => null);
-      if (response.ok) return payload;
-    } catch {
-      // Try the next local candidate if one exists.
-    }
-  }
-  return null;
-}
-
-async function requestOpsAction(action) {
-  const apiUrls = buildOperatorApiUrls(`/ops/${action}`);
-  if (!apiUrls.length) {
-    throw new Error('로컬 운영 API에서만 실행할 수 있습니다.');
-  }
-
-  let lastError = null;
-  for (const apiUrl of apiUrls) {
-    try {
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: buildApiJsonHeaders(),
-        body: JSON.stringify({})
-      });
-      const payload = await response.json().catch(() => null);
-      if (!response.ok) {
-        throw new Error(payload?.error || '운영 작업에 실패했습니다.');
-      }
-      return payload;
-    } catch (error) {
-      lastError = error;
-    }
-  }
-
-  throw lastError || new Error('운영 작업에 실패했습니다.');
 }
 
 function normalizeAiRequestError(error, fallback = 'AI 연결을 확인해주세요.') {
@@ -1095,18 +964,17 @@ async function connectRemoteAiAccess() {
 
   let capabilitiesPayload;
   try {
-    setAiConnectionStatus('checking');
-    updateShellMeta();
     capabilitiesPayload = await fetchAiCapabilities(state.config, { throwOnError: true });
   } catch (error) {
-    setAiConnectionStatus('error', normalizeAiRequestError(error));
-    updateShellMeta();
     showToast(normalizeAiRequestError(error));
     return false;
   }
-  state.capabilities = normalizeAiCapabilities(capabilitiesPayload);
-  setAiConnectionStatus(state.capabilities.aiSummarize ? 'ready' : 'error', state.capabilities.aiSummarize ? '' : 'AI 요약 기능이 비활성 상태입니다.');
-  updateShellMeta();
+  state.capabilities = {
+    aiSummarize: Boolean(capabilitiesPayload?.aiSummarize),
+    provider: String(capabilitiesPayload?.provider || ''),
+    model: String(capabilitiesPayload?.model || ''),
+    requiresToken: Boolean(capabilitiesPayload?.requiresToken)
+  };
 
   if (!state.capabilities.aiSummarize) {
     showToast('AI 연결을 확인해주세요.');
@@ -1608,62 +1476,6 @@ function inferConfiguredKeyword(article) {
   return matched ? String(matched).trim() : '';
 }
 
-function deriveManualImportPublisher(parsedUrl) {
-  const hostname = parsedUrl.hostname.replace(/^www\./i, '').toLowerCase();
-  if (hostname.includes('naver.com')) return '네이버';
-  if (hostname.includes('daum.net')) return '다음';
-
-  const firstSegment = hostname.split('.').find(Boolean) || hostname;
-  return firstSegment
-    ? firstSegment.charAt(0).toUpperCase() + firstSegment.slice(1)
-    : '수동 추가';
-}
-
-function buildManualImportedArticle(rawUrl, reason = '') {
-  const normalizedUrl = String(rawUrl || '').trim();
-  let parsedUrl = null;
-  try {
-    parsedUrl = new URL(normalizedUrl);
-  } catch {
-    return null;
-  }
-
-  if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') return null;
-
-  const publisher = deriveManualImportPublisher(parsedUrl);
-  const pathLabel = decodeURIComponent(parsedUrl.pathname || '')
-    .split('/')
-    .filter(Boolean)
-    .slice(-2)
-    .join(' / ');
-  const title = pathLabel
-    ? `${publisher} 링크 기사 - ${pathLabel}`
-    : `${publisher} 링크 기사`;
-  const summary = reason
-    ? `기사 추가 API가 응답하지 않아 링크만 수동 카드로 추가했습니다. 빌더에서 제목과 요약을 확인해 주세요. (${reason})`
-    : '기사 추가 API가 응답하지 않아 링크만 수동 카드로 추가했습니다. 빌더에서 제목과 요약을 확인해 주세요.';
-
-  return {
-    title,
-    summary,
-    publisher,
-    media: publisher,
-    source: parsedUrl.hostname.replace(/^www\./i, '').toLowerCase(),
-    url: parsedUrl.toString(),
-    publishedAt: new Date().toISOString(),
-    recencyText: '수동 추가',
-    recencyScore: 0,
-    importMode: 'manual-fallback',
-    keyword: inferConfiguredKeyword({ title, summary, publisher })
-  };
-}
-
-function shouldFallbackToManualImport(error, status = 0) {
-  if ([404, 405, 500, 502, 503, 504].includes(Number(status))) return true;
-  const message = String(error?.message || '').trim();
-  return /기사 추가 API에 연결하지 못했습니다|기사 추가 API가 서버에 배포되지 않았습니다|기사 링크에 연결할 수 없습니다|기사 링크 응답 시간이 초과되었습니다|호스트를 확인할 수 없습니다|failed to fetch|networkerror|load failed/i.test(message);
-}
-
 async function importBuilderArticleByUrl(rawUrl) {
   const apiUrls = buildArticleImportApiUrls();
   if (!apiUrls.length) {
@@ -1671,11 +1483,9 @@ async function importBuilderArticleByUrl(rawUrl) {
   }
 
   let lastError = null;
-  let canUseManualFallback = false;
 
   for (const [index, apiUrl] of apiUrls.entries()) {
     let response;
-    let payload = null;
     try {
       response = await fetch(apiUrl, {
         method: 'POST',
@@ -1686,45 +1496,28 @@ async function importBuilderArticleByUrl(rawUrl) {
       });
     } catch (error) {
       lastError = new Error(normalizeArticleImportError(error));
-      canUseManualFallback = canUseManualFallback || shouldFallbackToManualImport(lastError);
       if (index < apiUrls.length - 1) {
         continue;
       }
-      break;
+      throw lastError;
     }
 
-    payload = await response.json().catch(() => null);
+    const payload = await response.json().catch(() => null);
     if (response.status === 401) {
       setStoredAiToken('');
       throw new Error(payload?.error || 'AI \uC811\uADFC \uD1A0\uD070\uC744 \uB2E4\uC2DC \uC785\uB825\uD574\uC8FC\uC138\uC694.');
     }
 
     if (!response.ok) {
-      const fallbackMessage = response.status === 404 || response.status === 405
-        ? missingApiRouteMessage(apiUrl, '기사 추가 API')
-        : '\uAE30\uC0AC \uB9C1\uD06C\uB97C \uAC00\uC838\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.';
-      lastError = new Error(payload?.error || fallbackMessage);
-      canUseManualFallback = canUseManualFallback || shouldFallbackToManualImport(lastError, response.status);
+      lastError = new Error(payload?.error || '\uAE30\uC0AC \uB9C1\uD06C\uB97C \uAC00\uC838\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.');
       if (index < apiUrls.length - 1 && [404, 405, 500, 502, 503].includes(response.status)) {
         continue;
-      }
-      if (canUseManualFallback) {
-        break;
       }
       throw lastError;
     }
 
     if (!payload?.article || typeof payload.article !== 'object') {
-      const payloadError = payload?.error ? new Error(String(payload.error)) : null;
-      if (payloadError && shouldFallbackToManualImport(payloadError)) {
-        const manualArticle = buildManualImportedArticle(rawUrl, payloadError.message);
-        if (manualArticle) return manualArticle;
-      }
-      lastError = new Error(
-        payload
-          ? '\uAE30\uC0AC \uC815\uBCF4\uB97C \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.'
-          : invalidApiPayloadMessage(apiUrl, '기사 추가 API')
-      );
+      lastError = new Error('\uAE30\uC0AC \uC815\uBCF4\uB97C \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.');
       if (index < apiUrls.length - 1) {
         continue;
       }
@@ -1735,11 +1528,6 @@ async function importBuilderArticleByUrl(rawUrl) {
       ...payload.article,
       keyword: payload.article.keyword || inferConfiguredKeyword(payload.article)
     };
-  }
-
-  if (canUseManualFallback) {
-    const manualArticle = buildManualImportedArticle(rawUrl, lastError?.message || '');
-    if (manualArticle) return manualArticle;
   }
 
   throw lastError || new Error('\uAE30\uC0AC \uB9C1\uD06C\uB97C \uAC00\uC838\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.');
@@ -1807,7 +1595,7 @@ function captureWorkspaceSnapshot() {
     inboxAiFilter: String(state.inboxAiFilter || 'all'),
     inboxKeywordFilter: [...inboxKeywordFilterTokens()],
     inboxSearchQuery: String(state.inboxSearchQuery || ''),
-    inboxSortKey: String(state.inboxSortKey || 'time'),
+    inboxSortKey: String(state.inboxSortKey || 'score'),
     inboxSortDirection: String(state.inboxSortDirection || 'desc'),
     builderImportOpen: Boolean(state.builderImportOpen),
     builderImportUrl: String(state.builderImportUrl || ''),
@@ -1832,7 +1620,7 @@ function restoreWorkspaceSnapshot(snapshot) {
   state.inboxAiFilter = String(snapshot.inboxAiFilter || 'all');
   state.inboxKeywordFilter = Array.isArray(snapshot.inboxKeywordFilter) ? [...snapshot.inboxKeywordFilter] : [];
   state.inboxSearchQuery = String(snapshot.inboxSearchQuery || '');
-  state.inboxSortKey = String(snapshot.inboxSortKey || 'time');
+  state.inboxSortKey = String(snapshot.inboxSortKey || 'score');
   state.inboxSortDirection = String(snapshot.inboxSortDirection || 'desc');
   state.builderImportOpen = Boolean(snapshot.builderImportOpen);
   state.builderImportUrl = String(snapshot.builderImportUrl || '');
@@ -1992,22 +1780,14 @@ function renderBuilderItemMeta(article) {
     { label: '키워드', value: article?.keyword || '-' },
     { label: '매체', value: mediaLabel(article) }
   ];
-  const importMode = String(article?.importMode || '').trim();
-  const importBadge = importModeBadge(importMode);
 
   return `
     <div class="builder-item-meta" aria-label="기사 메타 정보">
       <div class="builder-item-meta-main">
-        ${importBadge
-          ? `<span class="builder-item-meta-chip tone-${escapeHtml(importBadge.tone)}">
-              <strong>추가 상태</strong>
-              <span>${escapeHtml(importBadge.label)}</span>
-            </span>`
-          : ''}
         ${rows.map((row) => `
           <span class="builder-item-meta-chip">
             <strong>${escapeHtml(row.label)}</strong>
-            <span ${row.label === '매체' ? 'data-builder-media-value' : ''}>${escapeHtml(row.value || '-')}</span>
+            <span>${escapeHtml(row.value || '-')}</span>
           </span>
         `).join('')}
       </div>
@@ -2912,14 +2692,6 @@ function syncBuilderCardPreview(key) {
   const nextOneLine = articleBuilderOneLine(location.item) || '한줄 요약을 아직 입력하지 않았습니다.';
   document.querySelectorAll('[data-builder-focus]').forEach((node) => {
     if (node.dataset.builderFocus !== key) return;
-    const titleValue = node.querySelector('[data-builder-title-value]');
-    if (titleValue) {
-      titleValue.textContent = location.item.title || '';
-    }
-    const mediaValue = node.querySelector('[data-builder-media-value]');
-    if (mediaValue) {
-      mediaValue.textContent = mediaLabel(location.item);
-    }
     const summaryValue = node.querySelector('[data-builder-summary-value]');
     if (summaryValue) {
       summaryValue.textContent = nextSummary;
@@ -3352,31 +3124,12 @@ function renderInboxPaginationControls({ maxPage, mode = 'bottom' }) {
 }
 
 function renderBuilderInlineEditor(sectionName, article, entryKey) {
-  const isManualFallback = article?.importMode === 'manual-fallback';
   return `
     <div class="builder-inline-editor" data-builder-inline-editor="${escapeHtml(entryKey)}">
       <div class="detail-guide">
-        <strong>${isManualFallback ? '수동 링크 보정' : '바로 편집'}</strong>
+        <strong>바로 편집</strong>
       </div>
       <div class="builder-inline-fields">
-        ${isManualFallback
-          ? `<label class="detail-field">
-              <span>기사 제목</span>
-              <input
-                type="text"
-                data-builder-title-input="${escapeHtml(entryKey)}"
-                value="${escapeHtml(article.title || '')}"
-              />
-            </label>
-            <label class="detail-field">
-              <span>매체/출처</span>
-              <input
-                type="text"
-                data-builder-publisher-input="${escapeHtml(entryKey)}"
-                value="${escapeHtml(mediaLabel(article) === '-' ? '' : mediaLabel(article))}"
-              />
-            </label>`
-          : ''}
         <label class="detail-field">
           <span>기사 요약 및 결론 (30자 내외)</span>
           <input
@@ -3412,25 +3165,50 @@ function renderBuilderDraftPanel({ reportText, reportItemCount, totalDraftChars,
   const segmentCount = reportItemCount ? buildKakaoPreviewSegments().length : 0;
   const draftEdited = reportItemCount ? hasReportDraftChanged(buildKakaoPreviewText(), reportText) : false;
   const readinessItems = reportItemCount
-    ? buildPublishCheckItems({
-        majorCount: sections.major.length,
-        industryCount: sections.industry.length,
-        reportItemCount,
-        totalDraftChars,
-        segmentCount,
-        draftEdited,
-        articles: [...sections.major, ...sections.industry],
-        formatNumber
-      })
+    ? [
+        {
+          state: sections.major.length ? 'complete' : 'pending',
+          title: '주요 보도 확보',
+          detail: sections.major.length
+            ? `주요 보도 ${formatNumber(sections.major.length)}건이 포함되어 있습니다.`
+            : '최소 1건은 넣어야 메시지 중심이 또렷해집니다.'
+        },
+        {
+          state: sections.industry.length ? 'complete' : 'pending',
+          title: '업계 보도 균형',
+          detail: sections.industry.length
+            ? `업계 보도 ${formatNumber(sections.industry.length)}건이 포함되어 있습니다.`
+            : '업계 보도 1건 이상이 있으면 리포트 균형이 좋아집니다.'
+        },
+        {
+          state: reportItemCount >= 2 ? 'complete' : 'pending',
+          title: '전송 분량',
+          detail: reportItemCount >= 2
+            ? `기사 ${formatNumber(reportItemCount)}건, 초안 ${formatNumber(totalDraftChars)}자입니다.`
+            : '기사 2건 이상이면 카카오 메시지 뼈대가 더 안정적입니다.'
+        },
+        {
+          state: segmentCount > 0 ? (segmentCount <= 3 ? 'complete' : 'watch') : 'pending',
+          title: '카카오 파트 수',
+          detail: segmentCount
+            ? `현재 ${formatNumber(segmentCount)}개 파트로 나뉩니다.`
+            : '초안을 만들면 예상 파트 수를 바로 계산합니다.'
+        },
+        {
+          state: draftEdited ? 'complete' : 'watch',
+          title: '최종 문구 다듬기',
+          detail: draftEdited
+            ? '자동 생성 문구에서 한 번 더 다듬은 상태입니다.'
+            : '카드 문구나 보고서 초안을 한 번 더 다듬으면 전달력이 좋아집니다.'
+        }
+      ]
     : [];
   const suggestionAvailable = Boolean(findDraftLocation(state.builderFocusKey));
   const activeDraftTab = state.builderDraftTab === 'suggestion' && suggestionAvailable ? 'suggestion' : 'draft';
   if (state.builderDraftTab !== activeDraftTab) {
     state.builderDraftTab = activeDraftTab;
   }
-  const publishCheckSummary = summarizePublishCheck(readinessItems);
-  const readyCount = publishCheckSummary.readyCount;
-  const watchSuffix = publishCheckSummary.watchCount ? ` · 확인 ${formatNumber(publishCheckSummary.watchCount)}` : '';
+  const readyCount = readinessItems.filter((item) => item.state === 'complete').length;
   const renderDraftTabButton = (tab, label, disabled = false) => `
     <button
       class="${activeDraftTab === tab ? 'active' : ''}"
@@ -3516,7 +3294,7 @@ function renderBuilderDraftPanel({ reportText, reportItemCount, totalDraftChars,
                 <p class="panel-kicker">Publish Check</p>
                 <h3>전송 전 체크</h3>
               </div>
-              <span class="panel-pill tone-neutral">${formatNumber(readyCount)}개 준비${watchSuffix}</span>
+              <span class="panel-pill tone-neutral">${formatNumber(readyCount)}개 준비</span>
             </div>
             <div class="builder-readiness-chip-row">
               ${readinessItems.map((item) => `
@@ -4172,84 +3950,15 @@ async function buildAiSummaryProposalForDraftItem(key) {
     };
   }
 
-  if (location.item?.importMode === 'manual-fallback' && state.capabilities?.aiSummarize && location.item?.url) {
-    try {
-      const importedArticle = await importBuilderArticleByUrl(location.item.url);
-      if (importedArticle && importedArticle.importMode !== 'manual-fallback') {
-        const refreshedArticle = {
-          ...location.item,
-          ...importedArticle,
-          section: location.sectionName,
-          importMode: 'api-refresh'
-        };
-        updateDraftItem(key, refreshedArticle);
-        const refreshedKey = draftEntryKey(location.sectionName, refreshedArticle);
-        const result = await requestAiSummary(refreshedArticle);
-        return buildAiSummaryProposalFromResult(refreshedKey, refreshedArticle, result);
-      }
-    } catch {
-      // Fall back to the local manual-link preview below.
-    }
-  }
-
-  if (location.item?.importMode === 'manual-fallback' || !state.capabilities?.aiSummarize) {
-    return buildLocalAiSummaryProposalForDraftItem(key);
-  }
-
   const result = await requestAiSummary(location.item);
   return buildAiSummaryProposalFromResult(key, location.item, result);
-}
-
-function buildLocalAiSummaryResult(article) {
-  if (article?.importMode === 'manual-fallback') {
-    const publisher = mediaLabel(article) && mediaLabel(article) !== '-' ? mediaLabel(article) : '수동 링크';
-    const title = String(article?.title || '').trim();
-    const hasAdjustedTitle = title && !/링크 기사/u.test(title);
-    const summaryLead = hasAdjustedTitle
-      ? `${title} 중심으로 원문 확인 필요`
-      : `${publisher} 원문 링크 기준 기사 내용 보정 필요`;
-    const keyPoint = String(article?.url || '').trim()
-      ? '원격 기사 API 복구 후 본문 기반 AI 요약 가능'
-      : '제목과 요약을 보정한 뒤 카카오 프리뷰 반영';
-    return {
-      summaryLead,
-      keyPoint,
-      provider: 'local-preview',
-      model: 'manual-link-rules'
-    };
-  }
-
-  const insight = buildArticleAiInsight(article);
-  return {
-    summaryLead: insight.draft.summaryLead,
-    keyPoint: insight.draft.keyPoint,
-    provider: 'local-preview',
-    model: 'browser-rules'
-  };
-}
-
-function buildLocalAiSummaryProposalForDraftItem(key) {
-  const location = findDraftLocation(key);
-  if (!location) {
-    return {
-      updated: false,
-      proposal: null,
-      mode: 'local-preview'
-    };
-  }
-
-  return {
-    ...buildAiSummaryProposalFromResult(key, location.item, buildLocalAiSummaryResult(location.item)),
-    mode: 'local-preview'
-  };
 }
 
 function buildAiSummaryProposalFromResult(key, article, result) {
   const updates = buildAiSummaryUpdates(article, result);
   return {
     updated: true,
-    proposal: buildAiReviewProposal(key, article, updates),
-    mode: result?.provider === 'local-preview' ? 'local-preview' : 'remote-ai'
+    proposal: buildAiReviewProposal(key, article, updates)
   };
 }
 
@@ -4271,7 +3980,6 @@ async function summarizeDraftItemWithAi(key) {
 
   try {
     const outcome = await buildAiSummaryProposalForDraftItem(key);
-    const usingLocalPreview = outcome?.mode === 'local-preview';
     if (!outcome?.updated || !outcome?.proposal) {
       completeAiWorkStatus(
         'builder-single-summary',
@@ -4295,10 +4003,8 @@ async function summarizeDraftItemWithAi(key) {
     }
     setPendingAiReview({
       mode: 'single',
-      title: usingLocalPreview ? '로컬 미리보기 문구 비교' : 'AI 문구 비교',
-      description: usingLocalPreview
-        ? '원격 AI API를 사용할 수 없어 브라우저 로컬 기준으로 문구 제안을 준비했습니다.'
-        : '선택한 기사 1건의 기존 문구와 AI 제안을 먼저 비교할 수 있습니다.',
+      title: 'AI 문구 비교',
+      description: '선택한 기사 1건의 기존 문구와 AI 제안을 먼저 비교할 수 있습니다.',
       proposals: [outcome.proposal],
       changedCount: 1,
       failedCount: 0
@@ -4306,34 +4012,12 @@ async function summarizeDraftItemWithAi(key) {
     completeAiWorkStatus(
       'builder-single-summary',
       'builder-ai',
-      usingLocalPreview ? '로컬 미리보기 완료' : 'AI 정리 완료',
-      usingLocalPreview
-        ? '비교 화면에서 로컬 기준 제안을 확인할 수 있습니다.'
-        : '비교 화면에서 기존 문구와 AI 제안을 확인할 수 있습니다.'
+      'AI 정리 완료',
+      '비교 화면에서 기존 문구와 AI 제안을 확인할 수 있습니다.'
     );
-    showToast(usingLocalPreview ? '로컬 미리보기 제안을 준비했습니다.' : 'AI 제안을 비교 화면에 준비했습니다.');
+    showToast('AI 제안을 비교 화면에 준비했습니다.');
     return;
   } catch (error) {
-    const fallback = buildLocalAiSummaryProposalForDraftItem(key);
-    if (fallback?.updated && fallback?.proposal?.changed) {
-      setPendingAiReview({
-        mode: 'single',
-        title: '로컬 미리보기 문구 비교',
-        description: '원격 AI API 연결에 실패해 브라우저 로컬 기준으로 문구 제안을 준비했습니다.',
-        proposals: [fallback.proposal],
-        changedCount: 1,
-        failedCount: 0
-      });
-      completeAiWorkStatus(
-        'builder-single-summary',
-        'builder-ai',
-        '로컬 미리보기 완료',
-        `${error instanceof Error ? error.message : 'AI 정리에 실패했습니다.'} 로컬 기준으로 비교 제안을 준비했습니다.`
-      );
-      showToast('원격 AI 대신 로컬 미리보기 제안을 준비했습니다.');
-      return;
-    }
-
     completeAiWorkStatus(
       'builder-single-summary',
       'builder-ai',
@@ -4346,33 +4030,6 @@ async function summarizeDraftItemWithAi(key) {
     state.aiBusyKey = '';
     renderReportBuilder();
   }
-}
-
-function buildLocalAiSummaryBatchProposals(entries) {
-  let successCount = 0;
-  let changedCount = 0;
-  const proposals = [];
-
-  for (const entry of entries) {
-    const outcome = buildAiSummaryProposalFromResult(
-      entry.key,
-      entry.article,
-      buildLocalAiSummaryResult(entry.article)
-    );
-    if (!outcome?.updated || !outcome?.proposal) continue;
-    successCount += 1;
-    proposals.push(outcome.proposal);
-    if (outcome.proposal.changed) {
-      changedCount += 1;
-    }
-  }
-
-  return {
-    successCount,
-    changedCount,
-    failedCount: Math.max(entries.length - successCount, 0),
-    proposals
-  };
 }
 
 async function summarizeReportDraftWithAi() {
@@ -4410,40 +4067,31 @@ async function summarizeReportDraftWithAi() {
   const proposals = [];
 
   try {
-    const usingLocalPreview = !state.capabilities?.aiSummarize;
-    if (state.capabilities?.aiSummarize) {
-      const batchResult = await requestAiSummaryBatch(entries);
-      const resultByKey = new Map(
-        (Array.isArray(batchResult?.items) ? batchResult.items : [])
-          .map((item) => [String(item?.key || '').trim(), item])
-          .filter(([key]) => Boolean(key))
-      );
+    const batchResult = await requestAiSummaryBatch(entries);
+    const resultByKey = new Map(
+      (Array.isArray(batchResult?.items) ? batchResult.items : [])
+        .map((item) => [String(item?.key || '').trim(), item])
+        .filter(([key]) => Boolean(key))
+    );
 
-      for (const entry of entries) {
-        const result = resultByKey.get(entry.key);
-        if (!result?.summaryLead || !result?.keyPoint) {
-          failedCount += 1;
-          continue;
-        }
-
-        const outcome = buildAiSummaryProposalFromResult(entry.key, entry.article, result);
-        if (!outcome?.updated || !outcome?.proposal) {
-          failedCount += 1;
-          continue;
-        }
-
-        successCount += 1;
-        proposals.push(outcome.proposal);
-        if (outcome.proposal.changed) {
-          changedCount += 1;
-        }
+    for (const entry of entries) {
+      const result = resultByKey.get(entry.key);
+      if (!result?.summaryLead || !result?.keyPoint) {
+        failedCount += 1;
+        continue;
       }
-    } else {
-      const localResult = buildLocalAiSummaryBatchProposals(entries);
-      successCount = localResult.successCount;
-      changedCount = localResult.changedCount;
-      failedCount = localResult.failedCount;
-      proposals.push(...localResult.proposals);
+
+      const outcome = buildAiSummaryProposalFromResult(entry.key, entry.article, result);
+      if (!outcome?.updated || !outcome?.proposal) {
+        failedCount += 1;
+        continue;
+      }
+
+      successCount += 1;
+      proposals.push(outcome.proposal);
+      if (outcome.proposal.changed) {
+        changedCount += 1;
+      }
     }
 
     if (!successCount && failedCount) {
@@ -4474,10 +4122,8 @@ async function summarizeReportDraftWithAi() {
 
     setPendingAiReview({
       mode: 'batch',
-      title: usingLocalPreview ? '로컬 미리보기 일괄 제안 비교' : 'AI 일괄 제안 비교',
-      description: usingLocalPreview
-        ? `원격 AI API를 사용할 수 없어 기사 ${formatNumber(changedCount)}건의 문구를 로컬 기준으로 준비했습니다.`
-        : `기사 ${formatNumber(changedCount)}건의 문구를 AI가 다시 정리했습니다. 적용 전에 변경 내용을 확인해 보세요.`,
+      title: 'AI 일괄 제안 비교',
+      description: `기사 ${formatNumber(changedCount)}건의 문구를 AI가 다시 정리했습니다. 적용 전에 변경 내용을 확인해 보세요.`,
       proposals: proposals.filter((proposal) => proposal.changed),
       changedCount,
       failedCount
@@ -4485,34 +4131,12 @@ async function summarizeReportDraftWithAi() {
     completeAiWorkStatus(
       'builder-report-draft',
       'builder-ai',
-      usingLocalPreview ? '로컬 미리보기 완료' : 'AI 일괄 정리 완료',
+      'AI 일괄 정리 완료',
       `변경 후보 ${formatNumber(changedCount)}건을 비교 화면에 준비했습니다.`
     );
-    showToast(usingLocalPreview
-      ? `로컬 미리보기 제안 ${changedCount}건을 준비했습니다.`
-      : `AI 제안 ${changedCount}건을 비교 화면에 준비했습니다.`);
+    showToast(`AI 제안 ${changedCount}건을 비교 화면에 준비했습니다.`);
     return;
   } catch (error) {
-    const localResult = buildLocalAiSummaryBatchProposals(entries);
-    if (localResult.changedCount) {
-      setPendingAiReview({
-        mode: 'batch',
-        title: '로컬 미리보기 일괄 제안 비교',
-        description: `원격 AI API 연결에 실패해 기사 ${formatNumber(localResult.changedCount)}건의 문구를 로컬 기준으로 준비했습니다.`,
-        proposals: localResult.proposals.filter((proposal) => proposal.changed),
-        changedCount: localResult.changedCount,
-        failedCount: localResult.failedCount
-      });
-      completeAiWorkStatus(
-        'builder-report-draft',
-        'builder-ai',
-        '로컬 미리보기 완료',
-        `${error instanceof Error ? error.message : 'AI 정리에 실패했습니다.'} 로컬 기준으로 비교 제안을 준비했습니다.`
-      );
-      showToast('원격 AI 대신 로컬 미리보기 일괄 제안을 준비했습니다.');
-      return;
-    }
-
     completeAiWorkStatus(
       'builder-report-draft',
       'builder-ai',
@@ -4934,6 +4558,79 @@ function buildIndustryArticleAiInsight(article) {
   };
 }
 
+function normalizeInboxArticleScore(value) {
+  const score = Number(value);
+  return Number.isFinite(score) ? clampNumber(Math.round(score), 0, 100) : null;
+}
+
+function aiCurationScoreForPick(pick, sectionName) {
+  const explicitScore = normalizeInboxArticleScore(pick?.score);
+  if (explicitScore !== null) return explicitScore;
+
+  const insight = sectionName === 'industry'
+    ? buildIndustryArticleAiInsight(pick?.article)
+    : buildArticleAiInsight(pick?.article);
+  return normalizeInboxArticleScore(insight.score) ?? 0;
+}
+
+function aiCurationPriorityRank(band) {
+  return {
+    urgent: 3,
+    important: 2,
+    watch: 1,
+    skip: 0
+  }[band] ?? 0;
+}
+
+function limitAiCurationPicksByScore(picks, sectionName, maxCount) {
+  return (Array.isArray(picks) ? picks : [])
+    .map((pick, index) => ({
+      ...pick,
+      score: aiCurationScoreForPick(pick, sectionName),
+      sourceIndex: index
+    }))
+    .sort((left, right) => {
+      if (right.score !== left.score) return right.score - left.score;
+      const priorityCompare = aiCurationPriorityRank(right.band) - aiCurationPriorityRank(left.band);
+      if (priorityCompare !== 0) return priorityCompare;
+      return left.sourceIndex - right.sourceIndex;
+    })
+    .slice(0, maxCount)
+    .map(({ sourceIndex, ...pick }) => pick);
+}
+
+function pickInboxArticleInsight(article) {
+  const kakaoInsight = buildArticleAiInsight(article);
+  if (article?.section !== 'industry') {
+    return kakaoInsight;
+  }
+
+  const industryInsight = buildIndustryArticleAiInsight(article);
+  return normalizeInboxArticleScore(industryInsight.score) > normalizeInboxArticleScore(kakaoInsight.score)
+    ? industryInsight
+    : kakaoInsight;
+}
+
+function inboxArticleInsight(article) {
+  const explicitScore = normalizeInboxArticleScore(article?.score ?? article?.aiScore ?? article?.priorityScore);
+  const insight = pickInboxArticleInsight(article);
+  const score = explicitScore ?? normalizeInboxArticleScore(insight.score) ?? 0;
+  const band = explicitScore === null ? insight.band : articleAiBandFromScore(score);
+  const bandMeta = articleAiPriorityMeta(band);
+
+  return {
+    ...insight,
+    score,
+    band,
+    bandLabel: insight.bandLabel || bandMeta.label,
+    bandDescription: insight.bandDescription || bandMeta.description
+  };
+}
+
+function inboxArticleScore(article) {
+  return inboxArticleInsight(article).score;
+}
+
 function normalizeAiCurationBand(value, fallback = 'watch') {
   const normalized = String(value || '').trim().toLowerCase();
   if (normalized === 'urgent' || normalized === 'high' || normalized === '핵심') return 'urgent';
@@ -4957,7 +4654,8 @@ function normalizeAiCurationPicks(rawPicks, articleLookup, fallbackBand = 'watch
         articleId,
         article,
         reason: truncateText(String(pick?.reason || '').trim(), 140),
-        band: normalizeAiCurationBand(pick?.priority, fallbackBand)
+        band: normalizeAiCurationBand(pick?.priority, fallbackBand),
+        score: normalizeInboxArticleScore(pick?.score)
       };
     })
     .filter(Boolean);
@@ -4996,7 +4694,7 @@ function buildLocalAiArticleCuration(articles, prompt) {
     })
     .filter((item) => item.article && buildIndustryArticleAiInsight(item.article).qualified)
     .sort((left, right) => right.score - left.score)
-    .slice(0, 5);
+    .slice(0, 10);
 
   return {
     mode: 'local-preview',
@@ -5012,10 +4710,18 @@ function buildLocalAiArticleCuration(articles, prompt) {
 function normalizeAiArticleCurationResult(payload, articles, fallbackPrompt = '') {
   const articlePayload = buildAiCurationArticlePayload(articles);
   const articleLookup = new Map(articlePayload.map((item, index) => [item.articleId, articles[index]]));
-  const normalizedKakaoPicks = normalizeAiCurationPicks(payload?.kakaoPicks, articleLookup, 'important')
-    .filter((pick) => isKakaoAiRecommended(pick.article));
-  const normalizedIndustryPicks = normalizeAiCurationPicks(payload?.industryPicks, articleLookup, 'watch')
-    .filter((pick) => buildIndustryArticleAiInsight(pick.article).qualified);
+  const normalizedKakaoPicks = limitAiCurationPicksByScore(
+    normalizeAiCurationPicks(payload?.kakaoPicks, articleLookup, 'important')
+      .filter((pick) => isKakaoAiRecommended(pick.article)),
+    'major',
+    5
+  );
+  const normalizedIndustryPicks = limitAiCurationPicksByScore(
+    normalizeAiCurationPicks(payload?.industryPicks, articleLookup, 'watch')
+      .filter((pick) => buildIndustryArticleAiInsight(pick.article).qualified),
+    'industry',
+    10
+  );
 
   return {
     mode: String(payload?.mode || 'remote').trim() || 'remote',
@@ -5082,7 +4788,7 @@ function focusInboxArticleByKey(key) {
 }
 
 function renderAiPriorityPill(article, { compact = false } = {}) {
-  const insight = buildArticleAiInsight(article);
+  const insight = inboxArticleInsight(article);
   const scoreLabel = compact
     ? `${insight.bandLabel} ${formatNumber(insight.score)}`
     : `${insight.bandLabel} ${formatNumber(insight.score)}점`;
@@ -5506,8 +5212,12 @@ async function curateInboxArticlesWithAi() {
 
   try {
     const capabilitiesPayload = await fetchAiCapabilities(state.config);
-    state.capabilities = normalizeAiCapabilities(capabilitiesPayload);
-    setAiConnectionStatus(state.capabilities.aiSummarize ? 'ready' : 'idle');
+    state.capabilities = {
+      aiSummarize: Boolean(capabilitiesPayload?.aiSummarize),
+      provider: String(capabilitiesPayload?.provider || ''),
+      model: String(capabilitiesPayload?.model || ''),
+      requiresToken: Boolean(capabilitiesPayload?.requiresToken)
+    };
 
     if (state.capabilities.aiSummarize) {
       if (state.capabilities.requiresToken && !getStoredAiToken()) {
@@ -6138,18 +5848,6 @@ function updateShellMeta() {
   }
   chrome.runtimeReport.textContent = `${formatNumber(majorCount)}/${formatNumber(industryCount)}`;
   chrome.runtimeSegments.textContent = `${formatNumber(segmentCount)}개`;
-  if (chrome.runtimeAiStatus) {
-    const aiStatus = describeAiConnection({
-      capabilities: state.capabilities,
-      hasRemote: hasRemoteAiConfigured(),
-      hasToken: Boolean(getStoredAiToken()),
-      status: state.aiConnection?.status,
-      error: state.aiConnection?.error
-    });
-    chrome.runtimeAiStatus.hidden = false;
-    chrome.runtimeAiStatus.className = `runtime-ai-status tone-${escapeHtml(aiStatus.tone)}`;
-    chrome.runtimeAiStatus.innerHTML = `<strong>${escapeHtml(aiStatus.label)}</strong> · ${escapeHtml(aiStatus.detail)}`;
-  }
 
   if (state.loading) {
     chrome.runtimeStatus.hidden = false;
@@ -6204,7 +5902,7 @@ window.addEventListener('resize', () => {
 
 function updateWorkspaceActions() {
   if (chrome.runCrawl) {
-    chrome.runCrawl.classList.toggle('hidden', !isOperatorRuntime());
+    chrome.runCrawl.classList.add('hidden');
   }
 
   if (!chrome.openReport) return;
@@ -6234,7 +5932,6 @@ function updateWorkspaceActions() {
 
 function setActiveNav() {
   pageButtons.forEach((button) => {
-    button.hidden = false;
     const active = button.dataset.page === state.activePage;
     button.classList.toggle('active', active);
     if (active) {
@@ -6389,28 +6086,6 @@ function renderFreshnessBanner() {
       <p>${escapeHtml(freshness.runtimeLabel)}</p>
     </article>
   `;
-}
-
-function renderLoadWarningBanner() {
-  if (!state.loadWarnings.length) return '';
-
-  return `
-    <article class="card freshness-banner load-warning-banner">
-      <div>
-        <p class="panel-kicker">데이터 경고</p>
-        <h3>일부 아티팩트를 확인해야 합니다</h3>
-      </div>
-      <div>
-        <p>${escapeHtml(state.loadWarnings.slice(0, 3).join(' · '))}</p>
-      </div>
-    </article>
-  `;
-}
-
-function mountGlobalLoadWarningBanner() {
-  if (!state.loadWarnings.length || state.loading || state.loadError) return;
-  if (app.querySelector('.load-warning-banner')) return;
-  app.insertAdjacentHTML('afterbegin', renderLoadWarningBanner());
 }
 
 function mountGlobalFreshnessBanner() {
@@ -7456,11 +7131,12 @@ function renderReportBuilder() {
     button.addEventListener('click', async (event) => {
       event.stopPropagation();
       if (!state.capabilities?.aiSummarize) {
-        await connectRemoteAiAccess();
+        const connected = await connectRemoteAiAccess();
+        if (!connected) return;
         renderReportBuilder();
       }
 
-      if (state.capabilities?.aiSummarize && state.capabilities?.requiresToken && !getStoredAiToken()) {
+      if (state.capabilities?.requiresToken && !getStoredAiToken()) {
         showToast('AI 접근 토큰을 먼저 입력해주세요.');
         return;
       }
@@ -7802,7 +7478,6 @@ function renderSettings() {
       </div>
 
       <div class="settings-grid">
-        ${renderOpsActionCard('settings')}
         <article class="card settings-card">
           ${renderAnnotation('SCR-SET-KEY-001')}
           <div class="panel-heading">
@@ -8300,6 +7975,7 @@ renderInbox = function renderInboxOverride() {
               <div class="table-head">
                 <span class="table-head-label table-head-label-center">선택</span>
                 ${renderInboxSortHeader('title', '기사')}
+                ${renderInboxSortHeader('score', '점수')}
                 <span class="table-head-label table-head-label-center">상태</span>
                 ${renderInboxSortHeader('media', '매체')}
                 ${renderInboxSortHeader('time', '발행')}
@@ -8318,6 +7994,7 @@ renderInbox = function renderInboxOverride() {
                     ? `${article.title || '기사'} ${sectionLabel(targetSection)}에 보도 추가`
                     : `${article.title || '기사'} 보도 반영 완료`;
                   const sourcePill = renderArticleSourcePill(article);
+                  const score = inboxArticleScore(article);
                   return `
                     <div class="table-row-wrap ${focused ? 'is-expanded' : ''}">
                       <div
@@ -8340,6 +8017,7 @@ renderInbox = function renderInboxOverride() {
                           <strong>${highlightTitleKeywords(article.title, article)}</strong>
                           <p>${highlightSummaryKeywords(article.summary, article)}</p>
                         </div>
+                        <div class="table-cell table-cell-score" data-label="점수"><strong>${formatNumber(score)}</strong><span>점</span></div>
                         <div class="table-cell table-cell-status" data-label="상태"><span class="status-badge status-${escapeHtml(status)}">${escapeHtml(statusLabel(status))}</span></div>
                         <div class="table-cell table-cell-media" data-label="매체">${escapeHtml(mediaLabel(article))}</div>
                         <div class="table-cell table-cell-time" data-label="발행">${escapeHtml(formatArticlePublishedTime(article))}</div>
@@ -8910,7 +8588,7 @@ renderBuilderColumn = function renderBuilderColumnOverride(sectionName, items) {
               <div class="builder-item ${active ? 'active is-expanded' : ''}" data-builder-focus="${escapeHtml(entryKey)}">
                 <div class="builder-item-head">
                   <div class="builder-item-head-copy">
-                    <strong data-builder-title-value>${escapeHtml(article.title)}</strong>
+                    <strong>${escapeHtml(article.title)}</strong>
                     <p class="builder-item-subcopy">${escapeHtml(mediaLabel(article))} · ${escapeHtml(article.keyword || '-')}</p>
                   </div>
                   <span class="panel-pill tone-neutral">${active ? '편집 중' : '카드 선택'}</span>
@@ -9102,11 +8780,13 @@ renderReportBuilder = function renderReportBuilderOverride() {
     button.addEventListener('click', async (event) => {
       event.stopPropagation();
       if (!state.capabilities?.aiSummarize) {
-        await connectRemoteAiAccess();
+        const connected = await connectRemoteAiAccess();
+        if (!connected) return;
         renderReportBuilder();
+        return;
       }
 
-      if (state.capabilities?.aiSummarize && state.capabilities?.requiresToken && !getStoredAiToken()) {
+      if (state.capabilities?.requiresToken && !getStoredAiToken()) {
         showToast('AI 접근 토큰을 먼저 입력해주세요.');
         return;
       }
@@ -9159,28 +8839,6 @@ renderReportBuilder = function renderReportBuilderOverride() {
         oneLine: event.target.value
       });
       syncBuilderCardPreview(event.target.dataset.builderKeypointInput);
-      syncBuilderReportTextArea();
-    });
-  });
-
-  app.querySelectorAll('[data-builder-title-input]').forEach((input) => {
-    input.addEventListener('input', (event) => {
-      updateDraftItem(event.target.dataset.builderTitleInput, {
-        title: event.target.value
-      });
-      syncBuilderCardPreview(event.target.dataset.builderTitleInput);
-      syncBuilderReportTextArea();
-    });
-  });
-
-  app.querySelectorAll('[data-builder-publisher-input]').forEach((input) => {
-    input.addEventListener('input', (event) => {
-      updateDraftItem(event.target.dataset.builderPublisherInput, {
-        publisher: event.target.value,
-        media: event.target.value,
-        source: event.target.value
-      });
-      syncBuilderCardPreview(event.target.dataset.builderPublisherInput);
       syncBuilderReportTextArea();
     });
   });
@@ -9687,7 +9345,6 @@ renderSettings = function renderSettingsOverride() {
         <button class="ghost-btn" id="settings-to-builder">초안 만들기</button>
       </div>
       <div class="settings-grid">
-        ${isOperatorRuntime() ? renderOpsActionCard('settings') : ''}
         <article class="card settings-card">
           ${renderAnnotation('SCR-SET-KEY-001')}
           <div class="panel-heading">
@@ -9749,7 +9406,6 @@ renderSettings = function renderSettingsOverride() {
   document.getElementById('settings-to-builder').addEventListener('click', () => {
     render('builder');
   });
-  bindOpsActionButtons();
   document.getElementById('open-settings-policy-modal')?.addEventListener('click', () => {
     state.settingsPolicyModalOpen = true;
     renderSettings();
@@ -10016,145 +9672,6 @@ function renderOperationalMicroPolicyCard(context = 'dashboard') {
   `;
 }
 
-function opsActionLabel(action) {
-  return {
-    crawl: '오늘 데이터 재수집',
-    publish: '공개 페이지 배포',
-    'crawl-and-publish': '재수집 후 바로 배포'
-  }[action] || action || '운영 작업';
-}
-
-function opsRunStatusMeta(run) {
-  if (!run) return '실행 기록 없음';
-  if (run.status === 'running') return '실행 중';
-  if (run.status === 'success') return `완료 · ${formatDateTime(run.finishedAt)}`;
-  if (run.status === 'failed') return `실패 · ${formatDateTime(run.finishedAt)}`;
-  return run.status || '대기';
-}
-
-function renderOpsActionResult(run) {
-  if (!run) {
-    return '<p class="panel-note">아직 실행한 운영 작업이 없습니다.</p>';
-  }
-
-  const summary = run.summary || {};
-  const localLatest = summary.localLatest || {};
-  const publicLatest = summary.publicLatest || {};
-  const steps = Array.isArray(run.steps) ? run.steps : [];
-  return `
-    <div class="ops-action-result is-${escapeHtml(run.status || 'idle')}">
-      <div class="ops-action-result-head">
-        <span class="status-badge status-${run.status === 'failed' ? 'failed' : run.status === 'success' ? 'selected' : 'reported'}">${escapeHtml(run.status === 'success' ? '완료' : run.status === 'failed' ? '실패' : '실행')}</span>
-        <strong>${escapeHtml(opsActionLabel(run.action))}</strong>
-        <span>${escapeHtml(opsRunStatusMeta(run))}</span>
-      </div>
-      ${run.error ? `<p class="ops-action-error">${escapeHtml(run.error)}</p>` : ''}
-      <div class="ops-action-metrics">
-        <div><span>로컬 기준일</span><strong>${escapeHtml(localLatest.date || '-')}</strong></div>
-        <div><span>공개 기준일</span><strong>${escapeHtml(publicLatest.date || '-')}</strong></div>
-        <div><span>실행 단계</span><strong>${formatNumber(steps.length)}</strong></div>
-      </div>
-      ${steps.length
-        ? `<div class="ops-step-list">
-            ${steps.map((step) => `
-              <div class="ops-step-row">
-                <span class="status-badge status-${step.code === 0 ? 'selected' : 'failed'}">${step.code === 0 ? 'OK' : 'FAIL'}</span>
-                <div>
-                  <strong>${escapeHtml(step.step || step.command || 'step')}</strong>
-                  <p>${escapeHtml(step.stderr || step.stdout || step.command || '')}</p>
-                </div>
-              </div>
-            `).join('')}
-          </div>`
-        : ''}
-    </div>
-  `;
-}
-
-function renderOpsActionCard(context = 'dashboard') {
-  const dashboardMode = context === 'dashboard';
-  const wrapperClass = dashboardMode
-    ? 'card panel-card dashboard-card dashboard-card-ops'
-    : 'card settings-card settings-ops-action-card';
-  const busy = state.opsActionBusy;
-  const result = state.opsActionResult || state.opsActionStatus?.last || null;
-  const canRun = isOperatorRuntime();
-
-  return `
-    <article class="${wrapperClass}">
-      <div class="panel-heading dashboard-panel-heading">
-        <div>
-          <p class="panel-kicker">One Click Ops</p>
-          <h3>재수집과 공개 배포</h3>
-        </div>
-        <span class="panel-pill ${busy ? 'tone-main' : 'tone-neutral'}">${busy ? '실행 중' : canRun ? '로컬 실행' : '확인 전용'}</span>
-      </div>
-      <p class="panel-note ops-policy-note">로컬 서버에서 크롤링, 데이터 검증, public repo 배포, 공개 페이지 검증을 순차 실행합니다.</p>
-      <div class="ops-action-buttons">
-        <button class="primary-btn" type="button" data-ops-action="crawl-and-publish" ${busy || !canRun ? 'disabled' : ''}>재수집 후 바로 배포</button>
-        <button class="ghost-btn" type="button" data-ops-action="crawl" ${busy || !canRun ? 'disabled' : ''}>오늘 데이터 재수집</button>
-        <button class="ghost-btn" type="button" data-ops-action="publish" ${busy || !canRun ? 'disabled' : ''}>공개 페이지 배포</button>
-      </div>
-      ${canRun
-        ? renderOpsActionResult(result)
-        : '<p class="panel-note">공개 페이지에서는 실행할 수 없습니다. 로컬 운영 화면에서 사용하세요.</p>'}
-    </article>
-  `;
-}
-
-async function handleOpsAction(action) {
-  if (state.opsActionBusy) return;
-  state.opsActionBusy = true;
-  state.opsActionResult = {
-    action,
-    status: 'running',
-    startedAt: new Date().toISOString(),
-    steps: [],
-    summary: null
-  };
-  render(state.activePage);
-
-  try {
-    const result = await requestOpsAction(action);
-    state.opsActionResult = result;
-    pushActivityLog({
-      title: opsActionLabel(action),
-      detail: result?.summary?.publicLatest?.date
-        ? `공개 기준일 ${result.summary.publicLatest.date}까지 반영했습니다.`
-        : '운영 작업을 완료했습니다.',
-      tone: 'reported',
-      page: 'settings'
-    });
-    showToast(`${opsActionLabel(action)} 완료`);
-    if (action === 'crawl' || action === 'crawl-and-publish') {
-      await loadData();
-      return;
-    }
-  } catch (error) {
-    state.opsActionResult = {
-      action,
-      status: 'failed',
-      startedAt: state.opsActionResult?.startedAt || new Date().toISOString(),
-      finishedAt: new Date().toISOString(),
-      steps: [],
-      summary: null,
-      error: error instanceof Error ? error.message : String(error)
-    };
-    showToast(state.opsActionResult.error || '운영 작업에 실패했습니다.');
-  } finally {
-    state.opsActionBusy = false;
-    render(state.activePage);
-  }
-}
-
-function bindOpsActionButtons() {
-  app.querySelectorAll('[data-ops-action]').forEach((button) => {
-    button.addEventListener('click', () => {
-      void handleOpsAction(button.dataset.opsAction || '');
-    });
-  });
-}
-
 buildRunLogs = function buildRunLogsOverride() {
   const stats = getStats();
   const stamp = state.articleMeta?.generatedAt || state.report?.generatedAt || new Date().toISOString();
@@ -10199,146 +9716,7 @@ function renderRecentActivityLog(limit = 6) {
   `;
 }
 
-function renderTodayStatusCard() {
-  const freshness = getDataFreshnessState();
-  const quality = state.opsActionStatus?.summary?.quality || null;
-  const severity = quality?.severity || (freshness.isLagging ? 'warning' : 'ok');
-  const issueCount = Array.isArray(quality?.issues) ? quality.issues.length : 0;
-  const lastRun = state.opsActionResult || state.opsActionStatus?.last || null;
-  const lastRunLabel = lastRun?.finishedAt || lastRun?.startedAt
-    ? formatDateTime(lastRun.finishedAt || lastRun.startedAt)
-    : '-';
-
-  return `
-    <article class="card panel-card dashboard-card dashboard-today-card is-${escapeHtml(severity)}">
-      <div class="panel-heading dashboard-panel-heading">
-        <div>
-          <p class="panel-kicker">Today</p>
-          <h3>오늘 데이터 상태</h3>
-        </div>
-        <span class="status-badge status-${severity === 'error' ? 'failed' : severity === 'warning' ? 'warning' : 'selected'}">
-          ${escapeHtml(severity === 'error' ? '확인 필요' : severity === 'warning' ? '주의' : '정상')}
-        </span>
-      </div>
-      <div class="ops-action-metrics">
-        <div><span>오늘</span><strong>${escapeHtml(formatDateLabel(freshness.currentDateKey))}</strong></div>
-        <div><span>기준일</span><strong>${escapeHtml(formatDateLabel(state.date))}</strong></div>
-        <div><span>최종 작업</span><strong>${escapeHtml(lastRunLabel)}</strong></div>
-      </div>
-      ${issueCount
-        ? `<div class="ops-step-list">
-            ${quality.issues.slice(0, 5).map((issue) => `
-              <div class="ops-step-row">
-                <span class="status-badge status-${issue.level === 'error' ? 'failed' : 'warning'}">${escapeHtml(issue.level === 'error' ? '오류' : '주의')}</span>
-                <div>
-                  <strong>${escapeHtml(issue.title)}</strong>
-                  <p>${escapeHtml(issue.detail || issue.code || '')}</p>
-                </div>
-              </div>
-            `).join('')}
-          </div>`
-        : `<p class="panel-note">latest.json, manifest.json, 날짜별 산출물이 현재 기준과 일치합니다.</p>`}
-    </article>
-  `;
-}
-
-function renderPublicDashboard() {
-  const trendItems = buildTrendItems();
-  const mediaItems = buildMediaDistribution();
-  const latestArticles = state.articles.slice(0, 8);
-
-  app.innerHTML = `
-    <section class="page public-page" id="dashboard-page">
-      ${renderFreshnessBanner()}
-      ${renderTodayStatusCard()}
-      <div class="dashboard-grid public-dashboard-grid">
-        <article class="card panel-card dashboard-card dashboard-card-trend">
-          <div class="panel-heading dashboard-panel-heading">
-            <div>
-              <p class="panel-kicker">트렌드</p>
-              <h3>키워드 트렌드</h3>
-            </div>
-            <span class="panel-pill">${formatNumber(state.articles.length)}건</span>
-          </div>
-          <div class="trend-section-list">
-            ${[
-              ['major', '주요 보도', trendItems.major],
-              ['industry', '업계 보도', trendItems.industry]
-            ].map(([sectionKey, sectionTitle, items]) => `
-              <div class="trend-section" data-trend-section="${escapeHtml(sectionKey)}">
-                <div class="trend-section-head">
-                  <strong>${escapeHtml(sectionTitle)}</strong>
-                  <span>${formatNumber(items.length)}개 키워드</span>
-                </div>
-                ${items.length
-                  ? `<div class="trend-list">
-                      ${items.map((item) => `
-                        <div class="trend-row">
-                          <div class="trend-labels">
-                            <strong>${escapeHtml(item.keyword)}</strong>
-                            <span>${formatNumber(item.count)}건</span>
-                          </div>
-                          <div class="trend-track"><span style="width:${item.percent}%"></span></div>
-                        </div>
-                      `).join('')}
-                    </div>`
-                  : renderDataEmpty(`public-trend-empty-${escapeHtml(sectionKey)}`, `${escapeHtml(sectionTitle)} 키워드가 없습니다`, '공개 데이터에 해당 키워드가 없습니다.')}
-              </div>
-            `).join('')}
-          </div>
-        </article>
-        <article class="card panel-card dashboard-card dashboard-card-media">
-          <div class="panel-heading dashboard-panel-heading">
-            <div>
-              <p class="panel-kicker">분포</p>
-              <h3>매체 분포</h3>
-            </div>
-            <span class="panel-pill">상위 ${formatNumber(mediaItems.length)}개</span>
-          </div>
-          <div class="distribution-list">
-            ${mediaItems.length
-              ? mediaItems.map((item) => `
-                <div class="distribution-row">
-                  <div class="distribution-labels">
-                    <strong>${escapeHtml(item.name)}</strong>
-                    <span>${formatNumber(item.count)}건 / ${formatNumber(item.percent)}%</span>
-                  </div>
-                  <div class="distribution-track"><span style="width:${item.widthPercent}%"></span></div>
-                </div>
-              `).join('')
-              : renderDataEmpty('public-media-empty', '매체 분포가 없습니다', '집계할 출처가 없습니다.')}
-          </div>
-        </article>
-        <article class="card panel-card dashboard-card public-article-card">
-          <div class="panel-heading dashboard-panel-heading">
-            <div>
-              <p class="panel-kicker">Public</p>
-              <h3>공개 기사 현황</h3>
-            </div>
-            <span class="panel-pill">최종 업데이트 ${escapeHtml(formatDateTime(state.articleMeta?.generatedAt || state.report?.generatedAt))}</span>
-          </div>
-          <div class="public-article-list">
-            ${latestArticles.length
-              ? latestArticles.map((article) => `
-                <a class="public-article-item" href="${escapeHtml(article.url || '#')}" target="_blank" rel="noopener noreferrer">
-                  <span class="spotlight-tag ${sectionBadgeClass(article.section)}">${escapeHtml(sectionLabel(article.section))}</span>
-                  <strong>${escapeHtml(article.title)}</strong>
-                  <span>${escapeHtml(mediaLabel(article))} · ${escapeHtml(formatArticlePublishedTime(article))}</span>
-                </a>
-              `).join('')
-              : renderDataEmpty('public-empty', '공개할 기사가 없습니다', '오늘 데이터가 생성되면 공개 화면에 표시됩니다.')}
-          </div>
-        </article>
-      </div>
-    </section>
-  `;
-}
-
 renderDashboard = function renderDashboardOverride() {
-  if (state.publicMode) {
-    renderPublicDashboard();
-    return;
-  }
   const stats = getStats();
   const sections = getReportSections();
   const reported = sections.major.length + sections.industry.length;
@@ -10356,12 +9734,10 @@ renderDashboard = function renderDashboardOverride() {
   app.innerHTML = `
     <section class="page" id="dashboard-page">
       ${renderFreshnessBanner()}
-      ${renderTodayStatusCard()}
       ${renderDashboardFlowCard(flow)}
       ${renderDashboardPriorityStrip({ total, pending, reported, failed, coverageRatio })}
 
       <div class="dashboard-grid">
-        ${renderOpsActionCard('dashboard')}
         <article class="card panel-card dashboard-card dashboard-card-trend">
           ${renderAnnotation('SCR-DASH-TREND-001')}
           <div class="panel-heading dashboard-panel-heading">
@@ -10499,19 +9875,16 @@ renderDashboard = function renderDashboardOverride() {
       if (article?.url) window.open(article.url, '_blank', 'noopener,noreferrer');
     });
   });
-  bindOpsActionButtons();
 };
 
 function render(pageName) {
-  const requestedPage = pageName;
   const currentPage = state.activePage;
   if (currentPage) {
     state.pageScrollPositions[currentPage] = window.scrollY;
   }
-  state.activePage = requestedPage;
-  document.body.dataset.page = requestedPage;
-  document.body.dataset.mode = state.publicMode ? 'public' : 'operator';
-  if (requestedPage !== 'inbox') {
+  state.activePage = pageName;
+  document.body.dataset.page = pageName;
+  if (pageName !== 'inbox') {
     document.documentElement.classList.remove('has-modal-open');
     document.body.classList.remove('has-mobile-selection-bar');
     document.body.classList.remove('has-mobile-preview-bar');
@@ -10531,15 +9904,14 @@ function render(pageName) {
     return;
   }
 
-  if (requestedPage === 'dashboard') renderDashboard();
-  if (requestedPage === 'inbox') renderInbox();
-  if (requestedPage === 'builder') renderReportBuilder();
-  if (requestedPage === 'kakao') renderKakaoPreview();
-  if (requestedPage === 'settings') renderSettings();
-  mountGlobalLoadWarningBanner();
+  if (pageName === 'dashboard') renderDashboard();
+  if (pageName === 'inbox') renderInbox();
+  if (pageName === 'builder') renderReportBuilder();
+  if (pageName === 'kakao') renderKakaoPreview();
+  if (pageName === 'settings') renderSettings();
   mountGlobalFreshnessBanner();
 
-  const nextScrollTop = state.pageScrollPositions[requestedPage] ?? 0;
+  const nextScrollTop = state.pageScrollPositions[pageName] ?? 0;
   requestAnimationFrame(() => {
     window.scrollTo({ top: nextScrollTop, left: 0, behavior: 'auto' });
   });
@@ -10550,39 +9922,23 @@ async function loadData() {
   state.loadingPhase = 'source';
   state.loadingMessage = '오늘 데이터를 확인 중입니다.';
   state.loadError = '';
-  state.loadWarnings = [];
   render(state.activePage);
 
-  const loadIssues = [];
-  const configPromise = fetchJson('../crawler/config/default.json', null, {
-    cacheBust: true,
-    noStore: true,
-    onError: createLoadIssueCollector(loadIssues, 'crawler/config/default.json')
-  });
+  const configPromise = fetchJson('../crawler/config/default.json', null, { cacheBust: true, noStore: true });
   let resolvedDate = state.date;
-  let { articlePayload, reportPayload, segmentsPayload } = await fetchDateArtifacts(resolvedDate, {
-    issues: loadIssues,
-    warnOnMissingArticle: false
-  });
+  let { articlePayload, reportPayload, segmentsPayload } = await fetchDateArtifacts(resolvedDate);
 
   if (!articlePayload) {
     state.loadingMessage = '최신 발행일을 찾는 중입니다.';
     render(state.activePage);
-    const latestPayload = await fetchJson('../data/latest.json', null, {
-      cacheBust: true,
-      noStore: true,
-      onError: createLoadIssueCollector(loadIssues, 'data/latest.json')
-    });
+    const latestPayload = await fetchJson('../data/latest.json', null, { cacheBust: true, noStore: true });
     const fallbackDate = typeof latestPayload?.date === 'string' ? latestPayload.date : '';
 
     if (fallbackDate && fallbackDate !== resolvedDate) {
       state.loadingMessage = `${formatDateLabel(fallbackDate)} 데이터를 불러오는 중입니다.`;
       render(state.activePage);
       resolvedDate = fallbackDate;
-      ({ articlePayload, reportPayload, segmentsPayload } = await fetchDateArtifacts(resolvedDate, {
-        issues: loadIssues,
-        warnOnMissingArticle: true
-      }));
+      ({ articlePayload, reportPayload, segmentsPayload } = await fetchDateArtifacts(resolvedDate));
     }
   }
 
@@ -10590,7 +9946,6 @@ async function loadData() {
     state.loading = false;
     state.loadingPhase = '';
     state.loadingMessage = '';
-    state.loadWarnings = loadIssues;
     state.loadError = `기사 파일을 찾을 수 없습니다: data/articles/${resolvedDate}.json`;
     render(state.activePage);
     return;
@@ -10610,7 +9965,6 @@ async function loadData() {
         aiSummarize: false,
         requiresToken: false
       };
-  const opsActionStatusPayload = isOperatorRuntime(configPayload || {}) ? await fetchOpsStatus() : null;
 
   state.loadingPhase = 'ready';
   state.loadingMessage = '화면을 준비 중입니다.';
@@ -10623,19 +9977,17 @@ async function loadData() {
   state.report = reportPayload || { sections: { major: [], industry: [] } };
   state.segments = Array.isArray(segmentsPayload) ? segmentsPayload : [];
   state.config = configPayload || {};
-  state.publicMode = isPublicReadonlyRuntime(state.config);
-  state.capabilities = normalizeAiCapabilities(capabilitiesPayload);
-  state.opsActionStatus = opsActionStatusPayload;
-  setAiConnectionStatus(
-    state.capabilities.aiSummarize ? 'ready' : (hasRemoteAiConfigured(state.config) ? 'idle' : 'disabled'),
-    ''
-  );
+  state.capabilities = {
+    aiSummarize: Boolean(capabilitiesPayload?.aiSummarize),
+    provider: String(capabilitiesPayload?.provider || ''),
+    model: String(capabilitiesPayload?.model || ''),
+    requiresToken: Boolean(capabilitiesPayload?.requiresToken)
+  };
   const restoredDraft = initializeReportDraft();
   normalizeInboxKeywordFilter();
   state.loading = false;
   state.loadingPhase = '';
   state.loadingMessage = '';
-  state.loadWarnings = loadIssues;
   state.selectedArticle = state.articles[0] || null;
   state.selectedArticleUrls = [];
   state.previewMode = 'summary';
@@ -10653,7 +10005,7 @@ async function loadData() {
 }
 
 pageButtons.forEach((button) => {
-  button.addEventListener('click', () => render(button.dataset.page || 'dashboard'));
+  button.addEventListener('click', () => render(button.dataset.page));
 });
 
 if (chrome.openReport) {
@@ -10667,8 +10019,7 @@ if (chrome.openReport) {
 
 if (chrome.runCrawl) {
   chrome.runCrawl.addEventListener('click', () => {
-    if (!isOperatorRuntime()) return;
-    void handleOpsAction('crawl-and-publish');
+    showToast('크롤링 실행은 현재 UI에서 비활성화되어 있습니다.');
   });
 }
 
