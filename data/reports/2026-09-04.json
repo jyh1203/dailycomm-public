@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-03T22:35:36.479Z",
+  "generatedAt": "2026-09-03T22:36:05.950Z",
   "tone": "declarative",
   "recommendedLength": "600-1200 chars",
   "sections": {
@@ -14,7 +14,7 @@
         "source": "daum",
         "keyword": "김범수",
         "section": "major",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -27,7 +27,7 @@
         "source": "daum",
         "keyword": "카카오",
         "section": "major",
-        "publishedAt": "2026-09-03T06:35:36.085Z",
+        "publishedAt": "2026-09-03T06:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -40,7 +40,7 @@
         "source": "daum",
         "keyword": "카카오뱅크",
         "section": "major",
-        "publishedAt": "2026-09-03T05:35:36.085Z",
+        "publishedAt": "2026-09-03T05:36:05.694Z",
         "sourceDomainUnknown": false
       },
       {
@@ -53,7 +53,7 @@
         "source": "daum",
         "keyword": "카카오",
         "section": "major",
-        "publishedAt": "2026-09-03T03:35:36.085Z",
+        "publishedAt": "2026-09-03T03:36:05.694Z",
         "sourceDomainUnknown": false
       },
       {
@@ -66,7 +66,7 @@
         "source": "daum",
         "keyword": "카카오",
         "section": "major",
-        "publishedAt": "2026-09-03T02:35:36.085Z",
+        "publishedAt": "2026-09-03T02:36:05.694Z",
         "sourceDomainUnknown": false
       },
       {
@@ -79,7 +79,7 @@
         "source": "daum",
         "keyword": "카카오",
         "section": "major",
-        "publishedAt": "2026-09-03T01:35:36.085Z",
+        "publishedAt": "2026-09-03T01:36:05.694Z",
         "sourceDomainUnknown": false
       }
     ],
@@ -94,7 +94,7 @@
         "source": "daum",
         "keyword": "OpenAI",
         "section": "industry",
-        "publishedAt": "2026-09-03T22:32:36.076Z",
+        "publishedAt": "2026-09-03T22:33:05.689Z",
         "sourceDomainUnknown": false
       },
       {
@@ -107,7 +107,7 @@
         "source": "daum",
         "keyword": "네이버",
         "section": "industry",
-        "publishedAt": "2026-09-03T22:32:36.080Z",
+        "publishedAt": "2026-09-03T22:33:05.690Z",
         "sourceDomainUnknown": false
       },
       {
@@ -120,20 +120,7 @@
         "source": "daum",
         "keyword": "삼성전자",
         "section": "industry",
-        "publishedAt": "2026-09-03T22:30:36.080Z",
-        "sourceDomainUnknown": false
-      },
-      {
-        "title": "9월 금리동결 가능성 커지자 미 3대 주가지수 일제히 1%↑ 강세",
-        "url": "https://v.daum.net/v/20260904072841907",
-        "summary": "기업인 스노우플레이크는 강력한 연간 매출 전망을 발표하며 16.55% 급등, 소프트웨어 업종 전반의 투자 심리를 끌어올렸다. 엔비디아는 AI 모델 공유 플랫폼 ‘허깅페이스’를 인수한다는 소식에 힘입어 1.80% 올랐다. 반면 브로드컴은 AI 인프라에 대한 시장의...",
-        "publisher": "경향신문",
-        "recencyText": "5분 전",
-        "recencyScore": 5,
-        "source": "daum",
-        "keyword": "엔비디아",
-        "section": "industry",
-        "publishedAt": "2026-09-03T22:30:36.080Z",
+        "publishedAt": "2026-09-03T22:31:05.690Z",
         "sourceDomainUnknown": false
       },
       {
@@ -146,7 +133,20 @@
         "source": "daum",
         "keyword": "삼성전자",
         "section": "industry",
-        "publishedAt": "2026-09-03T22:30:36.080Z",
+        "publishedAt": "2026-09-03T22:31:05.690Z",
+        "sourceDomainUnknown": false
+      },
+      {
+        "title": "9월 금리동결 가능성 커지자 미 3대 주가지수 일제히 1%↑ 강세",
+        "url": "https://v.daum.net/v/20260904072841907",
+        "summary": "기업인 스노우플레이크는 강력한 연간 매출 전망을 발표하며 16.55% 급등, 소프트웨어 업종 전반의 투자 심리를 끌어올렸다. 엔비디아는 AI 모델 공유 플랫폼 ‘허깅페이스’를 인수한다는 소식에 힘입어 1.80% 올랐다. 반면 브로드컴은 AI 인프라에 대한 시장의...",
+        "publisher": "경향신문",
+        "recencyText": "6분 전",
+        "recencyScore": 6,
+        "source": "daum",
+        "keyword": "엔비디아",
+        "section": "industry",
+        "publishedAt": "2026-09-03T22:30:05.690Z",
         "sourceDomainUnknown": false
       },
       {
@@ -159,7 +159,7 @@
         "source": "daum",
         "keyword": "네이버",
         "section": "industry",
-        "publishedAt": "2026-09-03T22:28:36.080Z",
+        "publishedAt": "2026-09-03T22:29:05.690Z",
         "sourceDomainUnknown": false
       },
       {
@@ -167,12 +167,12 @@
         "url": "https://v.daum.net/v/20260904072751896",
         "summary": "이도윤입니다. 촬영기자:조원준/영상편집:송화인/화면제공:시청자 ■ 제보하기 ▷ 전화 : 02-781-1234, 4444 ▷ 이메일 : kbs1234@kbs.co.kr ▷ 유튜브, 네이버에서도 KBS뉴스를 구독해주세요! 이도윤 기자 (dobby@kbs.co...",
         "publisher": "KBS",
-        "recencyText": "7분 전",
-        "recencyScore": 7,
+        "recencyText": "8분 전",
+        "recencyScore": 8,
         "source": "daum",
         "keyword": "네이버",
         "section": "industry",
-        "publishedAt": "2026-09-03T22:28:36.080Z",
+        "publishedAt": "2026-09-03T22:28:05.690Z",
         "sourceDomainUnknown": false
       },
       {
@@ -180,12 +180,12 @@
         "url": "https://v.daum.net/v/20260904072302838",
         "summary": "지속되는 가운데 혼조 마감했습니다. 종목별로는 AI 관련 초대형 기술주와 소프트웨어 업종들의 상승세가 두드러졌습니다. 엔비디아는 AI 모델 공유 플랫폼 '허깅페이스'를 인수한다는 소식에 힘입어 1.80% 올랐습니다. 반면 브로드컴은 AI 인프라에 대한 시장의...",
         "publisher": "매일경제",
-        "recencyText": "11분 전",
-        "recencyScore": 11,
+        "recencyText": "12분 전",
+        "recencyScore": 12,
         "source": "daum",
         "keyword": "엔비디아",
         "section": "industry",
-        "publishedAt": "2026-09-03T22:24:36.080Z",
+        "publishedAt": "2026-09-03T22:24:05.690Z",
         "sourceDomainUnknown": false
       },
       {
@@ -193,12 +193,12 @@
         "url": "https://v.daum.net/v/20260904072215830",
         "summary": "1.4% 올랐습니다. 9월 금리 인상 가능성이 크게 떨어지면서 빅테크 기업들은 일제히 강세를 보였습니다. 엔비디아는 오늘도 1.8% 올랐는데요. 밤사이에는 엔비디아가 AI 오픈소스의 허브로 불리는 허깅페이스를 인수한다는 소식이 가장 큰 화제를 모았습니다. 이로써...",
         "publisher": "SBS",
-        "recencyText": "12분 전",
-        "recencyScore": 12,
+        "recencyText": "13분 전",
+        "recencyScore": 13,
         "source": "daum",
         "keyword": "엔비디아",
         "section": "industry",
-        "publishedAt": "2026-09-03T22:23:36.080Z",
+        "publishedAt": "2026-09-03T22:23:05.690Z",
         "sourceDomainUnknown": false
       },
       {
@@ -206,12 +206,12 @@
         "url": "https://v.daum.net/v/20260904072236831",
         "summary": "대로 누출 경위를 조사할 예정입니다. [사진 출처 : 연합뉴스] ■ 제보하기 ▷ 전화 : 02-781-1234, 4444 ▷ 이메일 : kbs1234@kbs.co.kr ▷ 유튜브, 네이버에서도 KBS뉴스를 구독해주세요! 정재훈 기자 (jjh119@kbs.co.kr)",
         "publisher": "KBS",
-        "recencyText": "12분 전",
-        "recencyScore": 12,
+        "recencyText": "13분 전",
+        "recencyScore": 13,
         "source": "daum",
         "keyword": "네이버",
         "section": "industry",
-        "publishedAt": "2026-09-03T22:23:36.080Z",
+        "publishedAt": "2026-09-03T22:23:05.690Z",
         "sourceDomainUnknown": false
       },
       {
@@ -219,12 +219,12 @@
         "url": "https://v.daum.net/v/20260904071915791",
         "summary": "0.11% 오른 1만1352선 - SK하이닉스 ADR 0.79% 하락…마이크론은 강보합 - 브로드컴, 매출 가이던스 실망에 주가 2.74% 하락 - 엔비디아, '허깅페이스' 130억달러에 인수…주가 상승 - MS·아마존 줄상승…사이버캡 기대, 테슬라 5.42%↑ - 스노우플레이크, 깜짝...",
         "publisher": "SBS",
-        "recencyText": "15분 전",
-        "recencyScore": 15,
+        "recencyText": "16분 전",
+        "recencyScore": 16,
         "source": "daum",
         "keyword": "엔비디아",
         "section": "industry",
-        "publishedAt": "2026-09-03T22:20:36.081Z",
+        "publishedAt": "2026-09-03T22:20:05.690Z",
         "sourceDomainUnknown": false
       },
       {
@@ -232,12 +232,12 @@
         "url": "https://v.daum.net/v/20260904071555759",
         "summary": "업종들의 상승세가 두드러졌습니다. 소프트웨어 기업인 스노우플레이크는 강력한 연간 매출 전망을 발표하며 16.55% 급등했고, 엔비디아는 AI 모델 공유 플랫폼 '허깅페이스'를 인수한다는 소식에 1.8% 올랐습니다. [사진 출처 : 로이터=연합뉴스] ■ 제보하기...",
         "publisher": "KBS",
-        "recencyText": "18분 전",
-        "recencyScore": 18,
+        "recencyText": "19분 전",
+        "recencyScore": 19,
         "source": "daum",
         "keyword": "엔비디아",
         "section": "industry",
-        "publishedAt": "2026-09-03T22:17:36.081Z",
+        "publishedAt": "2026-09-03T22:17:05.690Z",
         "sourceDomainUnknown": false
       },
       {
@@ -245,12 +245,12 @@
         "url": "https://v.daum.net/v/20260904071407744",
         "summary": "업종들의 상승세가 두드러졌다. 소프트웨어 기업인 스노우플레이크는 강력한 연간 매출 전망을 발표하며 16.55% 급등했다. 엔비디아는 AI 모델 공유 플랫폼 '허깅페이스'를 인수한다는 소식에 1.8% 상승했다. 반면 브로드컴은 AI 인프라에 대한 시장의 높은 기대치에...",
         "publisher": "한국경제",
-        "recencyText": "20분 전",
-        "recencyScore": 20,
+        "recencyText": "21분 전",
+        "recencyScore": 21,
         "source": "daum",
         "keyword": "엔비디아",
         "section": "industry",
-        "publishedAt": "2026-09-03T22:15:36.081Z",
+        "publishedAt": "2026-09-03T22:15:05.690Z",
         "sourceDomainUnknown": false
       },
       {
@@ -258,12 +258,12 @@
         "url": "https://v.daum.net/v/20260904070638652",
         "summary": "KBS 뉴스 이무형입니다. 촬영기자:정민욱/영상편집:하동우 ■ 제보하기 ▷ 전화 : 02-781-1234, 4444 ▷ 이메일 : kbs1234@kbs.co.kr ▷ 유튜브, 네이버에서도 KBS뉴스를 구독해주세요! 이무형 기자 (nobrother@kbs.co.kr...",
         "publisher": "KBS",
-        "recencyText": "28분 전",
-        "recencyScore": 28,
+        "recencyText": "29분 전",
+        "recencyScore": 29,
         "source": "daum",
         "keyword": "네이버",
         "section": "industry",
-        "publishedAt": "2026-09-03T22:07:36.081Z",
+        "publishedAt": "2026-09-03T22:07:05.690Z",
         "sourceDomainUnknown": false
       },
       {
@@ -271,12 +271,12 @@
         "url": "https://v.daum.net/v/20260904070603645",
         "summary": "이재용 삼성전자 회장(왼쪽부터), 최태원 SK 회장, 정의선 현대차그룹 회장, 젠슨 황 엔비디아 최고경영자. 〈사진=연합뉴스〉 이재용 삼성전자 회장과 최태원 SK그룹 회장이 이달 말 미국 뉴욕에서 열리는 '코리아 소사이어티 갈라 디너'에 참석해 젠슨 황 엔비디아...",
         "publisher": "JTBC",
-        "recencyText": "28분 전",
-        "recencyScore": 28,
+        "recencyText": "29분 전",
+        "recencyScore": 29,
         "source": "daum",
         "keyword": "엔비디아",
         "section": "industry",
-        "publishedAt": "2026-09-03T22:07:36.081Z",
+        "publishedAt": "2026-09-03T22:07:05.690Z",
         "sourceDomainUnknown": false
       },
       {
@@ -284,25 +284,12 @@
         "url": "https://v.daum.net/v/20260904070551637",
         "summary": "촬영기자:유성주/영상편집:송장섭/보도그래픽:김성일 ■ 제보하기 ▷ 전화 : 02-781-1234, 4444 ▷ 이메일 : kbs1234@kbs.co.kr ▷ 유튜브, 네이버에서도 KBS뉴스를 구독해주세요! 문영규 기자 (youngq@kbs.co.kr...",
         "publisher": "KBS",
-        "recencyText": "29분 전",
-        "recencyScore": 29,
+        "recencyText": "30분 전",
+        "recencyScore": 30,
         "source": "daum",
         "keyword": "네이버",
         "section": "industry",
-        "publishedAt": "2026-09-03T22:06:36.081Z",
-        "sourceDomainUnknown": false
-      },
-      {
-        "title": "‘점유율 10%’ CXMT 공세에…韓, 하반기 HBM4 승부수 [biz-플러스]",
-        "url": "https://v.daum.net/v/20260904070248591",
-        "summary": "삼성전자·SK하이닉스 1위 경쟁 상반기 범용 D램 경쟁이 치열했다면 하반기 메모리 시장의 승부처는 HBM으로 이동하고 있다. 엔비디아의 차세대 AI 칩 ‘베라 루빈’을 비롯해 글로벌 빅테크들의 신규 AI 가속기 출시가 예정되면서 최신 HBM 수요가 빠르게 늘고 있기...",
-        "publisher": "서울경제",
-        "recencyText": "31분 전",
-        "recencyScore": 31,
-        "source": "daum",
-        "keyword": "엔비디아",
-        "section": "industry",
-        "publishedAt": "2026-09-03T22:04:36.081Z",
+        "publishedAt": "2026-09-03T22:06:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -315,20 +302,20 @@
         "source": "daum",
         "keyword": "네이버",
         "section": "industry",
-        "publishedAt": "2026-09-03T22:04:36.081Z",
+        "publishedAt": "2026-09-03T22:05:05.691Z",
         "sourceDomainUnknown": false
       },
       {
-        "title": "'3954만 계정' 해킹된 티빙…현 가입자에 탈퇴계정까지 털렸다",
-        "url": "https://v.daum.net/v/20260904070003491",
-        "summary": "지침을 내놨다고요? [기자] 고용노동부는 기업 이익과 연동된 성과급이나 '반도체 공장 신설' 같은 경영상의 결정이 노란봉투법 즉 '개정 노동조합법'에 따른 의무 교섭 및 노동쟁의 대상이 아니라는 시행지침을 내놨습니다. N% 성과급 요구가 산업계 전반으로 확산...",
-        "publisher": "SBS",
-        "recencyText": "33분 전",
-        "recencyScore": 33,
+        "title": "‘점유율 10%’ CXMT 공세에…韓, 하반기 HBM4 승부수 [biz-플러스]",
+        "url": "https://v.daum.net/v/20260904070248591",
+        "summary": "삼성전자·SK하이닉스 1위 경쟁 상반기 범용 D램 경쟁이 치열했다면 하반기 메모리 시장의 승부처는 HBM으로 이동하고 있다. 엔비디아의 차세대 AI 칩 ‘베라 루빈’을 비롯해 글로벌 빅테크들의 신규 AI 가속기 출시가 예정되면서 최신 HBM 수요가 빠르게 늘고 있기...",
+        "publisher": "서울경제",
+        "recencyText": "32분 전",
+        "recencyScore": 32,
         "source": "daum",
-        "keyword": "노란봉투법",
+        "keyword": "엔비디아",
         "section": "industry",
-        "publishedAt": "2026-09-03T22:02:36.081Z",
+        "publishedAt": "2026-09-03T22:04:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -341,7 +328,20 @@
         "source": "daum",
         "keyword": "삼성전자",
         "section": "industry",
-        "publishedAt": "2026-09-03T22:02:36.081Z",
+        "publishedAt": "2026-09-03T22:03:05.691Z",
+        "sourceDomainUnknown": false
+      },
+      {
+        "title": "'3954만 계정' 해킹된 티빙…현 가입자에 탈퇴계정까지 털렸다",
+        "url": "https://v.daum.net/v/20260904070003491",
+        "summary": "지침을 내놨다고요? [기자] 고용노동부는 기업 이익과 연동된 성과급이나 '반도체 공장 신설' 같은 경영상의 결정이 노란봉투법 즉 '개정 노동조합법'에 따른 의무 교섭 및 노동쟁의 대상이 아니라는 시행지침을 내놨습니다. N% 성과급 요구가 산업계 전반으로 확산...",
+        "publisher": "SBS",
+        "recencyText": "34분 전",
+        "recencyScore": 34,
+        "source": "daum",
+        "keyword": "노란봉투법",
+        "section": "industry",
+        "publishedAt": "2026-09-03T22:02:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -354,7 +354,7 @@
         "source": "daum",
         "keyword": "하이닉스",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:59:36.081Z",
+        "publishedAt": "2026-09-03T22:00:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -362,12 +362,12 @@
         "url": "https://v.daum.net/v/20260904065636456",
         "summary": "자체 데이터를 활용해 어떤 기업보다 빨리 자체 모델을 개선하고 있다\"고 평가했다. 일론 머스크가 이끄는 또 다른 기업인 테슬라도 이날 장 마감 후 로보택시 전용 차량인 사이버캡 공개 행사를 앞두고 주가가 5.4% 급등했다. 이날 테슬라의 행사에서는 스페이스X가...",
         "publisher": "머니투데이",
-        "recencyText": "38분 전",
-        "recencyScore": 38,
+        "recencyText": "39분 전",
+        "recencyScore": 39,
         "source": "daum",
         "keyword": "테슬라",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:57:36.081Z",
+        "publishedAt": "2026-09-03T21:57:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -375,12 +375,12 @@
         "url": "https://v.daum.net/v/20260904065438444",
         "summary": "삭제를 요청하고 축제 현장에 안내 현수막을 걸어 불법 거래를 막고 있다고 밝혔습니다. ■ 제보하기 ▷ 전화 : 02-781-1234, 4444 ▷ 이메일 : kbs1234@kbs.co.kr ▷ 유튜브, 네이버에서도 KBS뉴스를 구독해주세요! KBS",
         "publisher": "KBS",
-        "recencyText": "40분 전",
-        "recencyScore": 40,
+        "recencyText": "41분 전",
+        "recencyScore": 41,
         "source": "daum",
         "keyword": "네이버",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:55:36.081Z",
+        "publishedAt": "2026-09-03T21:55:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -388,12 +388,12 @@
         "url": "https://v.daum.net/v/20260904065440446",
         "summary": "그룹 '코르티스' 등도 개인상 수상자로 이름을 올렸습니다. 지금까지 '잇슈 컬처'였습니다. ■ 제보하기 ▷ 전화 : 02-781-1234, 4444 ▷ 이메일 : kbs1234@kbs.co.kr ▷ 유튜브, 네이버에서도 KBS뉴스를 구독해주세요! KBS",
         "publisher": "KBS",
-        "recencyText": "40분 전",
-        "recencyScore": 40,
+        "recencyText": "41분 전",
+        "recencyScore": 41,
         "source": "daum",
         "keyword": "네이버",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:55:36.081Z",
+        "publishedAt": "2026-09-03T21:55:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -401,12 +401,12 @@
         "url": "https://v.daum.net/v/20260904065349426",
         "summary": "따뜻한 이번 작품을 계기로 좀 더 다양한 관객이 숏폼을 즐기길 바란다고 밝혔습니다. ■ 제보하기 ▷ 전화 : 02-781-1234, 4444 ▷ 이메일 : kbs1234@kbs.co.kr ▷ 유튜브, 네이버에서도 KBS뉴스를 구독해주세요! KBS",
         "publisher": "KBS",
-        "recencyText": "41분 전",
-        "recencyScore": 41,
+        "recencyText": "42분 전",
+        "recencyScore": 42,
         "source": "daum",
         "keyword": "네이버",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:54:36.081Z",
+        "publishedAt": "2026-09-03T21:54:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -414,12 +414,12 @@
         "url": "https://v.daum.net/v/20260904065038382",
         "summary": "촬영기자:류재현/영상편집:고응용/그래픽:유건수/화면제공:국립극장 ■ 제보하기 ▷ 전화 : 02-781-1234, 4444 ▷ 이메일 : kbs1234@kbs.co.kr ▷ 유튜브, 네이버에서도 KBS뉴스를 구독해주세요! 이화연 기자 (yeon@kbs.co...",
         "publisher": "KBS",
-        "recencyText": "44분 전",
-        "recencyScore": 44,
+        "recencyText": "45분 전",
+        "recencyScore": 45,
         "source": "daum",
         "keyword": "네이버",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:51:36.081Z",
+        "publishedAt": "2026-09-03T21:51:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -432,7 +432,7 @@
         "source": "daum",
         "keyword": "네이버",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:49:36.081Z",
+        "publishedAt": "2026-09-03T21:50:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -445,7 +445,7 @@
         "source": "daum",
         "keyword": "삼성전자",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:48:36.081Z",
+        "publishedAt": "2026-09-03T21:49:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -458,7 +458,7 @@
         "source": "daum",
         "keyword": "네이버",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:47:36.081Z",
+        "publishedAt": "2026-09-03T21:48:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -471,7 +471,7 @@
         "source": "daum",
         "keyword": "엔비디아",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:46:36.081Z",
+        "publishedAt": "2026-09-03T21:47:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -479,12 +479,12 @@
         "url": "https://v.daum.net/v/20260904064550318",
         "summary": "KBS 뉴스 윤경재입니다. 촬영기자:박종권/그래픽:조지영 ■ 제보하기 ▷ 전화 : 02-781-1234, 4444 ▷ 이메일 : kbs1234@kbs.co.kr ▷ 유튜브, 네이버에서도 KBS뉴스를 구독해주세요! 윤경재 기자 (economy@kbs.co.kr...",
         "publisher": "KBS",
-        "recencyText": "49분 전",
-        "recencyScore": 49,
+        "recencyText": "50분 전",
+        "recencyScore": 50,
         "source": "daum",
         "keyword": "네이버",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:46:36.081Z",
+        "publishedAt": "2026-09-03T21:46:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -497,7 +497,7 @@
         "source": "daum",
         "keyword": "네이버",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:44:36.081Z",
+        "publishedAt": "2026-09-03T21:45:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -510,7 +510,7 @@
         "source": "daum",
         "keyword": "네이버",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:40:36.082Z",
+        "publishedAt": "2026-09-03T21:41:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -523,7 +523,7 @@
         "source": "daum",
         "keyword": "데이터센터",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:39:36.082Z",
+        "publishedAt": "2026-09-03T21:40:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -536,7 +536,7 @@
         "source": "daum",
         "keyword": "네이버",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:39:36.082Z",
+        "publishedAt": "2026-09-03T21:40:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -544,12 +544,12 @@
         "url": "https://v.daum.net/v/20260904063838244",
         "summary": "KBS 뉴스 손서영입니다. 영상편집:최근혁/그래픽:채상우 ■ 제보하기 ▷ 전화 : 02-781-1234, 4444 ▷ 이메일 : kbs1234@kbs.co.kr ▷ 유튜브, 네이버에서도 KBS뉴스를 구독해주세요! 손서영 기자 (bellesy@kbs.co.kr...",
         "publisher": "KBS",
-        "recencyText": "56분 전",
-        "recencyScore": 56,
+        "recencyText": "57분 전",
+        "recencyScore": 57,
         "source": "daum",
         "keyword": "네이버",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:39:36.082Z",
+        "publishedAt": "2026-09-03T21:39:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -557,12 +557,12 @@
         "url": "https://v.daum.net/v/20260904063751242",
         "summary": "KBS 뉴스 조지현입니다. 영상편집:황보현평/그래픽:박성훈 ■ 제보하기 ▷ 전화 : 02-781-1234, 4444 ▷ 이메일 : kbs1234@kbs.co.kr ▷ 유튜브, 네이버에서도 KBS뉴스를 구독해주세요! 조지현 기자 (cho2008@kbs.co.kr...",
         "publisher": "KBS",
-        "recencyText": "57분 전",
-        "recencyScore": 57,
+        "recencyText": "58분 전",
+        "recencyScore": 58,
         "source": "daum",
         "keyword": "네이버",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:38:36.082Z",
+        "publishedAt": "2026-09-03T21:38:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -570,12 +570,12 @@
         "url": "https://v.daum.net/v/20260904063638229",
         "summary": "촬영기자:김현민 류현수/영상편집:이수빈/그래픽:유건수 ■ 제보하기 ▷ 전화 : 02-781-1234, 4444 ▷ 이메일 : kbs1234@kbs.co.kr ▷ 유튜브, 네이버에서도 KBS뉴스를 구독해주세요! 이혜지 기자 (understand@kbs.co.kr...",
         "publisher": "KBS",
-        "recencyText": "58분 전",
-        "recencyScore": 58,
+        "recencyText": "59분 전",
+        "recencyScore": 59,
         "source": "daum",
         "keyword": "네이버",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:37:36.082Z",
+        "publishedAt": "2026-09-03T21:37:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -583,12 +583,12 @@
         "url": "https://v.daum.net/v/20260904063640230",
         "summary": "외국인직접투자(FDI)를 발표했습니다. [사진 출처 : 연합뉴스] ■ 제보하기 ▷ 전화 : 02-781-1234, 4444 ▷ 이메일 : kbs1234@kbs.co.kr ▷ 유튜브, 네이버에서도 KBS뉴스를 구독해주세요! 김지숙 기자 (jskim84@kbs.co.kr...",
         "publisher": "KBS",
-        "recencyText": "58분 전",
-        "recencyScore": 58,
+        "recencyText": "59분 전",
+        "recencyScore": 59,
         "source": "daum",
         "keyword": "네이버",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:37:36.082Z",
+        "publishedAt": "2026-09-03T21:37:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -601,7 +601,7 @@
         "source": "daum",
         "keyword": "엔비디아",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -614,7 +614,7 @@
         "source": "daum",
         "keyword": "데이터센터",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -627,7 +627,7 @@
         "source": "daum",
         "keyword": "OpenAI",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -640,7 +640,7 @@
         "source": "daum",
         "keyword": "삼성전자",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -653,7 +653,7 @@
         "source": "daum",
         "keyword": "엔비디아",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -666,7 +666,7 @@
         "source": "daum",
         "keyword": "스테이블 코인",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -679,7 +679,7 @@
         "source": "daum",
         "keyword": "엔비디아",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -692,7 +692,7 @@
         "source": "daum",
         "keyword": "삼성전자",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -705,7 +705,7 @@
         "source": "daum",
         "keyword": "데이터센터",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -718,7 +718,7 @@
         "source": "daum",
         "keyword": "네이버",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -731,7 +731,7 @@
         "source": "daum",
         "keyword": "네이버",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -744,7 +744,7 @@
         "source": "daum",
         "keyword": "삼성전자",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -757,7 +757,7 @@
         "source": "daum",
         "keyword": "네이버",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -770,7 +770,7 @@
         "source": "daum",
         "keyword": "네이버",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -783,7 +783,7 @@
         "source": "daum",
         "keyword": "하이닉스",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -796,7 +796,7 @@
         "source": "daum",
         "keyword": "아마존",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -809,7 +809,7 @@
         "source": "daum",
         "keyword": "네이버",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -822,7 +822,7 @@
         "source": "daum",
         "keyword": "네이버",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -835,7 +835,7 @@
         "source": "daum",
         "keyword": "엔비디아",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -848,7 +848,7 @@
         "source": "daum",
         "keyword": "아마존",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -861,7 +861,7 @@
         "source": "daum",
         "keyword": "삼성전자",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -874,7 +874,7 @@
         "source": "daum",
         "keyword": "구글",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -887,7 +887,7 @@
         "source": "daum",
         "keyword": "데이터센터",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -900,7 +900,7 @@
         "source": "daum",
         "keyword": "네이버",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -913,7 +913,7 @@
         "source": "daum",
         "keyword": "데이터센터",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -926,7 +926,7 @@
         "source": "daum",
         "keyword": "네이버",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -939,7 +939,7 @@
         "source": "daum",
         "keyword": "네이버",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.691Z",
         "sourceDomainUnknown": false
       },
       {
@@ -952,7 +952,7 @@
         "source": "daum",
         "keyword": "데이터센터",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -965,7 +965,7 @@
         "source": "daum",
         "keyword": "데이터센터",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -978,7 +978,7 @@
         "source": "daum",
         "keyword": "데이터센터",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -991,7 +991,7 @@
         "source": "daum",
         "keyword": "메타",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1004,7 +1004,7 @@
         "source": "daum",
         "keyword": "네이버",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1017,7 +1017,7 @@
         "source": "daum",
         "keyword": "하이닉스",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1030,7 +1030,7 @@
         "source": "daum",
         "keyword": "삼성전자",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1043,7 +1043,7 @@
         "source": "daum",
         "keyword": "데이터센터",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1056,7 +1056,7 @@
         "source": "daum",
         "keyword": "네이버",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1069,7 +1069,7 @@
         "source": "daum",
         "keyword": "Anthropic",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1082,7 +1082,7 @@
         "source": "daum",
         "keyword": "테슬라",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1095,7 +1095,7 @@
         "source": "daum",
         "keyword": "삼성전자",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1108,7 +1108,7 @@
         "source": "daum",
         "keyword": "테슬라",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1121,7 +1121,7 @@
         "source": "daum",
         "keyword": "네이버",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1134,7 +1134,7 @@
         "source": "daum",
         "keyword": "데이터센터",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1147,7 +1147,7 @@
         "source": "daum",
         "keyword": "데이터센터",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1160,7 +1160,7 @@
         "source": "daum",
         "keyword": "테슬라",
         "section": "industry",
-        "publishedAt": "2026-09-03T21:35:36.082Z",
+        "publishedAt": "2026-09-03T21:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1173,7 +1173,7 @@
         "source": "daum",
         "keyword": "하이닉스",
         "section": "industry",
-        "publishedAt": "2026-09-03T20:35:36.083Z",
+        "publishedAt": "2026-09-03T20:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1186,7 +1186,7 @@
         "source": "daum",
         "keyword": "노란봉투법",
         "section": "industry",
-        "publishedAt": "2026-09-03T20:35:36.083Z",
+        "publishedAt": "2026-09-03T20:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1199,7 +1199,7 @@
         "source": "daum",
         "keyword": "노란봉투법",
         "section": "industry",
-        "publishedAt": "2026-09-03T20:35:36.083Z",
+        "publishedAt": "2026-09-03T20:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1212,7 +1212,7 @@
         "source": "daum",
         "keyword": "메타",
         "section": "industry",
-        "publishedAt": "2026-09-03T20:35:36.083Z",
+        "publishedAt": "2026-09-03T20:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1225,7 +1225,7 @@
         "source": "daum",
         "keyword": "노란봉투법",
         "section": "industry",
-        "publishedAt": "2026-09-03T20:35:36.083Z",
+        "publishedAt": "2026-09-03T20:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1238,7 +1238,7 @@
         "source": "daum",
         "keyword": "메타",
         "section": "industry",
-        "publishedAt": "2026-09-03T20:35:36.083Z",
+        "publishedAt": "2026-09-03T20:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1251,7 +1251,7 @@
         "source": "daum",
         "keyword": "엔비디아",
         "section": "industry",
-        "publishedAt": "2026-09-03T20:35:36.083Z",
+        "publishedAt": "2026-09-03T20:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1264,7 +1264,7 @@
         "source": "daum",
         "keyword": "엔비디아",
         "section": "industry",
-        "publishedAt": "2026-09-03T20:35:36.083Z",
+        "publishedAt": "2026-09-03T20:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1277,7 +1277,7 @@
         "source": "daum",
         "keyword": "데이터센터",
         "section": "industry",
-        "publishedAt": "2026-09-03T20:35:36.083Z",
+        "publishedAt": "2026-09-03T20:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1290,7 +1290,7 @@
         "source": "daum",
         "keyword": "하이닉스",
         "section": "industry",
-        "publishedAt": "2026-09-03T20:35:36.083Z",
+        "publishedAt": "2026-09-03T20:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1303,7 +1303,7 @@
         "source": "daum",
         "keyword": "데이터센터",
         "section": "industry",
-        "publishedAt": "2026-09-03T20:35:36.083Z",
+        "publishedAt": "2026-09-03T20:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1316,7 +1316,7 @@
         "source": "daum",
         "keyword": "데이터센터",
         "section": "industry",
-        "publishedAt": "2026-09-03T20:35:36.083Z",
+        "publishedAt": "2026-09-03T20:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1329,7 +1329,7 @@
         "source": "daum",
         "keyword": "데이터센터",
         "section": "industry",
-        "publishedAt": "2026-09-03T20:35:36.083Z",
+        "publishedAt": "2026-09-03T20:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1342,7 +1342,7 @@
         "source": "daum",
         "keyword": "아마존",
         "section": "industry",
-        "publishedAt": "2026-09-03T20:35:36.083Z",
+        "publishedAt": "2026-09-03T20:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1355,7 +1355,7 @@
         "source": "daum",
         "keyword": "노란봉투법",
         "section": "industry",
-        "publishedAt": "2026-09-03T20:35:36.083Z",
+        "publishedAt": "2026-09-03T20:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1368,7 +1368,7 @@
         "source": "daum",
         "keyword": "데이터센터",
         "section": "industry",
-        "publishedAt": "2026-09-03T20:35:36.083Z",
+        "publishedAt": "2026-09-03T20:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1381,7 +1381,7 @@
         "source": "daum",
         "keyword": "OpenAI",
         "section": "industry",
-        "publishedAt": "2026-09-03T20:35:36.083Z",
+        "publishedAt": "2026-09-03T20:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1394,7 +1394,7 @@
         "source": "daum",
         "keyword": "OpenAI",
         "section": "industry",
-        "publishedAt": "2026-09-03T20:35:36.083Z",
+        "publishedAt": "2026-09-03T20:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1407,7 +1407,7 @@
         "source": "daum",
         "keyword": "테슬라",
         "section": "industry",
-        "publishedAt": "2026-09-03T20:35:36.083Z",
+        "publishedAt": "2026-09-03T20:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1420,7 +1420,7 @@
         "source": "daum",
         "keyword": "노란봉투법",
         "section": "industry",
-        "publishedAt": "2026-09-03T19:35:36.083Z",
+        "publishedAt": "2026-09-03T19:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1433,7 +1433,7 @@
         "source": "daum",
         "keyword": "메타",
         "section": "industry",
-        "publishedAt": "2026-09-03T19:35:36.083Z",
+        "publishedAt": "2026-09-03T19:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1446,7 +1446,7 @@
         "source": "daum",
         "keyword": "데이터센터",
         "section": "industry",
-        "publishedAt": "2026-09-03T19:35:36.083Z",
+        "publishedAt": "2026-09-03T19:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1459,7 +1459,7 @@
         "source": "daum",
         "keyword": "노란봉투법",
         "section": "industry",
-        "publishedAt": "2026-09-03T19:35:36.083Z",
+        "publishedAt": "2026-09-03T19:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1472,7 +1472,7 @@
         "source": "daum",
         "keyword": "OpenAI",
         "section": "industry",
-        "publishedAt": "2026-09-03T19:35:36.083Z",
+        "publishedAt": "2026-09-03T19:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1485,7 +1485,7 @@
         "source": "daum",
         "keyword": "아마존",
         "section": "industry",
-        "publishedAt": "2026-09-03T19:35:36.083Z",
+        "publishedAt": "2026-09-03T19:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1498,7 +1498,7 @@
         "source": "daum",
         "keyword": "OpenAI",
         "section": "industry",
-        "publishedAt": "2026-09-03T19:35:36.083Z",
+        "publishedAt": "2026-09-03T19:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1511,7 +1511,7 @@
         "source": "daum",
         "keyword": "OpenAI",
         "section": "industry",
-        "publishedAt": "2026-09-03T19:35:36.083Z",
+        "publishedAt": "2026-09-03T19:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1524,7 +1524,7 @@
         "source": "daum",
         "keyword": "OpenAI",
         "section": "industry",
-        "publishedAt": "2026-09-03T19:35:36.083Z",
+        "publishedAt": "2026-09-03T19:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1537,7 +1537,7 @@
         "source": "daum",
         "keyword": "아마존",
         "section": "industry",
-        "publishedAt": "2026-09-03T18:35:36.083Z",
+        "publishedAt": "2026-09-03T18:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1550,7 +1550,7 @@
         "source": "daum",
         "keyword": "아마존",
         "section": "industry",
-        "publishedAt": "2026-09-03T18:35:36.083Z",
+        "publishedAt": "2026-09-03T18:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1563,7 +1563,7 @@
         "source": "daum",
         "keyword": "아마존",
         "section": "industry",
-        "publishedAt": "2026-09-03T18:35:36.083Z",
+        "publishedAt": "2026-09-03T18:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1576,7 +1576,7 @@
         "source": "daum",
         "keyword": "데이터센터",
         "section": "industry",
-        "publishedAt": "2026-09-03T18:35:36.083Z",
+        "publishedAt": "2026-09-03T18:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1589,7 +1589,7 @@
         "source": "daum",
         "keyword": "메타",
         "section": "industry",
-        "publishedAt": "2026-09-03T17:35:36.083Z",
+        "publishedAt": "2026-09-03T17:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1602,7 +1602,7 @@
         "source": "daum",
         "keyword": "노란봉투법",
         "section": "industry",
-        "publishedAt": "2026-09-03T16:35:36.083Z",
+        "publishedAt": "2026-09-03T16:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1615,20 +1615,7 @@
         "source": "daum",
         "keyword": "테슬라",
         "section": "industry",
-        "publishedAt": "2026-09-03T16:35:36.083Z",
-        "sourceDomainUnknown": false
-      },
-      {
-        "title": "8월 수입차 판매 ‘톱10’ 모델 절반이 중국산",
-        "url": "https://v.daum.net/v/20260904003512345",
-        "summary": "지난달 국내에서 가장 많이 팔린 수입차 10대 중 5대가 중국산 모델이었다. 테슬라는 상하이 기가팩토리에서 들여온 물량을 앞세워 6개월 연속 월 1만대 판매를 넘어섰고, 중국 최대 전기차 업체 BYD는 전기차에 이어 플러그인하이브리드(PHEV) 신차까지 상위권에...",
-        "publisher": "조선일보",
-        "recencyText": "6시간 전",
-        "recencyScore": 360,
-        "source": "daum",
-        "keyword": "테슬라",
-        "section": "industry",
-        "publishedAt": "2026-09-03T16:35:36.083Z",
+        "publishedAt": "2026-09-03T16:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1641,7 +1628,7 @@
         "source": "daum",
         "keyword": "아마존",
         "section": "industry",
-        "publishedAt": "2026-09-03T16:35:36.083Z",
+        "publishedAt": "2026-09-03T16:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1654,7 +1641,7 @@
         "source": "daum",
         "keyword": "아마존",
         "section": "industry",
-        "publishedAt": "2026-09-03T16:35:36.083Z",
+        "publishedAt": "2026-09-03T16:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1667,7 +1654,7 @@
         "source": "daum",
         "keyword": "아마존",
         "section": "industry",
-        "publishedAt": "2026-09-03T16:35:36.083Z",
+        "publishedAt": "2026-09-03T16:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1680,7 +1667,7 @@
         "source": "daum",
         "keyword": "테슬라",
         "section": "industry",
-        "publishedAt": "2026-09-03T16:35:36.083Z",
+        "publishedAt": "2026-09-03T16:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1693,7 +1680,7 @@
         "source": "daum",
         "keyword": "스테이블 코인",
         "section": "industry",
-        "publishedAt": "2026-09-03T16:35:36.083Z",
+        "publishedAt": "2026-09-03T16:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1706,7 +1693,7 @@
         "source": "daum",
         "keyword": "노란봉투법",
         "section": "industry",
-        "publishedAt": "2026-09-03T15:35:36.083Z",
+        "publishedAt": "2026-09-03T15:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1719,7 +1706,7 @@
         "source": "daum",
         "keyword": "메타",
         "section": "industry",
-        "publishedAt": "2026-09-03T15:35:36.083Z",
+        "publishedAt": "2026-09-03T15:36:05.692Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1732,7 +1719,7 @@
         "source": "daum",
         "keyword": "노란봉투법",
         "section": "industry",
-        "publishedAt": "2026-09-03T15:35:36.083Z",
+        "publishedAt": "2026-09-03T15:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1745,7 +1732,7 @@
         "source": "daum",
         "keyword": "노란봉투법",
         "section": "industry",
-        "publishedAt": "2026-09-03T15:35:36.083Z",
+        "publishedAt": "2026-09-03T15:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1758,7 +1745,20 @@
         "source": "daum",
         "keyword": "노란봉투법",
         "section": "industry",
-        "publishedAt": "2026-09-03T15:35:36.083Z",
+        "publishedAt": "2026-09-03T15:36:05.693Z",
+        "sourceDomainUnknown": false
+      },
+      {
+        "title": "8월 수입차 판매 ‘톱10’ 모델 절반이 중국산",
+        "url": "https://v.daum.net/v/20260904003512345",
+        "summary": "지난달 국내에서 가장 많이 팔린 수입차 10대 중 5대가 중국산 모델이었다. 테슬라는 상하이 기가팩토리에서 들여온 물량을 앞세워 6개월 연속 월 1만대 판매를 넘어섰고, 중국 최대 전기차 업체 BYD는 전기차에 이어 플러그인하이브리드(PHEV) 신차까지 상위권에...",
+        "publisher": "조선일보",
+        "recencyText": "7시간 전",
+        "recencyScore": 420,
+        "source": "daum",
+        "keyword": "테슬라",
+        "section": "industry",
+        "publishedAt": "2026-09-03T15:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1771,7 +1771,7 @@
         "source": "daum",
         "keyword": "노란봉투법",
         "section": "industry",
-        "publishedAt": "2026-09-03T15:35:36.083Z",
+        "publishedAt": "2026-09-03T15:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1784,7 +1784,7 @@
         "source": "daum",
         "keyword": "메타",
         "section": "industry",
-        "publishedAt": "2026-09-03T15:35:36.083Z",
+        "publishedAt": "2026-09-03T15:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1797,7 +1797,7 @@
         "source": "daum",
         "keyword": "노란봉투법",
         "section": "industry",
-        "publishedAt": "2026-09-03T15:35:36.083Z",
+        "publishedAt": "2026-09-03T15:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1810,7 +1810,7 @@
         "source": "daum",
         "keyword": "노란봉투법",
         "section": "industry",
-        "publishedAt": "2026-09-03T15:35:36.083Z",
+        "publishedAt": "2026-09-03T15:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1823,7 +1823,7 @@
         "source": "daum",
         "keyword": "메타",
         "section": "industry",
-        "publishedAt": "2026-09-03T14:35:36.083Z",
+        "publishedAt": "2026-09-03T14:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1836,7 +1836,7 @@
         "source": "daum",
         "keyword": "노란봉투법",
         "section": "industry",
-        "publishedAt": "2026-09-03T14:35:36.083Z",
+        "publishedAt": "2026-09-03T14:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1849,7 +1849,7 @@
         "source": "daum",
         "keyword": "노란봉투법",
         "section": "industry",
-        "publishedAt": "2026-09-03T13:35:36.083Z",
+        "publishedAt": "2026-09-03T13:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1862,7 +1862,7 @@
         "source": "daum",
         "keyword": "스테이블 코인",
         "section": "industry",
-        "publishedAt": "2026-09-03T13:35:36.083Z",
+        "publishedAt": "2026-09-03T13:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1875,7 +1875,7 @@
         "source": "daum",
         "keyword": "노란봉투법",
         "section": "industry",
-        "publishedAt": "2026-09-03T12:35:36.084Z",
+        "publishedAt": "2026-09-03T12:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1888,7 +1888,7 @@
         "source": "daum",
         "keyword": "메타",
         "section": "industry",
-        "publishedAt": "2026-09-03T12:35:36.084Z",
+        "publishedAt": "2026-09-03T12:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1901,7 +1901,7 @@
         "source": "daum",
         "keyword": "아마존",
         "section": "industry",
-        "publishedAt": "2026-09-03T12:35:36.084Z",
+        "publishedAt": "2026-09-03T12:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1914,7 +1914,7 @@
         "source": "daum",
         "keyword": "노란봉투법",
         "section": "industry",
-        "publishedAt": "2026-09-03T12:35:36.084Z",
+        "publishedAt": "2026-09-03T12:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1927,7 +1927,7 @@
         "source": "daum",
         "keyword": "테슬라",
         "section": "industry",
-        "publishedAt": "2026-09-03T12:35:36.084Z",
+        "publishedAt": "2026-09-03T12:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1940,7 +1940,7 @@
         "source": "daum",
         "keyword": "노란봉투법",
         "section": "industry",
-        "publishedAt": "2026-09-03T11:35:36.084Z",
+        "publishedAt": "2026-09-03T11:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1953,7 +1953,7 @@
         "source": "daum",
         "keyword": "테슬라",
         "section": "industry",
-        "publishedAt": "2026-09-03T10:35:36.084Z",
+        "publishedAt": "2026-09-03T10:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1966,7 +1966,7 @@
         "source": "daum",
         "keyword": "아마존",
         "section": "industry",
-        "publishedAt": "2026-09-03T10:35:36.084Z",
+        "publishedAt": "2026-09-03T10:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1979,7 +1979,7 @@
         "source": "daum",
         "keyword": "노란봉투법",
         "section": "industry",
-        "publishedAt": "2026-09-03T10:35:36.084Z",
+        "publishedAt": "2026-09-03T10:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -1992,7 +1992,7 @@
         "source": "daum",
         "keyword": "노란봉투법",
         "section": "industry",
-        "publishedAt": "2026-09-03T10:35:36.084Z",
+        "publishedAt": "2026-09-03T10:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2005,7 +2005,7 @@
         "source": "daum",
         "keyword": "노란봉투법",
         "section": "industry",
-        "publishedAt": "2026-09-03T10:35:36.084Z",
+        "publishedAt": "2026-09-03T10:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2018,7 +2018,7 @@
         "source": "daum",
         "keyword": "아마존",
         "section": "industry",
-        "publishedAt": "2026-09-03T10:35:36.084Z",
+        "publishedAt": "2026-09-03T10:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2031,7 +2031,7 @@
         "source": "daum",
         "keyword": "노란봉투법",
         "section": "industry",
-        "publishedAt": "2026-09-03T10:35:36.084Z",
+        "publishedAt": "2026-09-03T10:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2044,7 +2044,7 @@
         "source": "daum",
         "keyword": "메타",
         "section": "industry",
-        "publishedAt": "2026-09-03T09:35:36.084Z",
+        "publishedAt": "2026-09-03T09:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2057,7 +2057,7 @@
         "source": "daum",
         "keyword": "메타",
         "section": "industry",
-        "publishedAt": "2026-09-03T09:35:36.084Z",
+        "publishedAt": "2026-09-03T09:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2070,7 +2070,7 @@
         "source": "daum",
         "keyword": "메타",
         "section": "industry",
-        "publishedAt": "2026-09-03T09:35:36.084Z",
+        "publishedAt": "2026-09-03T09:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2083,7 +2083,7 @@
         "source": "daum",
         "keyword": "스테이블 코인",
         "section": "industry",
-        "publishedAt": "2026-09-03T09:35:36.084Z",
+        "publishedAt": "2026-09-03T09:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2096,7 +2096,7 @@
         "source": "daum",
         "keyword": "메타",
         "section": "industry",
-        "publishedAt": "2026-09-03T09:35:36.084Z",
+        "publishedAt": "2026-09-03T09:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2109,7 +2109,7 @@
         "source": "daum",
         "keyword": "노란봉투법",
         "section": "industry",
-        "publishedAt": "2026-09-03T09:35:36.084Z",
+        "publishedAt": "2026-09-03T09:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2122,7 +2122,7 @@
         "source": "daum",
         "keyword": "테슬라",
         "section": "industry",
-        "publishedAt": "2026-09-03T09:35:36.084Z",
+        "publishedAt": "2026-09-03T09:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2135,7 +2135,7 @@
         "source": "daum",
         "keyword": "테슬라",
         "section": "industry",
-        "publishedAt": "2026-09-03T09:35:36.084Z",
+        "publishedAt": "2026-09-03T09:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2148,7 +2148,7 @@
         "source": "daum",
         "keyword": "Anthropic",
         "section": "industry",
-        "publishedAt": "2026-09-03T09:35:36.084Z",
+        "publishedAt": "2026-09-03T09:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2161,7 +2161,7 @@
         "source": "daum",
         "keyword": "Anthropic",
         "section": "industry",
-        "publishedAt": "2026-09-03T09:35:36.084Z",
+        "publishedAt": "2026-09-03T09:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2174,7 +2174,7 @@
         "source": "daum",
         "keyword": "메타",
         "section": "industry",
-        "publishedAt": "2026-09-03T09:35:36.084Z",
+        "publishedAt": "2026-09-03T09:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2187,7 +2187,7 @@
         "source": "daum",
         "keyword": "메타",
         "section": "industry",
-        "publishedAt": "2026-09-03T09:35:36.084Z",
+        "publishedAt": "2026-09-03T09:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2200,7 +2200,7 @@
         "source": "daum",
         "keyword": "테슬라",
         "section": "industry",
-        "publishedAt": "2026-09-03T09:35:36.084Z",
+        "publishedAt": "2026-09-03T09:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2213,7 +2213,7 @@
         "source": "daum",
         "keyword": "스테이블 코인",
         "section": "industry",
-        "publishedAt": "2026-09-03T09:35:36.084Z",
+        "publishedAt": "2026-09-03T09:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2226,7 +2226,7 @@
         "source": "daum",
         "keyword": "메타",
         "section": "industry",
-        "publishedAt": "2026-09-03T08:35:36.084Z",
+        "publishedAt": "2026-09-03T08:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2239,7 +2239,7 @@
         "source": "daum",
         "keyword": "Anthropic",
         "section": "industry",
-        "publishedAt": "2026-09-03T08:35:36.084Z",
+        "publishedAt": "2026-09-03T08:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2252,7 +2252,7 @@
         "source": "daum",
         "keyword": "아마존",
         "section": "industry",
-        "publishedAt": "2026-09-03T08:35:36.084Z",
+        "publishedAt": "2026-09-03T08:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2265,7 +2265,7 @@
         "source": "daum",
         "keyword": "메타",
         "section": "industry",
-        "publishedAt": "2026-09-03T08:35:36.084Z",
+        "publishedAt": "2026-09-03T08:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2278,7 +2278,7 @@
         "source": "daum",
         "keyword": "메타",
         "section": "industry",
-        "publishedAt": "2026-09-03T08:35:36.084Z",
+        "publishedAt": "2026-09-03T08:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2291,7 +2291,7 @@
         "source": "daum",
         "keyword": "테슬라",
         "section": "industry",
-        "publishedAt": "2026-09-03T08:35:36.084Z",
+        "publishedAt": "2026-09-03T08:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2304,7 +2304,7 @@
         "source": "daum",
         "keyword": "테슬라",
         "section": "industry",
-        "publishedAt": "2026-09-03T08:35:36.084Z",
+        "publishedAt": "2026-09-03T08:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2317,7 +2317,7 @@
         "source": "daum",
         "keyword": "Anthropic",
         "section": "industry",
-        "publishedAt": "2026-09-03T08:35:36.084Z",
+        "publishedAt": "2026-09-03T08:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2330,7 +2330,7 @@
         "source": "daum",
         "keyword": "아마존",
         "section": "industry",
-        "publishedAt": "2026-09-03T08:35:36.084Z",
+        "publishedAt": "2026-09-03T08:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2343,7 +2343,7 @@
         "source": "daum",
         "keyword": "메타",
         "section": "industry",
-        "publishedAt": "2026-09-03T08:35:36.084Z",
+        "publishedAt": "2026-09-03T08:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2356,7 +2356,7 @@
         "source": "daum",
         "keyword": "아마존",
         "section": "industry",
-        "publishedAt": "2026-09-03T08:35:36.084Z",
+        "publishedAt": "2026-09-03T08:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2369,7 +2369,7 @@
         "source": "daum",
         "keyword": "테슬라",
         "section": "industry",
-        "publishedAt": "2026-09-03T07:35:36.084Z",
+        "publishedAt": "2026-09-03T07:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2382,7 +2382,7 @@
         "source": "daum",
         "keyword": "테슬라",
         "section": "industry",
-        "publishedAt": "2026-09-03T07:35:36.084Z",
+        "publishedAt": "2026-09-03T07:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2395,7 +2395,7 @@
         "source": "daum",
         "keyword": "노란봉투법",
         "section": "industry",
-        "publishedAt": "2026-09-03T07:35:36.084Z",
+        "publishedAt": "2026-09-03T07:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2408,7 +2408,7 @@
         "source": "daum",
         "keyword": "구글",
         "section": "industry",
-        "publishedAt": "2026-09-03T07:35:36.085Z",
+        "publishedAt": "2026-09-03T07:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2421,7 +2421,7 @@
         "source": "daum",
         "keyword": "테슬라",
         "section": "industry",
-        "publishedAt": "2026-09-03T07:35:36.085Z",
+        "publishedAt": "2026-09-03T07:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2434,7 +2434,7 @@
         "source": "daum",
         "keyword": "Anthropic",
         "section": "industry",
-        "publishedAt": "2026-09-03T07:35:36.085Z",
+        "publishedAt": "2026-09-03T07:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2447,7 +2447,7 @@
         "source": "daum",
         "keyword": "스테이블 코인",
         "section": "industry",
-        "publishedAt": "2026-09-03T06:35:36.085Z",
+        "publishedAt": "2026-09-03T06:36:05.693Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2460,7 +2460,7 @@
         "source": "daum",
         "keyword": "테슬라",
         "section": "industry",
-        "publishedAt": "2026-09-03T06:35:36.085Z",
+        "publishedAt": "2026-09-03T06:36:05.694Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2473,7 +2473,7 @@
         "source": "daum",
         "keyword": "Anthropic",
         "section": "industry",
-        "publishedAt": "2026-09-03T06:35:36.085Z",
+        "publishedAt": "2026-09-03T06:36:05.694Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2486,7 +2486,7 @@
         "source": "daum",
         "keyword": "스테이블 코인",
         "section": "industry",
-        "publishedAt": "2026-09-03T06:35:36.085Z",
+        "publishedAt": "2026-09-03T06:36:05.694Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2499,7 +2499,7 @@
         "source": "daum",
         "keyword": "테슬라",
         "section": "industry",
-        "publishedAt": "2026-09-03T06:35:36.085Z",
+        "publishedAt": "2026-09-03T06:36:05.694Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2512,7 +2512,7 @@
         "source": "daum",
         "keyword": "노란봉투법",
         "section": "industry",
-        "publishedAt": "2026-09-03T05:35:36.085Z",
+        "publishedAt": "2026-09-03T05:36:05.694Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2525,7 +2525,7 @@
         "source": "daum",
         "keyword": "스테이블 코인",
         "section": "industry",
-        "publishedAt": "2026-09-03T05:35:36.085Z",
+        "publishedAt": "2026-09-03T05:36:05.694Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2538,7 +2538,7 @@
         "source": "daum",
         "keyword": "구글",
         "section": "industry",
-        "publishedAt": "2026-09-03T05:35:36.085Z",
+        "publishedAt": "2026-09-03T05:36:05.694Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2551,7 +2551,7 @@
         "source": "daum",
         "keyword": "테슬라",
         "section": "industry",
-        "publishedAt": "2026-09-03T05:35:36.085Z",
+        "publishedAt": "2026-09-03T05:36:05.694Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2564,7 +2564,7 @@
         "source": "daum",
         "keyword": "Anthropic",
         "section": "industry",
-        "publishedAt": "2026-09-03T05:35:36.085Z",
+        "publishedAt": "2026-09-03T05:36:05.694Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2577,7 +2577,7 @@
         "source": "daum",
         "keyword": "노란봉투법",
         "section": "industry",
-        "publishedAt": "2026-09-03T05:35:36.085Z",
+        "publishedAt": "2026-09-03T05:36:05.694Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2590,7 +2590,7 @@
         "source": "daum",
         "keyword": "Anthropic",
         "section": "industry",
-        "publishedAt": "2026-09-03T05:35:36.085Z",
+        "publishedAt": "2026-09-03T05:36:05.694Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2603,7 +2603,7 @@
         "source": "daum",
         "keyword": "노란봉투법",
         "section": "industry",
-        "publishedAt": "2026-09-03T04:35:36.085Z",
+        "publishedAt": "2026-09-03T04:36:05.694Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2616,7 +2616,7 @@
         "source": "daum",
         "keyword": "스테이블 코인",
         "section": "industry",
-        "publishedAt": "2026-09-03T04:35:36.085Z",
+        "publishedAt": "2026-09-03T04:36:05.694Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2629,7 +2629,7 @@
         "source": "daum",
         "keyword": "스테이블 코인",
         "section": "industry",
-        "publishedAt": "2026-09-03T04:35:36.085Z",
+        "publishedAt": "2026-09-03T04:36:05.694Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2642,7 +2642,7 @@
         "source": "daum",
         "keyword": "스테이블 코인",
         "section": "industry",
-        "publishedAt": "2026-09-03T03:35:36.085Z",
+        "publishedAt": "2026-09-03T03:36:05.694Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2655,7 +2655,7 @@
         "source": "daum",
         "keyword": "스테이블 코인",
         "section": "industry",
-        "publishedAt": "2026-09-03T03:35:36.085Z",
+        "publishedAt": "2026-09-03T03:36:05.694Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2668,7 +2668,7 @@
         "source": "daum",
         "keyword": "스테이블 코인",
         "section": "industry",
-        "publishedAt": "2026-09-03T03:35:36.085Z",
+        "publishedAt": "2026-09-03T03:36:05.694Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2681,7 +2681,7 @@
         "source": "daum",
         "keyword": "스테이블 코인",
         "section": "industry",
-        "publishedAt": "2026-09-03T03:35:36.085Z",
+        "publishedAt": "2026-09-03T03:36:05.694Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2694,7 +2694,7 @@
         "source": "daum",
         "keyword": "스테이블 코인",
         "section": "industry",
-        "publishedAt": "2026-09-03T03:35:36.085Z",
+        "publishedAt": "2026-09-03T03:36:05.694Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2707,7 +2707,7 @@
         "source": "daum",
         "keyword": "구글",
         "section": "industry",
-        "publishedAt": "2026-09-03T01:35:36.085Z",
+        "publishedAt": "2026-09-03T01:36:05.694Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2720,7 +2720,7 @@
         "source": "daum",
         "keyword": "테슬라",
         "section": "industry",
-        "publishedAt": "2026-09-03T01:35:36.085Z",
+        "publishedAt": "2026-09-03T01:36:05.694Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2733,7 +2733,7 @@
         "source": "daum",
         "keyword": "구글",
         "section": "industry",
-        "publishedAt": "2026-09-03T00:35:36.085Z",
+        "publishedAt": "2026-09-03T00:36:05.694Z",
         "sourceDomainUnknown": false
       },
       {
@@ -2746,7 +2746,7 @@
         "source": "daum",
         "keyword": "아마존",
         "section": "industry",
-        "publishedAt": "2026-09-03T00:35:36.085Z",
+        "publishedAt": "2026-09-03T00:36:05.694Z",
         "sourceDomainUnknown": false
       }
     ]
