@@ -1,0 +1,114 @@
+{
+  "metadata": {
+    "generatedAt": "2026-11-16T22:35:44.966Z",
+    "stats": {
+      "totalRaw": 0,
+      "totalDeduped": 0,
+      "validUrlCount": 0,
+      "invalidUrlDropped": 0,
+      "unusableCandidateDropped": 0,
+      "emptyTitleDropped": 0,
+      "canonicalizedCount": 0,
+      "failedKeywords": [
+        "김범수",
+        "정신아",
+        "카카오",
+        "카카오페이",
+        "카카오뱅크",
+        "카카오모빌리티",
+        "카카오엔터테인먼트",
+        "데이터센터",
+        "노란봉투법",
+        "메타",
+        "OpenAI",
+        "Anthropic",
+        "스테이블 코인",
+        "구글",
+        "엔비디아",
+        "아마존",
+        "테슬라",
+        "삼성전자",
+        "하이닉스",
+        "네이버"
+      ],
+      "failedKeywordReasons": {
+        "김범수": [
+          "NO_USABLE_CANDIDATE"
+        ],
+        "정신아": [
+          "NO_USABLE_CANDIDATE"
+        ],
+        "카카오": [
+          "NO_USABLE_CANDIDATE"
+        ],
+        "카카오페이": [
+          "NO_USABLE_CANDIDATE"
+        ],
+        "카카오뱅크": [
+          "NO_USABLE_CANDIDATE"
+        ],
+        "카카오모빌리티": [
+          "NO_USABLE_CANDIDATE"
+        ],
+        "카카오엔터테인먼트": [
+          "NO_USABLE_CANDIDATE"
+        ],
+        "데이터센터": [
+          "NO_USABLE_CANDIDATE"
+        ],
+        "노란봉투법": [
+          "NO_USABLE_CANDIDATE"
+        ],
+        "메타": [
+          "NO_USABLE_CANDIDATE"
+        ],
+        "OpenAI": [
+          "NO_USABLE_CANDIDATE"
+        ],
+        "Anthropic": [
+          "NO_USABLE_CANDIDATE"
+        ],
+        "스테이블 코인": [
+          "NO_USABLE_CANDIDATE"
+        ],
+        "구글": [
+          "NO_USABLE_CANDIDATE"
+        ],
+        "엔비디아": [
+          "NO_USABLE_CANDIDATE"
+        ],
+        "아마존": [
+          "NO_USABLE_CANDIDATE"
+        ],
+        "테슬라": [
+          "NO_USABLE_CANDIDATE"
+        ],
+        "삼성전자": [
+          "NO_USABLE_CANDIDATE"
+        ],
+        "하이닉스": [
+          "NO_USABLE_CANDIDATE"
+        ],
+        "네이버": [
+          "NO_USABLE_CANDIDATE"
+        ]
+      },
+      "sourceDomainUnknownCount": 0,
+      "droppedLowRelevanceCount": 339,
+      "droppedNoIdCount": 0,
+      "noUsableCandidatePages": 340,
+      "droppedMediaMismatchCount": 502,
+      "droppedKeywordRuleCount": 24,
+      "droppedPeriodCount": 295,
+      "droppedBlockedTextCount": 0,
+      "englishOnlyDropped": 0,
+      "dropReasonCount": {
+        "media_not_whitelisted": 502,
+        "outside_period_d": 295,
+        "keyword_title_required_miss": 23,
+        "keyword_required_miss": 1
+      }
+    }
+  },
+  "articles": []
+}
