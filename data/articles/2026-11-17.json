@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "generatedAt": "2026-11-16T22:35:44.966Z",
+    "generatedAt": "2026-11-16T23:35:56.785Z",
     "stats": {
       "totalRaw": 0,
       "totalDeduped": 0,
@@ -94,18 +94,18 @@
         ]
       },
       "sourceDomainUnknownCount": 0,
-      "droppedLowRelevanceCount": 339,
+      "droppedLowRelevanceCount": 327,
       "droppedNoIdCount": 0,
       "noUsableCandidatePages": 340,
-      "droppedMediaMismatchCount": 502,
-      "droppedKeywordRuleCount": 24,
-      "droppedPeriodCount": 295,
+      "droppedMediaMismatchCount": 453,
+      "droppedKeywordRuleCount": 19,
+      "droppedPeriodCount": 250,
       "droppedBlockedTextCount": 0,
       "englishOnlyDropped": 0,
       "dropReasonCount": {
-        "media_not_whitelisted": 502,
-        "outside_period_d": 295,
-        "keyword_title_required_miss": 23,
+        "media_not_whitelisted": 453,
+        "outside_period_d": 250,
+        "keyword_title_required_miss": 18,
         "keyword_required_miss": 1
       }
     }
